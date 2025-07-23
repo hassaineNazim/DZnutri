@@ -5,7 +5,7 @@ export const styles = StyleSheet.create({
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "#b2f2b8",
+      backgroundColor: "red",
     },
     text: {
   
@@ -19,5 +19,10 @@ export const styles = StyleSheet.create({
     logo: {
         width: 100,
         height: 100,
+    },
+    navbar: {
+      height : 80,
+      paddingBottom : 16,
+      paddingTop: 10,
     }
   })
