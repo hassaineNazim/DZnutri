@@ -1,11 +1,11 @@
-import { Link } from "expo-router";
 import { View } from "react-native";
 import { styles } from "../../styles/auth.styles";
+import { ScanButton } from "../components/ScanButton";
 
 export default function Reco() {
   return (
     <View style={styles.container}>
-      <Link href="/analyse" style={styles.titre}>Profile</Link>
+      <ScanButton />
       
     </View>
   );
