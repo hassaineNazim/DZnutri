@@ -13,7 +13,7 @@ type Product = {
 };
 
 export default function Rech() {
-    const [query, setQuery] = useState('');
+  const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
