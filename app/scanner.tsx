@@ -1,12 +1,24 @@
 // L'import de 'expo-barcode-scanner' a été supprimé.
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useEffect, useState } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { Button, Text, View } from 'react-native';
+import { fetchProduct } from './services/openFoodFacts';
+import { saveToHistory } from './services/saveLocal';
+
+
+
+
+export const screenOptions = {
+  headerShown: false,
+};
 
 export default function Scanner() {
   const [permission, requestPermission] = useCameraPermissions();
   const [isScanned, setIsScanned] = useState(false);
 
+
+  
+ 
   useEffect(() => {
     if (!permission?.granted) {
       requestPermission();
@@ -17,6 +29,21 @@ export default function Scanner() {
     if(!isScanned){
       alert(`Code scanné: ${data}`);
       setIsScanned(true);
+fetchProduct(data)
+        .then(product => {
+        
+        alert(`Produit trouvé: ${product.product_name}` +
+          `\nMarque: ${product.brands}` +
+          `\nIngrédients: ${product.ingredients_text}` +
+          `\nNutri-Score: ${product.nutrition_grades}` );
+          return product;
+        })
+        .then(product => {
+          saveToHistory(product);
+        })
+        .catch(error => {
+          console.error('Erreur lors de la récupération du produit:', error);
+        });
     }
   }
 
@@ -26,7 +53,7 @@ export default function Scanner() {
 
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
+      <View className="flex-1 items-center justify-center bg-white">
         <Text style={{ textAlign: 'center' }}>
           Nous avons besoin de votre permission pour utiliser la caméra.
         </Text>
@@ -37,22 +64,22 @@ export default function Scanner() {
 
   // On utilise bien CameraView ici, ce qui est correct.
   return (
-    <View style={styles.container}>
+      <View className="flex-1 bg-black">
+     
       <CameraView
+        style={StyleSheet.absoluteFillObject}
         onBarcodeScanned={handleBarCodeScanned}
         barcodeScannerSettings={{
-          barcodeTypes: ["qr", "ean13", "ean8", "codabar"],
+          barcodeTypes: ["ean13", "ean8", "qr", "upc_a", "upc_e"],
         }}
-        style={StyleSheet.absoluteFillObject}
       />
+
+      <View className="absolute inset-0 justify-center items-center pointer-events-none">
+        <View className="w-[250px] h-[150px] border-2 border-white rounded-xl bg-white/10" />
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+import { StyleSheet } from 'react-native';
+

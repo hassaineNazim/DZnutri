@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
+import { ScanLine } from 'lucide-react-native';
+import { Pressable, Text } from 'react-native';
 
 export function ScanButton() {
   const router = useRouter();
@@ -10,23 +10,13 @@ export function ScanButton() {
   };
 
   return (
-    <Pressable onPress={handlePress} style={styles.button}>
-      <Ionicons name="scan-outline" size={30} color="white" />
-    </Pressable>
+    <Pressable onPress={handlePress}  className='absolute bottom-0 flex items-center justify-center bg-green-400 dark:bg-green-500 rounded-full w-20 h-20 shadow-lg'>
+      <ScanLine  color={'black'} strokeWidth={1.25} />
+      <Text className={'text-black text-s mt-0.2'}>Scan</Text>
+    </Pressable> 
   );
-}
+} 
 
-const styles = StyleSheet.create({
-  button: {
-    position: 'absolute',
-    bottom: 30,
-    right: 30,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'lightgreen', 
-    justifyContent: 'center',
-    alignItems: 'center',
-    
-  },
-});
+
+
+export default ScanButton;
