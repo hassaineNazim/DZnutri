@@ -1,6 +1,8 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
+import { API_URL } from "../config/api";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -14,7 +16,7 @@ export default function Login() {
       return;
     }
     try {
-      const response = await fetch("http://127.0.0.1:8000/login", {
+      const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -23,21 +25,25 @@ export default function Login() {
       });
       const data = await response.json();
       if (response.ok) {
+        // Stocker le token
+        await AsyncStorage.setItem('userToken', data.access_token);
+        
         setMessage("Connexion réussie ! Token : " + data.access_token);
         console.log("connexion réussie !")
         setUsername("");
         setPassword("");
         
+        // Rediriger vers la page principale après un court délai
         setTimeout(() => {
-          router.push("/");
-        }, 1500); 
+          router.push("/(tabs)/reglage");
+        }, 1500); // 1.5 secondes de délai pour voir le message de succès
       } else {
-        setMessage("Erreur : " + (data.detail));
+        setMessage("Erreur : " + (data.detail || "Serveur erreur"));
         console.log("erreur coté serveur ")
       }
     } catch (error) {
-      setMessage("Erreur :  Serveur erreur");
-      console.log('Pas de serveur §')
+      
+      console.log('Pas assez au serveur §')
     }
   };
 
@@ -64,6 +70,11 @@ export default function Login() {
           {message}
         </Text>
       ) : null}
+      
+      <View style={styles.signupContainer}>
+        <Text style={styles.signupText}>Pas encore de compte ?</Text>
+        <Button title="Créer un compte" onPress={() => router.push("/auth/signup")} />
+      </View>
     </View>
   );
 }
@@ -72,4 +83,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 20 },
   title: { fontSize: 24, marginBottom: 20, textAlign: "center" },
   input: { borderWidth: 1, borderColor: "#ccc", padding: 10, marginBottom: 15, borderRadius: 5 },
+  signupContainer: { marginTop: 20, alignItems: "center" },
+  signupText: { marginBottom: 10, fontSize: 16 },
 });

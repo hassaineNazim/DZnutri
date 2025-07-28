@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
+import { API_URL } from "../config/api";
 
 export default function Signup() {
   const [username, setUsername] = useState("");
@@ -14,7 +15,7 @@ export default function Signup() {
       return;
     }
     try {
-      const response = await fetch("http://127.0.0.1:8000/signup", {
+      const response = await fetch(`${API_URL}/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -30,7 +31,7 @@ export default function Signup() {
         
        
         setTimeout(() => {
-          router.push("/");
+          router.push("/(tabs)/reglage");
         }, 1500); 
       } else {
         Alert.alert("Erreur", data.detail || "Erreur lors de l'inscription");
@@ -63,6 +64,11 @@ export default function Signup() {
           {message}
         </Text>
       ) : null}
+      
+      <View style={styles.loginContainer}>
+        <Text style={styles.loginText}>Déjà un compte ?</Text>
+        <Button title="Se connecter" onPress={() => router.push("/auth/login")} />
+      </View>
     </View>
   );
 }
@@ -71,4 +77,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 20 },
   title: { fontSize: 24, marginBottom: 20, textAlign: "center" },
   input: { borderWidth: 1, borderColor: "#ccc", padding: 10, marginBottom: 15, borderRadius: 5 },
+  loginContainer: { marginTop: 20, alignItems: "center" },
+  loginText: { marginBottom: 10, fontSize: 16 },
 });

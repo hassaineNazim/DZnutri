@@ -1,50 +1,27 @@
-# Welcome to your Expo app 👋
+# 🥗 DZnutri — Analyse de produits alimentaires
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+DZnutri est une application web éducative permettant aux utilisateurs de **scanner les produits alimentaires** du quotidien (via leur code-barres ou leur nom) pour **évaluer leur impact sur la santé**.
 
-## Get started
+L’objectif est d’aider les consommateurs algériens à faire des choix plus sains en s’appuyant sur une base de données de produits, d’additifs, et d’informations nutritionnelles.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## 🧠 Fonctionnalités principales
 
-2. Start the app
+- 🔍 Scan ou recherche de produits alimentaires
+- ⚠️ Affichage des risques liés aux additifs et ingrédients nocifs
+- ✅ Évaluation de la qualité nutritionnelle (Nutri-Score ou équivalent)
+- 🗂️ Catégorisation par type de produit
+- 🔐 Système d’authentification (inscription / connexion)
+- 🧾 Historique des produits consultés
+- 💬 Interface en français (bientôt : arabe et anglais)
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## 🏗️ Technologies utilisées
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- **Backend** : FastAPI (Python)
+- **Frontend** : à venir (React / autre)
+- **Base de données** : SQLite
+- **ORM** : SQLAlchemy
+- **Sécurité** : Authentification via JWT
