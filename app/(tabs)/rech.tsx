@@ -10,6 +10,7 @@ type Product = {
   product_name?: string;
   brands?: string;
   image_small_url?: string;
+  nutrition_grades?: string;
 };
 
 export default function Rech() {
@@ -73,7 +74,10 @@ export default function Rech() {
                 <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200">{item.product_name || 'No name'}</Text>
                 <Text className="text-sm text-gray-500">{item.brands || 'No brand'}</Text>
               </View>
-            </TouchableOpacity>
+                 <View className={item.nutrition_grades === "a" ? "bg-green-500 ml-auto rounded-md " : item.nutrition_grades === "b" ? "bg-yellow-500 ml-auto rounded-md" : "bg-red-500 ml-auto rounded-md"}  >
+            <Text className="text-slate-100 py-1 px-2 font-bold" >{item.nutrition_grades.toUpperCase()}</Text>
+            </View>
+            </TouchableOpacity> 
           )}
           ListEmptyComponent={
             <Text className="text-gray-500 text-center mt-4">No products found</Text>
