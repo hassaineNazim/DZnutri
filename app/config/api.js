@@ -8,8 +8,8 @@ const getApiUrl = () => {
         // navigateur
         return "http://127.0.0.1:8000";
     } else {
-        // mobile (Android/iOS) 
-        return "http://192.168.97.150:8000"; //hna dir adress ip ta3ek, cmd => ipconfig => ...
+        // mobile (expo go) 
+        return "http://192.168.97.150:8000"; //hna dir adress ip ta3ek.
     }
 };
 

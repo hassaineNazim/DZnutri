@@ -1,10 +1,9 @@
 // L'import de 'expo-barcode-scanner' a été supprimé.
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useEffect, useState } from 'react';
-import { Button, Text, View } from 'react-native';
+import { Button, StyleSheet, Text, View } from 'react-native';
 import { fetchProduct } from './services/openFoodFacts';
 import { saveToHistory } from './services/saveLocal';
-
 
 
 
@@ -81,5 +80,5 @@ fetchProduct(data)
   );
 }
 
-import { StyleSheet } from 'react-native';
+
 

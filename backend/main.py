@@ -47,7 +47,7 @@ async def signup(form_data: OAuth2PasswordRequestForm = Depends()):
     )
 
     await add_user(new_user)
-    print(f"✅ Compte créé avec succès pour l'utilisateur : {form_data.username}")
+    print(f"Compte créé avec succès pour l'utilisateur : {form_data.username}")
     return {"message": "Utilisateur créé avec succès"}
 
      
