@@ -66,6 +66,7 @@ async def get_product_by_barcode(barcode: str):
         try:
             # On fait la requête GET
             response = await prod.get(off_api_url)
+            print("sssss")
             # On lève une exception si la requête elle-même a échoué (ex: erreur 500)
             response.raise_for_status() 
         except httpx.RequestError as exc:
@@ -74,7 +75,7 @@ async def get_product_by_barcode(barcode: str):
 
     # 3. Analyser la réponse
     data = response.json()
-    
+    print(f"Réponse de l'API Open Food Facts pour le code-barres {barcode}: {data}")
     # Open Food Facts renvoie status=1 si le produit est trouvé
     if data.get("status") == 1:
         print(f"Produit {barcode} trouvé sur Open Food Facts.")

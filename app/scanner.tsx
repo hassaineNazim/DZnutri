@@ -30,7 +30,7 @@ export default function Scanner() {
       setIsScanned(true);
 fetchProduct(data)
         .then(product => {
-        
+     
         alert(`Produit trouvé: ${product.product_name}` +
           `\nMarque: ${product.brands}` +
           `\nIngrédients: ${product.ingredients_text}` +
@@ -41,6 +41,7 @@ fetchProduct(data)
           saveToHistory(product);
         })
         .catch(error => {
+         
           console.error('Erreur lors de la récupération du produit:', error);
         });
     }
