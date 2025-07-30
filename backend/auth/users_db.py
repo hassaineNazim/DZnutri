@@ -1,9 +1,7 @@
-
-from .models import UserInDB
 from .password import hash_password
 from sqlalchemy.future import select
 from database import AsyncSessionLocal
-from auth.models import UserTable
+from .models import UserTable
 
 fake_users_db = {
     "alice": {
@@ -24,7 +22,7 @@ async def get_user(username: str):
         user = result.scalars().first()
         return user
 
-async def add_user(user: UserTable):
+async def add_user(user: any):
     async with AsyncSessionLocal() as session:
         session.add(user)
         await session.commit()
