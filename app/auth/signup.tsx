@@ -21,7 +21,7 @@ export default function SignupPage() {
     if (password !== confirmPassword) {
       setMessage("Erreur : Les mots de passe ne correspondent pas.");
       return;
-    }
+    } 
 
     setLoading(true);
     setMessage("");
@@ -46,7 +46,7 @@ export default function SignupPage() {
           router.push("/auth/login");
         }, 2000);
       } else {
-        setMessage("Erreur : " + (data.detail || "Impossible de créer le compte."));
+        setMessage("Erreurrr : " + (data.detail || "Impossible de créer le compte."));
       }
     } catch (error) {
       setMessage("Erreur : Impossible de contacter le serveur.");
