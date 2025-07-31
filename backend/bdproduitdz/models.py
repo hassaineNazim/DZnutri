@@ -14,7 +14,7 @@ class Product(Base):
     ingredients_text = Column(String, nullable=True)
 
     user_id = Column(Integer, ForeignKey("users.id"))
-    user = relationship("User")
+    user = relationship("UserTable", back_populates="products") 
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
@@ -37,4 +37,6 @@ class Submission(Base):
     typeProduct = Column(String, nullable=False)
 
     submitted_by_user_id = Column(Integer, ForeignKey("users.id"))
-    submitted_by = relationship("User", back_populates="submissions")
+    submitted_by = relationship("UserTable", back_populates="submissions")
+
+print("--- Le fichier des modèles PRODUIT est chargé ---")

@@ -1,8 +1,8 @@
-"""plz marche.
+"""Création de la structure initiale des tables
 
-Revision ID: 15b6c0529946
+Revision ID: 95d23cfa7e49
 Revises: 
-Create Date: 2025-07-31 16:38:27.257602
+Create Date: 2025-07-31 18:19:39.067280
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '15b6c0529946'
+revision: str = '95d23cfa7e49'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

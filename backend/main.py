@@ -2,11 +2,16 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
+from sqlalchemy.ext.asyncio import AsyncSession
 from auth.password import pwd_context, verify_password
 from auth.models import UserTable
 from auth.schemas import User
 from auth.users_db import get_user, add_user
 from auth.jwtokentest import c
+from bdproduitdz.crud import getProduitByBarcode
+from database import get_db
+
+
 
 app = FastAPI()
 
@@ -53,7 +58,7 @@ async def signup(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"message": "Utilisateur créé avec succès"}
 
 @app.get("/api/product/{barcode}")
-async def get_product_by_barcode(barcode: str):
+async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db)):
     """
     Cet endpoint recherche un produit par son code-barres.
     Il cherche d'abord sur Open Food Facts, puis (plus tard) dans notre propre base de données.
@@ -65,11 +70,10 @@ async def get_product_by_barcode(barcode: str):
     # 2. Appeler l'API d'Open Food Facts de manière asynchrone
     async with httpx.AsyncClient() as prod:
         try:
-            # On fait la requête GET
+            # On fait la requête GET 500
             response = await prod.get(off_api_url)
             print("sssss")
-            # On lève une exception si la requête elle-même a échoué (ex: erreur 500)
-            response.raise_for_status() 
+            
         except httpx.RequestError as exc:
             # Si la connexion à l'API d'Open Food Facts échoue
             raise HTTPException(status_code=503, detail=f"Erreur lors de l'appel à l'API externe: {exc}")
@@ -86,15 +90,13 @@ async def get_product_by_barcode(barcode: str):
     # 4. Logique de fallback (si non trouvé sur Open Food Facts)
     else:
         print(f"Produit {barcode} non trouvé sur Open Food Facts. Recherche locale...")
+        db_product = await getProduitByBarcode(db, barcode=barcode)
         
-        # --- C'est ici que vous ajouterez votre logique ---
-        # --- pour chercher dans votre base de données SQLite/PostgreSQL ---
+        if db_product:
+            print(f"Produit {barcode} trouvé dans la base de données locale.")
+            # On retourne une réponse cohérente
+            return {"source": "BDGlobal", "product": db_product}
         
-        # db_product = db.query(Product).filter(Product.barcode == barcode).first()
-        # if db_product:
-        #    return {"source": "local_db", "product": db_product}
-        
-        # 5. Si le produit n'est trouvé nulle part
-        raise HTTPException(status_code=404, detail="Produit non trouvé")
-
+        print(f"Produit {barcode} non trouvé meme en local.")
+        raise HTTPException(status_code=404, detail="Produit non trouvé meme en local")
      
