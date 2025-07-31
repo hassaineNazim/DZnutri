@@ -1,9 +1,7 @@
 from sqlalchemy import Column, Integer, String, JSON, Boolean, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base
+from ..database import Base
 
 class Product(Base):
     __tablename__ = "produits"
@@ -26,3 +24,17 @@ class Product(Base):
     category = Column(String, nullable=True)
     additives_tags = Column(JSON, nullable=True)
     custom_score = Column(Integer, nullable=True)
+
+class Submission(Base):
+    __tablename__ = "submissions"
+
+    id = Column(Integer, primary_key=True)
+    barcode = Column(String, index=True, nullable=False)
+    image_front_url = Column(String, nullable=False)
+    image_ingredients_url = Column(String, nullable=False)
+    status = Column(String, default="pending", index=True)
+    submitted_at = Column(DateTime, server_default=func.now())
+    typeProduct = Column(String, nullable=False)
+
+    submitted_by_user_id = Column(Integer, ForeignKey("users.id"))
+    submitted_by = relationship("User", back_populates="submissions")
