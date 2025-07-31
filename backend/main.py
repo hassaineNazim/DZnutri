@@ -3,7 +3,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 from auth.password import pwd_context, verify_password
-from auth.models import User, UserTable
+from auth.models import UserTable
+from auth.schemas import User
 from auth.users_db import get_user, add_user
 from auth.jwtokentest import c
 
