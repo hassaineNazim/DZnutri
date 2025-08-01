@@ -10,17 +10,16 @@ export const fetchProduct = async (barcode: string) => {
     
     // 2. Si la requête a réussi, on extrait les données
     const data = await response.json();
-    
 if (!response.ok) {
-  console.log("Erreur dans fetchProduct:", data);
+  console.error("Erreur dans fetchProduct:", data);
 }
     // 3. On renvoie directement l'objet "product" qui est à l'intérieur
     // Notre backend garantit que si la réponse est OK, "product" existe.
     return data.product;
 
   } catch (error) {
-    console.log("Erreur dans fetchProduct:", error);
+    console.error("Erreur dans fetchProduct:", error);
     // On propage l'erreur pour que le composant qui appelle puisse la gérer
-    
+    throw error === 'Product not found' ? 'Product not found' : error;
   }
 };
