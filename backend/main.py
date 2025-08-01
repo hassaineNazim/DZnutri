@@ -6,10 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth.password import pwd_context, verify_password
 from auth.models import UserTable
 from auth.schemas import User
-from auth.users_db import get_user, add_user
+from auth.users_db import get_user, add_user 
+from auth.crud import get_current_user
 from auth.jwtokentest import c
-from bdproduitdz.crud import getProduitByBarcode
+from bdproduitdz.crud import getProduitByBarcode, add_product_submissions
 from database import get_db
+from bdproduitdz import schemas
 
 
 
@@ -39,6 +41,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/signup") 
+
 async def signup(form_data: OAuth2PasswordRequestForm = Depends()):
     user_in_db = await get_user(form_data.username)
     if user_in_db: 
@@ -61,7 +64,7 @@ async def signup(form_data: OAuth2PasswordRequestForm = Depends()):
 async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db)):
     """
     Cet endpoint recherche un produit par son code-barres.
-    Il cherche d'abord sur Open Food Facts, puis (plus tard) dans notre propre base de données.
+    Il cherche d'abord sur Open Food Facts, puis il cherche dans notre propre base de données.
     """
     
     # 1. Définir l'URL de l'API d'Open Food Facts
@@ -99,4 +102,23 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
         
         print(f"Produit {barcode} non trouvé meme en local.")
         raise HTTPException(status_code=404, detail="Produit non trouvé meme en local")
-     
+
+
+@app.post("/api/submission, response_model=schemas.Submission)")
+async def create_product_submission(
+    submission: schemas.SubmissionCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Permet à un utilisateur connecté de soumettre un nouveau produit
+    pour validation par un admin.
+    """
+    # On appelle la fonction CRUD que vous avez créée
+    new_submission = await add_product_submissions(
+        db=db, 
+        submission=submission, 
+        user_id=current_user.id
+    )
+    
+    return new_submission

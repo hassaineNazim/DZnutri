@@ -27,15 +27,13 @@ export default function SignupPage() {
     setMessage("");
 
     try {
-      const response = await fetch(`${API_URL}/users/`, {
+      const response = await fetch(`${API_URL}/signup`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: JSON.stringify({
-          username: username,
-          password: password,
-        }),
+        body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+        
       });
       
       const data = await response.json();
@@ -43,10 +41,10 @@ export default function SignupPage() {
       if (response.ok) {
         setMessage("Compte créé avec succès ! Vous pouvez maintenant vous connecter.");
         setTimeout(() => {
-          router.push("/auth/login");
+          router.replace("/(tabs)/historique");
         }, 2000);
       } else {
-        setMessage("Erreurrr : " + (data.detail || "Impossible de créer le compte."));
+        setMessage("Erreur serveur : " + (data.detail || "Impossible de créer le compte."));
       }
     } catch (error) {
       setMessage("Erreur : Impossible de contacter le serveur.");

@@ -37,6 +37,7 @@ async def add_test_product():
             is_verified=True
         )
         
+        
         session.add(test_product)
         await session.commit()
         print(f"Produit '{test_product.product_name}' ajouté avec succès à la base de données !")

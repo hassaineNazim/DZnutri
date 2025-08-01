@@ -9,7 +9,7 @@ const getApiUrl = () => {
         return "http://127.0.0.1:8000";
     } else {
         // mobile (expo go) 
-        return "http://192.168.100.38:8000"; //hna dir adress ip ta3ek.
+        return "http://192.168.43.220:8000"; //hna dir adress ip ta3ek.
     }
 };
 

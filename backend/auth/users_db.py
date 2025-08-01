@@ -3,18 +3,6 @@ from sqlalchemy.future import select
 from database import AsyncSessionLocal
 from .models import UserTable
 
-fake_users_db = {
-    "alice": {
-        "id": 1,
-        "username": "alice",
-        "hashed_password": hash_password("motdepasse1")
-    },
-    "bob": {
-        "id": 2,
-        "username": "bob",
-        "hashed_password": hash_password("motdepasse2")
-    }
-} 
 
 async def get_user(username: str):
     async with AsyncSessionLocal() as session:
@@ -26,3 +14,5 @@ async def add_user(user: any):
     async with AsyncSessionLocal() as session:
         session.add(user)
         await session.commit()
+
+
