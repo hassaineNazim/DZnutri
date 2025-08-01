@@ -15,14 +15,15 @@ export default function SubmissionPage() {
   const [barcode, setBarcode] = useState('');
   const [imageFrontUrl, setImageFrontUrl] = useState('');
   const [imageIngredientsUrl, setImageIngredientsUrl] = useState('');
+  const [typeProduct, setTypeProduct] = useState(''); // 1. AJOUT DE L'ÉTAT
 
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmission = async () => {
-    // --- Validation Côté Client ---
-    if (!barcode || !imageFrontUrl || !imageIngredientsUrl) {
+    // Validation incluant le nouveau champ
+    if (!barcode || !imageFrontUrl || !imageIngredientsUrl || !typeProduct) {
       setMessage('Erreur : Tous les champs sont obligatoires.');
       return;
     }
@@ -36,16 +37,15 @@ export default function SubmissionPage() {
       if (!userToken) {
         setMessage('Erreur : Vous devez être connecté pour soumettre un produit.');
         setLoading(false);
-        // Optionnel : rediriger vers la page de login
-        // router.push('/auth/login');
         return;
       }
 
-      // On utilise les variables de l'état pour construire les données
+      // 2. AJOUT DU CHAMP DANS LES DONNÉES ENVOYÉES
       const submissionData = {
         barcode: barcode,
         image_front_url: imageFrontUrl,
         image_ingredients_url: imageIngredientsUrl,
+        typeProduct: typeProduct,
       };
 
       const response = await fetch(`${API_URL}/api/submission`, {
@@ -64,10 +64,11 @@ export default function SubmissionPage() {
           'Merci !',
           'Produit soumis avec succès pour validation.',
         );
-        // Vider les champs après succès
+        // Vider tous les champs après succès
         setBarcode('');
         setImageFrontUrl('');
         setImageIngredientsUrl('');
+        setTypeProduct('');
       } else {
         setMessage(`Erreur serveur : ${data.detail || 'Une erreur est survenue.'}`);
       }
@@ -104,12 +105,22 @@ export default function SubmissionPage() {
       />
 
       <TextInput
-        className="bg-gray-100 p-4 rounded-xl mb-8 text-base text-gray-800"
+        className="bg-gray-100 p-4 rounded-xl mb-4 text-base text-gray-800"
         placeholder="URL de la photo des ingrédients"
         placeholderTextColor="gray"
         value={imageIngredientsUrl}
         onChangeText={setImageIngredientsUrl}
         autoCapitalize="none"
+      />
+      
+      {/* 3. AJOUT DU CHAMP DE SAISIE */}
+      <TextInput
+        className="bg-gray-100 p-4 rounded-xl mb-8 text-base text-gray-800"
+        placeholder="Type de produit (ex: boisson, biscuit...)"
+        placeholderTextColor="gray"
+        value={typeProduct}
+        onChangeText={setTypeProduct}
+        autoCapitalize="sentences"
       />
 
       {message ? (
