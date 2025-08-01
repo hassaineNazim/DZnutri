@@ -23,6 +23,7 @@ class SubmissionBase(BaseModel):
     barcode: str
     image_front_url: str
     image_ingredients_url: Optional[str] = None
+    typeProduct: str
     
 
 
