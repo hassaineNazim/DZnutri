@@ -27,8 +27,14 @@ app.add_middleware(
 )
 
 @app.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user_in_db = await get_user(form_data.username)
+
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    """
+    cette fonction charche dans la table userTable et return un token si le user existe
+    
+    """
+    user_in_db = await get_user(db, username=form_data.username)
+    
     if not user_in_db:
         raise HTTPException(status_code=401, detail="Incorrect username")
     
@@ -104,7 +110,7 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
         raise HTTPException(status_code=404, detail="Produit non trouvé meme en local")
 
 
-@app.post("/api/submission, response_model=schemas.Submission)")
+@app.post("/api/submission", response_model=schemas.Submission)
 async def create_product_submission(
     submission: schemas.SubmissionCreate,
     db: AsyncSession = Depends(get_db),
