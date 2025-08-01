@@ -10,11 +10,23 @@ export default function Reco() {
   useEffect(() => {
     
     const loadHistory = async () => {
-      const saved = await AsyncStorage.getItem('scanHistory');
-      if (saved) {
-        setHistory(JSON.parse(saved));
-      }
-    };
+  const saved = await AsyncStorage.getItem('scanHistory');
+  if (saved) {
+    try {
+      const parsedData = JSON.parse(saved);
+      // Filter out any null, undefined, or invalid entries
+      const cleanData = parsedData.filter(item => item && item.code);
+      setHistory(cleanData);
+    } catch (e) {
+      // If JSON is corrupted, start with a fresh history
+      console.error("Failed to parse history, clearing it.", e);
+      setHistory([]);
+      await AsyncStorage.removeItem('scanHistory');
+    }
+  } else {
+    setHistory([]);
+  }
+};
     loadHistory();
   }, []);
 
@@ -33,15 +45,19 @@ useFocusEffect(
 
 
  const handleDeleteItem = (id) => {
-    const updatedData = history.filter((item) => item.id !== id);
+    const updatedData = history.filter((item) => item?.id !== id);
     setHistory(updatedData);
     AsyncStorage.setItem('scanHistory', JSON.stringify(updatedData))
    
   };
 
-  const renderItem = ({ item }) => (
-    <ListItem item={item} onDelete={handleDeleteItem} />
-  );
+  const renderItem = ({ item }) => {
+  // If the item is somehow invalid, don't render anything for it.
+  if (!item) {
+    return null;
+  }
+  return <ListItem item={item} onDelete={handleDeleteItem} />;
+};
 
 
 const clearHistory = async () => {
@@ -79,7 +95,7 @@ ListFooterComponent={() => (
     ) : null
   )}
 
-        keyExtractor={(item) => item.code}
+        keyExtractor={(item, index) => item?.code || index.toString()}
         renderItem={renderItem}
         
       />
