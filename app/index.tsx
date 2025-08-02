@@ -22,10 +22,10 @@ export default function Index() {
         }
     };
 
-    if (isLoading) {
-        return null; // ou un écran de chargement
+    if (isLoggedIn) {
+        return <Redirect href="/(tabs)/historique" />; 
+    } else {
+         return <Redirect href="/auth/login" />;
     }
-
-    return <Redirect href={isLoggedIn ? "/" : "/auth/login"} />;
 }
  
