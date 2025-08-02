@@ -3,16 +3,15 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Button,
+  Image,
   Modal,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 import { API_URL } from './config/api';
@@ -21,6 +20,14 @@ import { saveToHistory } from './services/saveLocal';
 
 export const screenOptions = {
  headerShown: false,
+};
+
+type Product = {
+  id: string;
+  product_name?: string;
+  brands?: string;
+  image_small_url?: string;
+  nutrition_grades?: string;
 };
 
 export default function Scanner() {
@@ -32,6 +39,8 @@ export default function Scanner() {
  const [imageIngredientsUrl, setImageIngredientsUrl] = useState('');
  const [message, setMessage] = useState('');
  const [loading, setLoading] = useState(false);
+ const [product, setProduct] = useState<Product[]>([]); // State for the fetched product
+ const [isProdModalVisible, setIsProdModalVisible] = useState(false);
  const router = useRouter();
 
  // Request camera permission on component mount
@@ -54,29 +63,28 @@ export default function Scanner() {
 
  function handleBarCodeScanned({data }: {data: string }) {
   if(!isScanned){
-   alert(`Code scanné: ${data}`);
+  
    setIsScanned(true);
       fetchProduct(data)
     .then(product => {
-  
-    alert(`Produit trouvé: ${product.product_name}` +
-     `\nMarque: ${product.brands}` +
-     `\nIngrédients: ${product.ingredients_text}` +
-     `\nNutri-Score: ${product.nutrition_grades}` );
+if (product === null || product === undefined) {
+  setIsModalVisible(true);
+  return product;
+}
+     setIsProdModalVisible(true);
+     setProduct(product);
      return product;
     })
     .then(product => {
      saveToHistory(product);
     })
     .catch(error => {
-     if (error === 'Product not found') {
-    
-      setIsModalVisible(true);
-     } else {
      
-      setIsModalVisible(true);
-     }
+        console.error('Error fetching product:', error);
+        setIsModalVisible(true); 
+        setIsProdModalVisible(false);
     
+   
     
     });
     } 
@@ -173,6 +181,32 @@ export default function Scanner() {
    )}
 
   <Modal
+ visible={isProdModalVisible}
+ transparent={true}
+ animationType="slide"
+ onRequestClose={() => setIsProdModalVisible(false)} // Use reset function for Android back button
+>
+  { isProdModalVisible &&  product && (
+ <Pressable
+  className="flex-1 justify-end bg-black/50"
+  onPress={() => setIsProdModalVisible(false)} // Use reset function when tapping background
+ >
+
+  <Pressable className="bg-white rounded-t-3xl p-5 pt-4 shadow-lg dark:bg-[#181A20]">
+   <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mb-5 flex-row dark:bg-[#181A20]" />
+  <Image
+                    source={{  uri: product.image_small_url }}
+                    className="w-16 h-16 rounded-md mr-4"
+                  />
+    <Text className="text-lg font-bold mb-2 dark:text-white">{product.product_name}</Text>
+  </Pressable>
+ </Pressable>)}
+</Modal>
+ 
+
+
+
+ <Modal
  visible={isModalVisible}
  transparent={true}
  animationType="slide"
@@ -182,56 +216,21 @@ export default function Scanner() {
   className="flex-1 justify-end bg-black/50"
   onPress={resetFormAndCloseModal} // Use reset function when tapping background
  >
-  <Pressable className="bg-white rounded-t-3xl p-5 pt-4 shadow-lg">
+  <Pressable className="bg-white rounded-t-3xl p-5 pt-4 shadow-lg dark:bg-[#181A20]">
    <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mb-5" />
-   <Text className="text-3xl font-bold text-gray-800 mb-8 text-center">
-    Ajouter un produit
-   </Text>
-   
-   <TextInput
-    className="bg-gray-200 p-4 rounded-xl mb-4 text-base text-gray-600"
-    placeholder="Code-barres"
-    value={scannedBarcode}
-    editable={false}
-   />
-
-   <TextInput
-    className="bg-gray-100 p-4 rounded-xl mb-4 text-base text-gray-800"
-    placeholder="URL de la photo de l'avant"
-    placeholderTextColor="gray"
-    value={imageFrontUrl}
-    onChangeText={setImageFrontUrl}
-    autoCapitalize="none"
-   />
-
-   <TextInput
-    className="bg-gray-100 p-4 rounded-xl mb-8 text-base text-gray-800"
-    placeholder="URL de la photo des ingrédients"
-    placeholderTextColor="gray"
-    value={imageIngredientsUrl}
-    onChangeText={setImageIngredientsUrl}
-        // --- FIX: The stray tab character before this line has been removed ---
-    autoCapitalize="none"
-   />
-
-   {message ? (
-    <Text className="text-center text-red-500 mb-4">{message}</Text>
-   ) : null}
-
-   <TouchableOpacity
-    onPress={handleSubmission}
-    disabled={loading}
-    className="bg-lime-500 py-4 rounded-xl flex-row justify-center items-center"
-   >
-    {loading ? (
-     <ActivityIndicator size="small" color="white" />
-    ) : (
-     <Text className="text-white text-lg font-bold">Soumettre le produit</Text>
-    )}
-   </TouchableOpacity>
+    <Text className="text-lg font-bold mb-2 dark:text-white">Produit non trouvé</Text>
+    <Pressable
+     className="bg-lime-500 py-3 px-6 rounded-full mb-4 dark:bg-green-500 items-center "
+     onPress={() => {
+       router.push('../screens/ajouterProd', )
+     
+     }}
+   ><Text className="text-white font-bold mb-2 ">Ajouter un produit</Text></Pressable>
   </Pressable>
  </Pressable>
 </Modal>
+
+
   </View>
  );
 }

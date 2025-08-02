@@ -20,6 +20,6 @@ if (!response.ok) {
   } catch (error) {
     console.error("Erreur dans fetchProduct:", error);
     // On propage l'erreur pour que le composant qui appelle puisse la gérer
-    throw error === 'Product not found' ? 'Product not found' : error;
+    throw error 
   }
 };

@@ -140,4 +140,6 @@ async def create_product_submission(
         user_id=current_user.id
     )
     
+    
+    
     return new_submission

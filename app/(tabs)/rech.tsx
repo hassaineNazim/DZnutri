@@ -75,7 +75,7 @@ export default function Rech() {
                 <Text className="text-sm text-gray-500">{item.brands || 'No brand'}</Text>
               </View>
                  <View className={item.nutrition_grades === "a" ? "bg-green-500 ml-auto rounded-md " : item.nutrition_grades === "b" ? "bg-yellow-500 ml-auto rounded-md" : "bg-red-500 ml-auto rounded-md"}  >
-            <Text className="text-slate-100 py-1 px-2 font-bold" >{item.nutrition_grades.toUpperCase()}</Text>
+            <Text className="text-slate-100 py-1 px-2 font-bold" >{item.nutrition_grades !== null ? item.nutrition_grades.toUpperCase() : 'N/A'}</Text>
             </View>
             </TouchableOpacity> 
           )}

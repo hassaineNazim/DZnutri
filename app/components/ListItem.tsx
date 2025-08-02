@@ -1,10 +1,10 @@
 import {
-    Animated,
-    Image,
-    PanResponder,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  Image,
+  PanResponder,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import { useRef } from "react";
@@ -80,7 +80,7 @@ export default function ListItem({ item, onDelete }: ListItemProps) {
               <Text className="text-gray-500" >{item.brands}</Text>
             </View>
             <View className={item.nutrition_grades === "a" ? "bg-green-500 ml-auto rounded-md " : item.nutrition_grades === "b" ? "bg-yellow-500 ml-auto rounded-md" : "bg-red-500 ml-auto rounded-md"}  >
-            <Text className="text-slate-100 py-1 px-2 font-bold" >{item.nutrition_grades.toUpperCase()}</Text>
+            <Text className="text-slate-100 py-1 px-2 font-bold" >{item.nutrition_grades !== null && item.nutrition_grades !== undefined ? item.nutrition_grades.toUpperCase() : 'N/A'}</Text>
             </View>
             
           </TouchableOpacity>
