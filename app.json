@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "DZnutri",
+    "slug": "DZnutri",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "dznutri",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nazim.dznutri"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.Nazim.dznutri"
+    },
+    "edgeToEdgeEnabled": true,
+    "permissions": [
+      "android.permission.CAMERA"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "388f92c2-6ce6-43bd-bc1d-430a055da834"
+      }
+    }
+  },
+  "web": {
+    "bundler": "metro",
+    "output": "static",
+    "favicon": "./assets/images/favicon.png",
+    "history": {
+      "origin": false
+    }
+  },
+  "plugins": [
+    "expo-router",
+    [
+      "expo-splash-screen",
+      {
+        "image": "./assets/images/splash-icon.png",
+        "imageWidth": 200,
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
+    ],
+    "expo-barcode-scanner"
+  ],
+  "experiments": {
+    "typedRoutes": true
+  },
+  "extra": {
+    "router": {},
+    "eas": {
+      "projectId": "388f92c2-6ce6-43bd-bc1d-430a055da834"
+    }
+  }
+}
