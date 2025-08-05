@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// 1. On importe la fonction 'makeRedirectUri'
+import { makeRedirectUri } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -10,13 +12,18 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function Login() {
   const router = useRouter();
-  // La correction est sur la ligne suivante
-  const [request, response, promptAsync] = Google.useAuthRequest({
+
+  // 2. On crée l'URL de redirection en activant le proxy.
+  // C'est la méthode moderne et recommandée par Expo.
+  const redirectUri = makeRedirectUri();
+
+  // 3. On utilise le hook "useIdTokenAuthRequest". Il est fait pour ça.
+  // Notez que pour le web, le paramètre s'appelle "clientId" et non "webClientId".
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: "899058288095-137a1fct9pf5hql01n3ofqaa25dirnst.apps.googleusercontent.com",
     iosClientId: "899058288095-sav0ru4ncgbluoj3juvsk7bproklf21h.apps.googleusercontent.com",
     androidClientId: "899058288095-f6dhdtvfo45vqg2ffveqk584li5ilq2e.apps.googleusercontent.com",
-    webClientId: "899058288095-137a1fct9pf5hql01n3ofqaa25dirnst.apps.googleusercontent.com",
-    scopes: ['profile', 'email'],
-    responseType: 'id_token',
+    redirectUri: redirectUri, // On passe l'URL créée juste au-dessus
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -30,10 +37,8 @@ export default function Login() {
       }
 
       if (response?.type === 'success') {
+        // Avec useIdTokenAuthRequest, le token est directement dans les params
         const { id_token } = response.params;
-        // --- AJOUTEZ CETTE LIGNE DE DÉBOGAGE ---
-        console.log("Réponse complète de Google:", JSON.stringify(response, null, 2));
-        // ------------------------------------
         
         try {
           const backendResponse = await fetch(`${API_URL}/auth/google`, {
@@ -74,7 +79,7 @@ export default function Login() {
         onPress={() => {
           promptAsync();
         }}
-        className="bg-lime-500 py-4 rounded-xl flex-row justify-center items-center"
+        className="bg-purple-500 py-4 rounded-xl flex-row justify-center items-center"
       >
         {loading ? (
           <ActivityIndicator color="white" />

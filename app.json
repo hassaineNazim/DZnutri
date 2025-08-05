@@ -14,49 +14,46 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/logo.png",
+        "backgroundColor": "#468249"
       },
-      "package": "com.Nazim.dznutri"
+      "package": "com.Nazim.dznutri",
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "edgeToEdgeEnabled": true
     },
-    "edgeToEdgeEnabled": true,
-    "permissions": [
-      "android.permission.CAMERA"
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png",
+      "history": {
+        "origin": false
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "expo-barcode-scanner"
     ],
+    "experiments": {
+      "typedRoutes": true
+    },
     "extra": {
+      "router": {
+        "origin": false
+      },
       "eas": {
         "projectId": "388f92c2-6ce6-43bd-bc1d-430a055da834"
       }
-    }
-  },
-  "web": {
-    "bundler": "metro",
-    "output": "static",
-    "favicon": "./assets/images/favicon.png",
-    "history": {
-      "origin": false
-    }
-  },
-  "plugins": [
-    "expo-router",
-    [
-      "expo-splash-screen",
-      {
-        "image": "./assets/images/splash-icon.png",
-        "imageWidth": 200,
-        "resizeMode": "contain",
-        "backgroundColor": "#ffffff"
-      }
-    ],
-    "expo-barcode-scanner"
-  ],
-  "experiments": {
-    "typedRoutes": true
-  },
-  "extra": {
-    "router": {},
-    "eas": {
-      "projectId": "388f92c2-6ce6-43bd-bc1d-430a055da834"
     }
   }
 }

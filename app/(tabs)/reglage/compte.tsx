@@ -31,7 +31,7 @@ export default function ComptePage() {
     try {
       await AsyncStorage.removeItem('userToken');
       // On utilise "replace" pour que l'utilisateur ne puisse pas revenir en arrière
-      router.replace("/auth/login");
+      router.replace("/auth");
     } catch (error) {
       console.log('Erreur lors de la déconnexion', error);
     }
