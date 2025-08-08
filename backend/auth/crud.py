@@ -20,6 +20,17 @@ async def create_user_from_google(db: AsyncSession, user_info: dict):
     await db.refresh(db_user)
     return db_user
 
+async def create_user_from_facebook(db: AsyncSession, user_info: dict):
+    """Crée un nouvel utilisateur à partir des informations Facebook."""
+    db_user = models.UserTable(
+        email=user_info['email'],
+        username=user_info.get('name', user_info['email']),
+    )
+    db.add(db_user)
+    await db.commit()
+    await db.refresh(db_user)
+    return db_user
+
 async def get_user_by_username(db: AsyncSession, username: str):
     """Récupère un utilisateur par son nom d'utilisateur."""
     result = await db.execute(select(models.UserTable).where(models.UserTable.username == username))

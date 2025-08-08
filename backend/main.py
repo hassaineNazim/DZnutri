@@ -32,7 +32,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GOOGLE_CLIENT_ID = "899058288095-137a1fct9pf5hql01n3ofqaa25dirnst.apps.googleusercontent.com"
+GOOGLE_CLIENT_IDS = {
+    # web
+    "899058288095-137a1fct9pf5hql01n3ofqaa25dirnst.apps.googleusercontent.com",
+    # ios
+    "899058288095-sav0ru4ncgbluoj3juvsk7bproklf21h.apps.googleusercontent.com",
+    # android
+    "899058288095-f6dhdtvfo45vqg2ffveqk584li5ilq2e.apps.googleusercontent.com",
+}
 
 @app.get("/")
 async def root():
@@ -47,7 +54,17 @@ async def health_check():
 @app.post("/auth/google")
 async def auth_google(token: auth_schemas.GoogleToken, db: AsyncSession = Depends(get_db)):
     try:
-        idinfo = id_token.verify_oauth2_token(token.id_token, requests.Request(), GOOGLE_CLIENT_ID)
+        idinfo = None
+        last_error = None
+        for aud in GOOGLE_CLIENT_IDS:
+            try:
+                idinfo = id_token.verify_oauth2_token(token.id_token, requests.Request(), aud)
+                break
+            except Exception as e:
+                last_error = e
+                continue
+        if idinfo is None:
+            raise ValueError(str(last_error))
         
         # 1. On cherche d'abord l'utilisateur
         user = await auth_crud.get_user_by_email(db, email=idinfo['email'])
@@ -62,6 +79,32 @@ async def auth_google(token: auth_schemas.GoogleToken, db: AsyncSession = Depend
 
     except ValueError:
         raise HTTPException(status_code=401, detail="Token Google invalide")
+
+@app.post("/auth/facebook")
+async def auth_facebook(token: auth_schemas.FacebookToken, db: AsyncSession = Depends(get_db)):
+    graph_url = "https://graph.facebook.com/me"
+    params = {"fields": "id,name,email", "access_token": token.access_token}
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(graph_url, params=params, timeout=10)
+            data = resp.json()
+        except Exception:
+            raise HTTPException(status_code=503, detail="Facebook Graph inaccessible")
+
+    if resp.status_code != 200:
+        detail = data.get("error", {}).get("message", "Token Facebook invalide")
+        raise HTTPException(status_code=401, detail=detail)
+
+    email = data.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email permission is required from Facebook")
+
+    user = await auth_crud.get_user_by_email(db, email=email)
+    if not user:
+        user = await auth_crud.create_user_from_facebook(db, user_info=data)
+
+    access_token = auth_jwt.create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/api/product/{barcode}")
 async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db)):
