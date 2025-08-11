@@ -106,6 +106,11 @@ async def auth_facebook(token: auth_schemas.FacebookToken, db: AsyncSession = De
     access_token = auth_jwt.create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.get("/auth/me")
+async def get_me(current_user: auth_schemas.User = Depends(auth_security.get_current_user)):
+    """Return the current authenticated user; used by clients to validate tokens."""
+    return current_user
+
 @app.get("/api/product/{barcode}")
 async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db)):
     """

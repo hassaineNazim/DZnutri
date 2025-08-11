@@ -22,9 +22,11 @@ async def create_user_from_google(db: AsyncSession, user_info: dict):
 
 async def create_user_from_facebook(db: AsyncSession, user_info: dict):
     """Crée un nouvel utilisateur à partir des informations Facebook."""
+
     db_user = models.UserTable(
         email=user_info['email'],
         username=user_info.get('name', user_info['email']),
+        
     )
     db.add(db_user)
     await db.commit()

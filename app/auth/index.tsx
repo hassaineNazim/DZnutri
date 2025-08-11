@@ -1,9 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import * as AuthSession from 'expo-auth-session';
-import * as Facebook from 'expo-auth-session/providers/facebook';
 import * as Google from 'expo-auth-session/providers/google';
-import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import React, { useEffect, useState } from 'react';
@@ -24,7 +22,7 @@ export default function Login() {
 
   const redirectUri = Platform.select({
  
-    default: AuthSession.makeRedirectUri({ scheme: 'dznutri' }),
+    default: AuthSession.makeRedirectUri(),
   }) as string;
 
 console.log('Redirect URI:', redirectUri);
@@ -36,12 +34,7 @@ console.log('Redirect URI:', redirectUri);
   });
 
   // Facebook Auth
-  const FACEBOOK_APP_ID = (Constants.expoConfig?.extra as any)?.facebookAppId as string | undefined;
-  const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
-    clientId: FACEBOOK_APP_ID ?? '',
-    scopes: ['public_profile', 'email'],
-    redirectUri,
-  });
+  
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -101,6 +94,7 @@ console.log('Redirect URI:', redirectUri);
     requestTracking();
   }, []);
 
+  
   /* Trigger the below function on your custom button press */
   const loginWithFacebook = () => {
     LoginManager.logInWithPermissions(["public_profile", "email"]).then(
@@ -112,6 +106,8 @@ console.log('Redirect URI:', redirectUri);
           AccessToken.getCurrentAccessToken().then((data) => {
             console.log(data);
             getUserFBData();
+            if(data?.accessToken)
+            handleFacebookResponse(data.accessToken);
           });
         }
       },
@@ -119,6 +115,29 @@ console.log('Redirect URI:', redirectUri);
         console.log("==> Login fail with error: " + error);
       }
     );
+  };
+  
+  const handleFacebookResponse = async (accessToken: string) => {
+    try {
+      const backendResponse = await fetch(`${API_URL}/auth/facebook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: accessToken }),
+      });
+
+      const data = await backendResponse.json();
+
+      if (backendResponse.ok) {
+        await AsyncStorage.setItem('userToken', data.access_token);
+        router.replace('/(tabs)/historique');
+      } else {
+        setError(`Erreur du serveur : ${data.detail || 'Authentification échouée'}`);
+      }
+    } catch (e) {
+      setError("Erreur : Impossible de contacter le backend.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getUserFBData = () => {
@@ -149,9 +168,9 @@ console.log('Redirect URI:', redirectUri);
       <View className="h-4" />
 
       <TouchableOpacity
-        disabled={!fbRequest || loading || !FACEBOOK_APP_ID}
-        onPress={() => {
         
+        onPress={() => {
+         
           loginWithFacebook();
         }}
         className="bg-blue-600 py-4 rounded-xl flex-row justify-center items-center"

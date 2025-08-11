@@ -1,4 +1,3 @@
-import { Search } from "lucide-react-native";
 import { useState } from "react";
 import { ActivityIndicator, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import "../../global.css";
@@ -44,7 +43,7 @@ export default function Rech() {
                     onSubmitEditing={searchProducts}
                     returnKeyType="search"
                 />
-               <View className="top-[12.5px] right-[290px] "><Search color="gray" size={20} /></View>
+           
 
 
 
