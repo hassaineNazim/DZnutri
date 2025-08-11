@@ -1,7 +1,0 @@
-<resources>
-  <string name="app_name">DZnutri</string>
-  <string name="expo_system_ui_user_interface_style" translatable="false">automatic</string>
-  <string name="facebook_app_id">1118044030243255</string>
-  <string name="facebook_client_token">e8766f6f802ae274065ea2c5eb642b9d</string>
-  <string name="fb_login_protocol_scheme">fb1118044030243255</string>
-</resources>
