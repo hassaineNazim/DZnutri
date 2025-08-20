@@ -23,6 +23,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Toute URL commençant par /uploads cherchera un fichier dans le dossier "uploads".
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # CORS configuration for frontend
 app.add_middleware( 
     CORSMiddleware,

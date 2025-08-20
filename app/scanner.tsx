@@ -1,60 +1,8 @@
-<<<<<<< HEAD
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
-
-export default function Scanner() {
-  const [permission, requestPermission] = useCameraPermissions();
-  const [isScanned, setIsScanned] = useState(false);
-  const router = useRouter();
-
-  const handleBarCodeScanned = ({ data }: { data: string }) => {
-    if (isScanned) return;
-    setIsScanned(true);
-    // On navigue immédiatement vers la page de résultat
-    router.push({
-  pathname: '/scan-result/[barcode]',
-  params: { barcode: data },
-});
-  };
-
-  if (!permission?.granted) {
-    return (
-      <View style={styles.permissionContainer}>
-        <Text>Permission caméra requise.</Text>
-        <Button onPress={requestPermission} title="Donner la permission" />
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <CameraView
-        style={StyleSheet.absoluteFillObject}
-        onBarcodeScanned={isScanned ? undefined : handleBarCodeScanned}
-        barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8'] }}
-      />
-      <View style={styles.overlay}>
-        <View style={styles.scanBox} />
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'black' },
-  permissionContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  scanBox: { width: 250, height: 150, borderWidth: 2, borderColor: 'white', borderRadius: 12 },
-});
-=======
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Alert,
+  ActivityIndicator,
   Button,
   Image,
   Modal,
@@ -62,16 +10,10 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
-
-import { API_URL } from './config/api';
 import { fetchProduct } from './services/openFoodFacts';
 import { saveToHistory } from './services/saveLocal';
-
-export const screenOptions = {
- headerShown: false,
-};
 
 type Product = {
   id: string;
@@ -81,208 +23,134 @@ type Product = {
   nutrition_grades?: string;
 };
 
+// On utilise un seul état pour gérer le résultat du scan
+type ScanResult = 
+  | { status: 'scanning' }
+  | { status: 'loading' }
+  | { status: 'found', product: Product }
+  | { status: 'notFound', barcode: string };
+
 export default function Scanner() {
- const [permission, requestPermission] = useCameraPermissions();
- const [isScanned, setIsScanned] = useState(false);
- const [isModalVisible, setIsModalVisible] = useState(false);
- const [scannedBarcode, setScannedBarcode] = useState(''); // State for the currently scanned barcode
- const [imageFrontUrl, setImageFrontUrl] = useState('');
- const [imageIngredientsUrl, setImageIngredientsUrl] = useState('');
- const [message, setMessage] = useState('');
- const [loading, setLoading] = useState(false);
- const [product, setProduct] = useState<Product[]>([]); // State for the fetched product
- const [isProdModalVisible, setIsProdModalVisible] = useState(false);
- const router = useRouter();
+  const [permission, requestPermission] = useCameraPermissions();
+  const [scanResult, setScanResult] = useState<ScanResult>({ status: 'scanning' });
+  const router = useRouter();
 
- // Request camera permission on component mount
- useEffect(() => {
+  useEffect(() => {
+    if (!permission?.granted) {
+      requestPermission();
+    }
+  }, []);
+
+  const handleBarCodeScanned = async ({ data }: { data: string }) => {
+    if (scanResult.status !== 'scanning') return; // Bloque si un scan est en cours
+    
+    setScanResult({ status: 'loading' }); // Affiche le chargement
+
+    try {
+      const fetchedProduct = await fetchProduct(data);
+      if (fetchedProduct) {
+        setScanResult({ status: 'found', product: fetchedProduct });
+        await saveToHistory(fetchedProduct);
+      } else {
+        setScanResult({ status: 'notFound', barcode: data });
+      }
+    } catch (error) {
+      console.error('Erreur lors de la recherche:', error);
+      setScanResult({ status: 'notFound', barcode: data });
+    }
+  };
+
+  // Fonction pour fermer le modal et réinitialiser le scanner
+  const resetScanner = () => setScanResult({ status: 'scanning' });
+
+  // Affiche l'écran de permission si nécessaire
   if (!permission?.granted) {
-   requestPermission();
-  }
- }, [permission]);
-
- // --- IMPROVEMENT: Centralized function to reset the modal and scanner state ---
- const resetFormAndCloseModal = () => {
-  setIsModalVisible(false);
-  setIsScanned(false); // Allow scanning again
-  setScannedBarcode('');
-  setImageFrontUrl('');
-  setImageIngredientsUrl('');
-  setMessage('');
-  setLoading(false);
- };
-
- function handleBarCodeScanned({data }: {data: string }) {
-  if(!isScanned){
-  
-   setIsScanned(true);
-      fetchProduct(data)
-    .then(product => {
-if (product === null || product === undefined) {
-  setIsModalVisible(true);
-  return product;
-}
-     setIsProdModalVisible(true);
-     setProduct(product);
-     return product;
-    })
-    .then(product => {
-     saveToHistory(product);
-    })
-    .catch(error => {
-     
-        console.error('Error fetching product:', error);
-        setIsModalVisible(true); 
-        setIsProdModalVisible(false);
-    
-   
-    
-    });
-    } 
-}
-  
-
- const handleSubmission = async () => {
-  if (!scannedBarcode || !imageFrontUrl || !imageIngredientsUrl) {
-   setMessage('Erreur : Tous les champs sont obligatoires.');
-   return;
-  }
-
-  setLoading(true);
-  setMessage('');
-
-  try {
-   const userToken = await AsyncStorage.getItem('userToken');
-   if (!userToken) {
-    throw new Error('Vous devez être connecté pour soumettre un produit.');
-   }
-
-   const submissionData = {
-    barcode: scannedBarcode,
-    image_front_url: imageFrontUrl,
-    image_ingredients_url: imageIngredientsUrl,
-   };
-
-   const response = await fetch(`${API_URL}/api/submission`, {
-    method: 'POST',
-     headers: {
-     'Content-Type': 'application/json',
-     Authorization: `Bearer ${userToken}`,
-    },
-    body: JSON.stringify(submissionData),
-   });
-
-   const data = await response.json();
-
-   if (response.ok) {
-    // --- IMPROVEMENT: Close modal automatically on success ---
-    Alert.alert(
-     'Merci !',
-     'Produit soumis avec succès pour validation.',
-     [{ text: 'OK', onPress: resetFormAndCloseModal }]
+    return (
+      <View style={styles.permissionContainer}>
+        <Text>Nous avons besoin de la permission de la caméra.</Text>
+        <Button onPress={requestPermission} title="Donner la permission" />
+      </View>
     );
-   } else {
-    throw new Error(data.detail || 'Une erreur serveur est survenue.');
-   }
-  } catch (error) {
-   setMessage(`Erreur `);
-  } finally {
-   setLoading(false);
   }
- };
 
- if (!permission) return <View />; // Loading state for permissions
-
- if (!permission.granted) {
   return (
-   <View className="flex-1 items-center justify-center bg-white">
-    <Text className="text-center p-4">
-     Nous avons besoin de votre permission pour utiliser la caméra.
-    </Text>
-    <Button onPress={requestPermission} title="Donner la permission" />
-   </View>
-  );
- }
+    <View style={styles.container}>
+      <CameraView
+        style={StyleSheet.absoluteFillObject}
+        onBarcodeScanned={scanResult.status === 'scanning' ? handleBarCodeScanned : undefined}
+        barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8'] }}
+      />
+      <View style={styles.overlay}>
+        <View style={styles.scanBox} />
+      </View>
 
- return (
-  <View className="flex-1 bg-black">
-   <CameraView
-    style={StyleSheet.absoluteFillObject}
-    onBarcodeScanned={isScanned ? undefined : handleBarCodeScanned} // Disable scanner when processing
-    barcodeScannerSettings={{
-     barcodeTypes: ["ean13", "ean8", "qr", "upc_a", "upc_e"],
-    }}
-   />
+      {scanResult.status === 'loading' && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      )}
 
-   {/* Visual Guide for Scanner */}
-   <View className="absolute inset-0 justify-center items-center pointer-events-none">
-    <View className="w-[250px] h-[150px] border-2 border-white rounded-xl bg-white/10" />
-   </View>
+      <Modal
+        visible={scanResult.status === 'found' || scanResult.status === 'notFound'}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={resetScanner}
+      >
+        <Pressable style={styles.modalOverlay} onPress={resetScanner}>
+          <Pressable style={styles.modalContent}>
+            <View style={styles.modalHandle} />
+            
+            {/* Affiche le contenu en fonction du résultat */}
+            {scanResult.status === 'found' && (
+              <View style={styles.productInfoContainer}>
+                {scanResult.product.image_small_url && (
+                  <Image source={{ uri: scanResult.product.image_small_url }} style={styles.productImage} />
+                )}
+                <Text style={styles.productName}>{scanResult.product.product_name}</Text>
+              </View>
+            )}
 
-   {/* --- IMPROVEMENT: Button to allow re-scanning manually --- */}
-   {isScanned && !isModalVisible && (
-    <View className="absolute bottom-10 self-center">
-     <TouchableOpacity
-      onPress={() => setIsScanned(false)}
-      className="bg-lime-500 py-3 px-6 rounded-full"
-     >
-      <Text className="text-white text-lg font-bold">Scanner à nouveau</Text>
-     </TouchableOpacity>
+            {scanResult.status === 'notFound' && (
+              <>
+                <Text style={styles.notFoundTitle}>Produit inconnu</Text>
+                <Text style={styles.notFoundSubtitle}>
+                  Aidez la communauté en ajoutant ce produit à la base de données.
+                </Text>
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/screens/typeProd',
+                      params: { barcode: scanResult.barcode },
+                    });
+                  }}
+                >
+                  <Text style={styles.addButtonText}>Compléter les informations</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
-   )}
-
-  <Modal
- visible={isProdModalVisible}
- transparent={true}
- animationType="slide"
- onRequestClose={() => setIsProdModalVisible(false)} // Use reset function for Android back button
->
-  { isProdModalVisible &&  product && (
- <Pressable
-  className="flex-1 justify-end bg-black/50"
-  onPress={() => setIsProdModalVisible(false)} // Use reset function when tapping background
- >
-
-  <Pressable className="bg-white rounded-t-3xl p-5 pt-4 shadow-lg dark:bg-[#181A20]">
-   <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mb-5 flex-row dark:bg-[#181A20]" />
-  <Image
-                    source={{  uri: product.image_small_url }}
-                    className="w-16 h-16 rounded-md mr-4"
-                  />
-    <Text className="text-lg font-bold mb-2 dark:text-white">{product.product_name}</Text>
-  </Pressable>
- </Pressable>)}
-</Modal>
- 
-
-
-
- <Modal
- visible={isModalVisible}
- transparent={true}
- animationType="slide"
- onRequestClose={resetFormAndCloseModal} // Use reset function for Android back button
->
- <Pressable
-  className="flex-1 justify-end bg-black/50"
-  onPress={resetFormAndCloseModal} // Use reset function when tapping background
- >
-  <Pressable className="bg-white rounded-t-3xl p-5 pt-4 shadow-lg dark:bg-[#181A20]">
-   <View className="w-12 h-1.5 bg-gray-300 rounded-full self-center mb-5" />
-    <Text className="text-lg font-bold mb-2 dark:text-white">Produit non trouvé</Text>
-    <Pressable
-     className="bg-lime-500 py-3 px-6 rounded-full mb-4 dark:bg-green-500 items-center "
-     onPress={() => {
-       router.push('../screens/ajouterProd', )
-     
-     }}
-   ><Text className="text-white font-bold mb-2 ">Ajouter un produit</Text></Pressable>
-  </Pressable>
- </Pressable>
-</Modal>
-
-
-  </View>
- );
+  );
 }
->>>>>>> 1548a302fa01d99e5e0bbf3823f52bbce6957942
+
+// --- STYLES ---
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: 'black' },
+  permissionContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', pointerEvents: 'none' },
+  scanBox: { width: 250, height: 150, borderWidth: 2, borderColor: 'white', borderRadius: 12 },
+  loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.0)' },
+  modalContent: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingTop: 12, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 20 },
+  modalHandle: { width: 48, height: 6, backgroundColor: '#D1D5DB', borderRadius: 3, marginBottom: 20 },
+  productInfoContainer: { flexDirection: 'row', alignItems: 'center', width: '100%' },
+  productImage: { width: 64, height: 64, borderRadius: 8, marginRight: 16 },
+  productName: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
+  notFoundTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 8, color: '#111827' },
+  notFoundSubtitle: { fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 24 },
+  addButton: { backgroundColor: '#84CC16', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 99, alignItems: 'center', width: '100%' },
+  addButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+});
