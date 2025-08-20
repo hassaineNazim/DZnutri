@@ -4,6 +4,7 @@ import { API_URL } from "../config/api";
 export const fetchProduct = async (barcode: string) => {
   try {
     const response = await fetch(`${API_URL}/api/product/${barcode}`);
+
     const data = await response.json();
 
     if (!response.ok || !data.product) {
@@ -15,5 +16,6 @@ export const fetchProduct = async (barcode: string) => {
   } catch (error) {
     console.error("Erreur dans fetchProduct:", error);
     return null; // 🔥 mieux que throw, sinon ton app crashe
+
   }
 };

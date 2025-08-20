@@ -20,7 +20,10 @@
       "package": "com.Nazim.dznutri",
       "permissions": [
         "android.permission.CAMERA"
+
       ]
+
+     
     },
     "web": {
       "bundler": "metro",
@@ -42,9 +45,11 @@
         }
       ],
       "expo-barcode-scanner",
+
       [
         "react-native-fbsdk-next",
         {
+
           "appID": "1118044030243255",
           "clientToken": "e8766f6f802ae274065ea2c5eb642b9d",
           "displayName": "Login with Facebook",
@@ -53,11 +58,13 @@
           "autoLogAppEventsEnabled": false,
           "isAutoInitEnabled": true,
           "iosUserTrackingPermission": "This identifier will be used to deliver personalized ads to you."
+
         }
       ],
       "expo-tracking-transparency",
       "expo-font"
     ],
+
     "experiments": {
       "typedRoutes": true
     },
