@@ -3,13 +3,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { API_URL } from '../config/api'; // Adaptez le chemin si nécessaire
 
@@ -68,7 +68,7 @@ export default function AjouterProduitPhotoPage() {
       formData.append('brand', params.brand as string);
 
       // On ajoute le fichier image
-      formData.append('image', {
+      formData.append('image_front', {
         uri: imageUri,
         name: `photo_${params.barcode}.jpg`,
         type: 'image/jpeg',
@@ -77,7 +77,7 @@ export default function AjouterProduitPhotoPage() {
       const response = await fetch(`${API_URL}/api/submission`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${userToken}`,
+          'Authorization': `Bearer ${userToken}`
           // On ne met PAS 'Content-Type', la bibliothèque s'en charge pour FormData
         },
         body: formData,
@@ -88,11 +88,11 @@ export default function AjouterProduitPhotoPage() {
         throw new Error(errorData.detail || 'Erreur du serveur');
       }
 
-      Alert.alert('Succès !', 'Produit soumis pour validation. Merci !', [
+      Alert.alert('Succès !', 'Produit soumis pour validation. Merci de votre participation !', [
         {
           text: 'OK',
           // On redirige l'utilisateur vers le scanner après le succès
-          onPress: () => router.replace('./tabs/scanner'),
+          onPress: () => router.replace('./app/scanner'),
         },
       ]);
     } catch (error) {

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
@@ -13,8 +13,13 @@ from auth import jwt as auth_jwt
 from bdproduitdz import crud as bd_crud
 from database import get_db
 from bdproduitdz import schemas as bd_schemas
+import shutil
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from typing import Optional
 
 
+Path("uploads").mkdir(exist_ok=True)
 
 
 app = FastAPI(
@@ -29,7 +34,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # CORS configuration for frontend
 app.add_middleware( 
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["*"], #allow all origins 
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -158,24 +163,61 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
         raise HTTPException(status_code=404, detail="Produit non trouvé meme en local")
 
 
+# Dans main.py
+
 @app.post("/api/submission", response_model=bd_schemas.Submission)
 async def create_product_submission(
-    submission: bd_schemas.SubmissionCreate,
+    # On ne reçoit plus un seul objet JSON, mais des champs de formulaire séparés
     db: AsyncSession = Depends(get_db),
-    current_user: auth_schemas.User = Depends(auth_security.get_current_user)
+    current_user: auth_schemas.User = Depends(auth_security.get_current_user),
+    barcode: str = Form(...),
+    typeProduct: str = Form(...),
+    productName: str = Form(...),
+    brand: str = Form(...),
+    # On attend un fichier nommé "image_front"
+    image_front: UploadFile = File(...),
+    # On attend un deuxième fichier optionnel nommé "image_ingredients"
+    image_ingredients: Optional[UploadFile] = File(None)
 ):
     """
-    Permet à un utilisateur connecté de soumettre un nouveau produit
-    pour validation par un admin.
+    Permet à un utilisateur connecté de soumettre un nouveau produit avec des photos.
     """
-    # On appelle la fonction CRUD que vous avez créée
-    new_submission = await bd_crud.add_product_submissions(
-        db=db, 
-        submission=submission, 
-        user_id=current_user.id
+    # 1. Sauvegarder la première image
+    # On crée un nom de fichier unique pour éviter les conflits
+    front_image_path = f"uploads/front_{barcode}_{image_front.filename}"
+    try:
+        with open(front_image_path, "wb") as buffer:
+            shutil.copyfileobj(image_front.file, buffer)
+    finally:
+        image_front.file.close()
+
+    # 2. Sauvegarder la deuxième image si elle existe
+    ingredients_image_path = None
+    if image_ingredients:
+        ingredients_image_path = f"uploads/ingredients_{barcode}_{image_ingredients.filename}"
+        try:
+            with open(ingredients_image_path, "wb") as buffer:
+                shutil.copyfileobj(image_ingredients.file, buffer)
+        finally:
+            image_ingredients.file.close()
+
+    # 3. Préparer les données pour la fonction CRUD
+    # On crée un objet Pydantic avec les données du formulaire et les chemins des images
+    submission_data = bd_schemas.SubmissionCreate(
+        barcode=barcode,
+        typeProduct=typeProduct,
+        productName=productName, # Assurez-vous que ce champ existe dans votre schéma
+        brand=brand,             # Assurez-vous que ce champ existe dans votre schéma
+        image_front_url=front_image_path,
+        image_ingredients_url=ingredients_image_path
     )
     
-    
+    # 4. Appeler la fonction CRUD (cette partie ne change pas)
+    new_submission = await bd_crud.add_product_submissions(
+        db=db,
+        submission=submission_data,
+        user_id=current_user.id
+    )
     
     return new_submission
 

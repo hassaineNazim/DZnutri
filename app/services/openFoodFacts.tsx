@@ -8,14 +8,14 @@ export const fetchProduct = async (barcode: string) => {
     const data = await response.json();
 
     if (!response.ok || !data.product) {
-      console.error("Produit introuvable");
-      return null; // 🔥 renvoie null si le produit n’existe pas
+       //console.error("Produit introuvable");
+      return null; 
     }
     console.log(data.product);
     return data.product;
   } catch (error) {
     console.error("Erreur dans fetchProduct:", error);
-    return null; // 🔥 mieux que throw, sinon ton app crashe
+    return null; 
 
   }
 };
