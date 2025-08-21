@@ -32,6 +32,8 @@ class Submission(Base):
     barcode = Column(String, index=True, nullable=False)
     image_front_url = Column(String, nullable=False)
     image_ingredients_url = Column(String, nullable=True)
+    productName = Column(String, nullable=True)
+    brand = Column(String, nullable=True)
     status = Column(String, default="pending", index=True)
     submitted_at = Column(DateTime, server_default=func.now())
     typeProduct = Column(String, nullable=True)

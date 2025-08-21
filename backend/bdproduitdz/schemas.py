@@ -22,6 +22,8 @@ class ProductBase(BaseModel):
 class SubmissionBase(BaseModel):
     barcode: str
     image_front_url: str
+    brand: str
+    productName : str 
     image_ingredients_url: Optional[str] = None
     typeProduct: str
     

@@ -1,5 +1,5 @@
 import { CheckCircle, Filter, LogOut, Package, RefreshCw, XCircle } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/auth';
 import { submissionsAPI } from '../api/submissions';

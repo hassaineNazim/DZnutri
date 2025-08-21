@@ -163,8 +163,6 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
         raise HTTPException(status_code=404, detail="Produit non trouvé meme en local")
 
 
-# Dans main.py
-
 @app.post("/api/submission", response_model=bd_schemas.Submission)
 async def create_product_submission(
     # On ne reçoit plus un seul objet JSON, mais des champs de formulaire séparés
@@ -179,6 +177,14 @@ async def create_product_submission(
     # On attend un deuxième fichier optionnel nommé "image_ingredients"
     image_ingredients: Optional[UploadFile] = File(None)
 ):
+
+
+    # --- LIGNES DE VÉRIFICATION ---
+    print("--- Données reçues par le backend ---")
+    print(f"Nom du produit : {productName}")
+    print(f"Marque : {brand}")
+    print("------------------------------------")
+    # ----------------------------
     """
     Permet à un utilisateur connecté de soumettre un nouveau produit avec des photos.
     """
@@ -225,15 +231,11 @@ async def create_product_submission(
 async def get_submissions_for_admin(
     status: str = "pending",
     db: AsyncSession = Depends(get_db),
-    current_user: auth_schemas.User = Depends(auth_security.get_current_user)
 ):
     """
     Endpoint pour récupérer toutes les soumissions de produits pour l'admin.
     Par défaut, récupère les soumissions en attente.
     """
-    # Vérification que l'utilisateur est admin
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Accès refusé. Admin requis.")
     
     try:
         submissions = await bd_crud.get_all_submissions(db, status=status)
@@ -245,14 +247,12 @@ async def get_submissions_for_admin(
 async def approve_product_submission(
     submission_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: auth_schemas.User = Depends(auth_security.get_current_user)
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_admin)
 ):
     """
     Endpoint pour approuver une soumission et la transférer vers la table des produits.
     """
-    # Vérification que l'utilisateur est admin
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Accès refusé. Admin requis.")
+
     
     try:
         approved_product = await bd_crud.approve_submission(db, submission_id, current_user.id)
@@ -269,14 +269,11 @@ async def approve_product_submission(
 async def reject_product_submission(
     submission_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: auth_schemas.User = Depends(auth_security.get_current_user)
+    
 ):
     """
     Endpoint pour rejeter une soumission.
     """
-    # Vérification que l'utilisateur est admin
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Accès refusé. Admin requis.")
     
     try:
         rejected_submission = await bd_crud.reject_submission(db, submission_id)
@@ -289,19 +286,40 @@ async def reject_product_submission(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors du rejet: {str(e)}")
 
-@app.get("/api/admin/profile")
-async def get_admin_profile(current_user: auth_schemas.User = Depends(auth_security.get_current_user)):
+@app.get("/api/admin/profile", response_model=auth_schemas.AdminUser)
+async def get_admin_profile(
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_admin)
+):
     """
-    Endpoint pour récupérer le profil de l'admin connecté.
+    Endpoint sécurisé qui retourne le profil de l'admin actuellement connecté.
     """
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Accès refusé. Admin requis.")
+    return current_user
+
+
+@app.post("/auth/login-admin")
+async def login_admin(
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    db: AsyncSession = Depends(get_db)
+):
+    # On cherche l'utilisateur par son nom d'utilisateur
+    user_in_db = await auth_crud.get_user_by_username(db, username=form_data.username)
     
-    return {
-        "id": current_user.id,
-        "username": current_user.username,
-        "is_admin": current_user.is_admin
-    }
+    # On vérifie si l'utilisateur existe, s'il est admin et s'il a un mot de passe
+    if not user_in_db or not user_in_db.is_admin or not user_in_db.hashed_password:
+        raise HTTPException(status_code=403, detail="Accès refusé ou identifiants incorrects")
+    
+    # On vérifie le mot de passe
+    if not auth_security.verify_password(form_data.password, user_in_db.hashed_password):
+        raise HTTPException(status_code=401, detail="Identifiants incorrects")
+
+    # Si tout est bon, on génère un token
+    access_token = auth_jwt.create_access_token(data={"sub": user_in_db.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+
+
+
 
 
 """

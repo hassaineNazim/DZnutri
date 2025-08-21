@@ -11,11 +11,10 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { API_URL } from '../config/api'; // Adaptez le chemin si nécessaire
+import { API_URL } from '../config/api';
 
 export default function AjouterProduitPhotoPage() {
   const router = useRouter();
-  // On récupère TOUTES les infos des pages précédentes
   const params = useLocalSearchParams<{
     barcode: string;
     type: string;
@@ -24,10 +23,12 @@ export default function AjouterProduitPhotoPage() {
   }>();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageIngredientsUri, setImageIngredientsUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fonction pour ouvrir la caméra
-  const takePhoto = async () => {
+  // CORRECTION 1 : La fonction pour prendre une photo a maintenant un paramètre
+  // pour savoir quel état mettre à jour (photo avant OU photo ingrédients).
+  const takePhoto = async (setImageToUpdate: (uri: string) => void) => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (permissionResult.granted === false) {
       alert("La permission d'utiliser la caméra est requise !");
@@ -36,50 +37,46 @@ export default function AjouterProduitPhotoPage() {
 
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
-      quality: 0.7, // Compresse l'image pour un envoi plus rapide
+      quality: 0.7,
     });
 
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      setImageToUpdate(result.assets[0].uri);
     }
   };
 
-  // Fonction pour tout envoyer au backend
   const handleSubmission = async () => {
-    if (!imageUri) {
-      Alert.alert('Erreur', 'Veuillez prendre une photo du produit.');
+    if (!imageUri || !imageIngredientsUri) {
+      Alert.alert('Erreur', 'Veuillez prendre les deux photos du produit.');
       return;
     }
     setLoading(true);
 
     try {
       const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) {
-        throw new Error('Utilisateur non connecté.');
-      }
+      if (!userToken) throw new Error('Utilisateur non connecté.');
 
-      // On crée un objet FormData pour envoyer le fichier et les données
       const formData = new FormData();
-
-      // On ajoute les données texte reçues en paramètres
       formData.append('barcode', params.barcode as string);
       formData.append('typeProduct', params.type as string);
       formData.append('productName', params.productName as string);
       formData.append('brand', params.brand as string);
 
-      // On ajoute le fichier image
       formData.append('image_front', {
         uri: imageUri,
-        name: `photo_${params.barcode}.jpg`,
+        name: `front_${params.barcode}.jpg`,
+        type: 'image/jpeg',
+      } as any);
+      
+      formData.append('image_ingredients', {
+        uri: imageIngredientsUri,
+        name: `ingredients_${params.barcode}.jpg`,
         type: 'image/jpeg',
       } as any);
 
       const response = await fetch(`${API_URL}/api/submission`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${userToken}`
-          // On ne met PAS 'Content-Type', la bibliothèque s'en charge pour FormData
-        },
+        headers: { 'Authorization': `Bearer ${userToken}` },
         body: formData,
       });
 
@@ -88,15 +85,14 @@ export default function AjouterProduitPhotoPage() {
         throw new Error(errorData.detail || 'Erreur du serveur');
       }
 
-      Alert.alert('Succès !', 'Produit soumis pour validation. Merci de votre participation !', [
+      Alert.alert('Succès !', 'Produit soumis pour validation. Merci !', [
         {
           text: 'OK',
-          // On redirige l'utilisateur vers le scanner après le succès
-          onPress: () => router.replace('./app/scanner'),
+          onPress: () => router.replace('../scanner'),
         },
       ]);
-    } catch (error) {
-      Alert.alert('Erreur');
+    } catch (error: any) {
+      Alert.alert('Erreur', error.message);
     } finally {
       setLoading(false);
     }
@@ -104,27 +100,48 @@ export default function AjouterProduitPhotoPage() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Photo du produit</Text>
-      <Text style={styles.subtitle}>
-        Prenez une photo claire de l'avant du produit.
-      </Text>
+      <Text style={styles.title}>Photos du produit</Text>
+      
+      {/* --- CORRECTION 2 : Logique d'affichage des boutons --- */}
 
-      {/* Affiche le bouton "Prendre une photo" OU l'image et le bouton "Soumettre" */}
-      {!imageUri ? (
-        <TouchableOpacity style={styles.button} onPress={takePhoto}>
-          <Text style={styles.buttonText}>Ouvrir la caméra</Text>
+      {/* Affiche le bouton pour la photo de l'avant */}
+      {!imageUri && (
+        <TouchableOpacity style={styles.button} onPress={() => takePhoto(setImageUri)}>
+          <Text style={styles.buttonText}>1. Prendre une photo de l'avant</Text>
         </TouchableOpacity>
-      ) : (
-        <>
+      )}
+
+      {/* Affiche l'image de l'avant si elle a été prise */}
+      {imageUri && (
+        <View style={styles.imageContainer}>
+          <Text style={styles.imageLabel}>Photo de l'avant :</Text>
           <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleSubmission}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>Soumettre le produit</Text>
-          </TouchableOpacity>
-        </>
+        </View>
+      )}
+      
+      {/* Affiche le bouton pour la photo des ingrédients, seulement si la première a été prise */}
+      {imageUri && !imageIngredientsUri && (
+         <TouchableOpacity style={styles.button} onPress={() => takePhoto(setImageIngredientsUri)}>
+           <Text style={styles.buttonText}>2. Prendre une photo des ingrédients</Text>
+         </TouchableOpacity>
+      )}
+
+      {/* Affiche l'image des ingrédients si elle a été prise */}
+      {imageIngredientsUri && (
+        <View style={styles.imageContainer}>
+          <Text style={styles.imageLabel}>Photo des ingrédients :</Text>
+          <Image source={{ uri: imageIngredientsUri }} style={styles.imagePreview} />
+        </View>
+      )}
+
+      {/* Le bouton de soumission n'apparaît que si LES DEUX photos sont prises */}
+      {imageUri && imageIngredientsUri && (
+        <TouchableOpacity 
+            style={[styles.button, {backgroundColor: '#16A34A'}]} 
+            onPress={handleSubmission} 
+            disabled={loading}>
+          <Text style={styles.buttonText}>Soumettre le produit</Text>
+        </TouchableOpacity>
       )}
 
       {loading && <ActivityIndicator style={{ marginTop: 20 }} />}
@@ -132,7 +149,7 @@ export default function AjouterProduitPhotoPage() {
   );
 }
 
-// Styles pour un design propre
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -144,19 +161,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
     marginBottom: 32,
+  },
+  imageContainer: {
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  imageLabel: {
+    fontSize: 16,
+    color: '#374151',
+    marginBottom: 8,
   },
   imagePreview: {
-    width: 250,
-    height: 250,
+    width: 200,
+    height: 200,
     borderRadius: 12,
-    marginBottom: 32,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },

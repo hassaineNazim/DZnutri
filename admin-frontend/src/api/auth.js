@@ -43,7 +43,9 @@ export const authAPI = {
     formData.append('username', username);
     formData.append('password', password);
     
-    const response = await api.post('/login', formData);
+   const response = await api.post('/auth/login-admin', formData, { // <-- Correction
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+});
     const data = response.data;
     
     // Store token and user info

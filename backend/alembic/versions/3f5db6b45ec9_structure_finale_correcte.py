@@ -1,8 +1,8 @@
-"""Création de la structure initiale
+"""Structure finale correcte
 
-Revision ID: 35130cdd1da2
+Revision ID: 3f5db6b45ec9
 Revises: 
-Create Date: 2025-08-20 23:06:39.248872
+Create Date: 2025-08-21 18:00:58.430336
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '35130cdd1da2'
+revision: str = '3f5db6b45ec9'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,8 +24,10 @@ def upgrade() -> None:
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(), nullable=True),
-    sa.Column('email', sa.String(), nullable=False),
+    sa.Column('email', sa.String(), nullable=True),
     sa.Column('google_id', sa.String(), nullable=True),
+    sa.Column('hashed_password', sa.String(), nullable=True),
+    sa.Column('is_admin', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('google_id')
     )
