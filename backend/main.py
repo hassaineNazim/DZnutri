@@ -17,6 +17,7 @@ import shutil
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
+from bdproduitdz import ocr as bd_ocr
 
 
 Path("uploads").mkdir(exist_ok=True)
@@ -178,13 +179,6 @@ async def create_product_submission(
     image_ingredients: Optional[UploadFile] = File(None)
 ):
 
-
-    # --- LIGNES DE VÉRIFICATION ---
-    print("--- Données reçues par le backend ---")
-    print(f"Nom du produit : {productName}")
-    print(f"Marque : {brand}")
-    print("------------------------------------")
-    # ----------------------------
     """
     Permet à un utilisateur connecté de soumettre un nouveau produit avec des photos.
     """
@@ -207,7 +201,11 @@ async def create_product_submission(
         finally:
             image_ingredients.file.close()
 
-    # 3. Préparer les données pour la fonction CRUD
+    ocr_text = ""
+    if ingredients_image_path:
+        # On lance l'analyse OCR sur l'image des ingrédients
+        ocr_text = bd_ocr.detect_text_with_tesseract(ingredients_image_path)
+    
     # On crée un objet Pydantic avec les données du formulaire et les chemins des images
     submission_data = bd_schemas.SubmissionCreate(
         barcode=barcode,
@@ -215,9 +213,13 @@ async def create_product_submission(
         productName=productName, # Assurez-vous que ce champ existe dans votre schéma
         brand=brand,             # Assurez-vous que ce champ existe dans votre schéma
         image_front_url=front_image_path,
-        image_ingredients_url=ingredients_image_path
+        image_ingredients_url=ingredients_image_path,
+        ocr_ingredients_text=ocr_text
     )
     
+
+   
+
     # 4. Appeler la fonction CRUD (cette partie ne change pas)
     new_submission = await bd_crud.add_product_submissions(
         db=db,

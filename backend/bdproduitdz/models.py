@@ -37,6 +37,7 @@ class Submission(Base):
     status = Column(String, default="pending", index=True)
     submitted_at = Column(DateTime, server_default=func.now())
     typeProduct = Column(String, nullable=True)
+    ocr_ingredients_text = Column(String, nullable=True)
 
     submitted_by_user_id = Column(Integer, ForeignKey("users.id"))
     submitted_by = relationship("UserTable", back_populates="submissions")
