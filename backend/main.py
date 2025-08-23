@@ -204,7 +204,7 @@ async def create_product_submission(
     ocr_text = ""
     if ingredients_image_path:
         # On lance l'analyse OCR sur l'image des ingrédients
-        ocr_text = bd_ocr.detect_text_with_tesseract(ingredients_image_path)
+        ocr_text = bd_ocr.detect_text_from_image(ingredients_image_path)
     
     # On crée un objet Pydantic avec les données du formulaire et les chemins des images
     submission_data = bd_schemas.SubmissionCreate(
@@ -218,9 +218,6 @@ async def create_product_submission(
     )
     
 
-   
-
-    # 4. Appeler la fonction CRUD (cette partie ne change pas)
     new_submission = await bd_crud.add_product_submissions(
         db=db,
         submission=submission_data,
