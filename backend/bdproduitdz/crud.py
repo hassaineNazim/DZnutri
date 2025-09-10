@@ -103,5 +103,19 @@ async def reject_submission(db: AsyncSession, submission_id: int):
     
     return submission
 
+async def create_product(db: AsyncSession, product: schemas.ProductCreate) -> models.Product:
+    """
+    Crée un nouveau produit dans la base de données à partir d'un schéma Pydantic.
+    """
+    # Crée un objet de base de données à partir des données du schéma
+    db_product = models.Product(**product.model_dump())
+    
+    # Ajoute, sauvegarde et rafraîchit l'objet
+    db.add(db_product)
+    await db.commit()
+    await db.refresh(db_product)
+    
+    return db_product
+
 
 

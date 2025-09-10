@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-import httpx
+import httpx, certifi
 from google.oauth2 import id_token 
 from google.auth.transport import requests
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +18,7 @@ from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
 from bdproduitdz import ocr as bd_ocr
+from bdproduitdz import scoring as bd_scoring
 
 
 Path("uploads").mkdir(exist_ok=True)
@@ -123,45 +124,54 @@ async def get_me(current_user: auth_schemas.User = Depends(auth_security.get_cur
 @app.get("/api/product/{barcode}")
 async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db)):
     """
-    Cet endpoint recherche un produit par son code-barres.
-    Il cherche d'abord sur Open Food Facts, puis il cherche dans notre propre base de données.
+    Cherche un produit. D'abord en local, sinon sur Open Food Facts,
+    puis le score, le sauvegarde localement et le retourne.
     """
     
-    # 1. Définir l'URL de l'API d'Open Food Facts
+    # 1. On cherche D'ABORD dans la base de données locale
+    db_product = await bd_crud.getProduitByBarcode(db, barcode=barcode)
+    
+    if db_product:
+        print(f"Produit {barcode} trouvé dans la base de données locale.")
+        return {"source": "local_db", "product": db_product}
+
+    # 2. Si non trouvé, on cherche sur Open Food Facts
+    print(f"Produit non trouvé localement, recherche sur Open Food Facts pour {barcode}...")
     off_api_url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
     
-    # 2. Appeler l'API d'Open Food Facts de manière asynchrone
-    async with httpx.AsyncClient() as prod:
+    async with httpx.AsyncClient(verify=certifi.where()) as client:
         try:
-            # On fait la requête GET 500
-            response = await prod.get(off_api_url)
-            print("sssss")
-            
-        except httpx.RequestError as exc:
-            # Si la connexion à l'API d'Open Food Facts échoue
-            raise HTTPException(status_code=503, detail=f"Erreur lors de l'appel à l'API externe: {exc}")
+            response = await client.get(off_api_url)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Erreur de communication avec Open Food Facts")
 
-    # 3. Analyser la réponse
     data = response.json()
-    print(f"Réponse de l'API Open Food Facts pour le code-barres {barcode}: {data}")
-    # Open Food Facts renvoie status=1 si le produit est trouvé
+    
     if data.get("status") == 1:
-        print(f"Produit {barcode} trouvé sur Open Food Facts.")
-        # On renvoie l'objet 'product' qui contient toutes les informations
-        return {"source": "openfoodfacts", "product": data.get("product")}
+        print("Produit trouvé sur Open Food Facts. Calcul du score et sauvegarde...")
+        off_product_data = data.get("product")
+        
+        # 3. On calcule le score
+        custom_score = bd_scoring.calculate_score(off_product_data)
+        
+        # 4. On prépare les données pour les sauvegarder dans notre table 'products'
+        product_to_create = bd_schemas.ProductCreate(
+            barcode=off_product_data.get('code', barcode),
+            product_name=off_product_data.get('product_name_fr', off_product_data.get('product_name')),
+            brand=off_product_data.get('brands'),
+            nutriments=off_product_data.get('nutriments'),
+            image_url=off_product_data.get('image_url'),
+            ingredients_text=off_product_data.get('ingredients_text'),
+            custom_score=custom_score
+        )
+        
+        # 5. On appelle le CRUD pour créer le produit dans notre base de données
+        created_product = await bd_crud.create_product(db, product=product_to_create)
+        
+        return {"source": "openfoodfacts_saved", "product": created_product}
 
-    # 4. Logique de fallback (si non trouvé sur Open Food Facts)
-    else:
-        print(f"Produit {barcode} non trouvé sur Open Food Facts. Recherche locale...")
-        db_product = await bd_crud.getProduitByBarcode(db, barcode=barcode)
-        
-        if db_product:
-            print(f"Produit {barcode} trouvé dans la base de données locale.")
-            # On retourne une réponse cohérente
-            return {"source": "BDGlobal", "product": db_product}
-        
-        print(f"Produit {barcode} non trouvé meme en local.")
-        raise HTTPException(status_code=404, detail="Produit non trouvé meme en local")
+    # 6. Si le produit n'est trouvé nulle part
+    raise HTTPException(status_code=404, detail="Produit non trouvé")
 
 
 @app.post("/api/submission", response_model=bd_schemas.Submission)
@@ -316,7 +326,19 @@ async def login_admin(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+@app.delete("/testapi")
+async def test_api(barcode: str):
+    print(f"Produit non trouvé localement, recherche sur Open Food Facts pour {barcode}...")
+    off_api_url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
+    
+    async with httpx.AsyncClient(verify=certifi.where()) as client:
+        try:
+            response = await client.get(off_api_url)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Erreur de communication avec Open Food Facts")
 
+    data = response.json()
+    return {"message": data}
 
 
 

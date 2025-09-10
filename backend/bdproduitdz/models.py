@@ -25,6 +25,10 @@ class Product(Base):
     additives_tags = Column(JSON, nullable=True)
     custom_score = Column(Integer, nullable=True)
 
+    nutriscore = Column(String) # La lettre du Nutri-Score (a, b, c...)
+    nova_group = Column(Integer) # Le degré de transformation (1, 2, 3, ou 4)
+    ecoscore_grade = Column(String) # La lettre de l'Eco-Score
+
 class Submission(Base):
     __tablename__ = "submissions"
 
