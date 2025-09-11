@@ -35,6 +35,11 @@ export default function RootLayout() {
                 headerTransparent: true,
                 headerTintColor: '#fff',
               }} />
+              <Stack.Screen name="screens/productDetail" options={{
+                headerShown: false,
+                headerTitle: "Détail sur le produit",
+                
+              }} />
           </Stack>
         </SafeAreaView>
       </View>

@@ -12,24 +12,44 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { fetchProduct } from './services/openFoodFacts';
-import { saveToHistory } from './services/saveLocal';
+import { fetchProduct } from './services/openFoodFacts'; // Adaptez le chemin
+import { saveToHistory } from './services/saveLocal'; // Adaptez le chemin
 
+// Le type Product doit correspondre à ce que votre API retourne
 type Product = {
   id: string;
   product_name?: string;
   brands?: string;
-  image_small_url?: string;
-  nutrition_grades?: string;
+  image_url?: string;
+  custom_score?: number;
+  // Ajoutez les autres champs que vous voudrez passer à la page de détail
 };
 
-// On utilise un seul état pour gérer le résultat du scan
+// On utilise un seul état pour gérer les différents cas du scanner
 type ScanResult = 
   | { status: 'scanning' }
   | { status: 'loading' }
   | { status: 'found', product: Product }
   | { status: 'notFound', barcode: string };
 
+// --- Fonctions Utilitaires pour la mini-popup ---
+const getScoreColor = (score?: number) => {
+  if (score === undefined) return '#6B7280'; // Gris
+  if (score >= 75) return '#22C55E'; // Vert
+  if (score >= 50) return '#84CC16'; // Vert-citron
+  if (score >= 25) return '#F97316'; // Orange
+  return '#EF4444'; // Rouge
+};
+
+const getScoreDescription = (score?: number) => {
+    if (score === undefined) return 'Inconnu';
+    if (score >= 75) return 'Excellent';
+    if (score >= 50) return 'Bon';
+    if (score >= 25) return 'Médiocre';
+    return 'Mauvais';
+}
+
+// --- Composant Principal du Scanner ---
 export default function Scanner() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanResult, setScanResult] = useState<ScanResult>({ status: 'scanning' });
@@ -42,9 +62,9 @@ export default function Scanner() {
   }, []);
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
-    if (scanResult.status !== 'scanning') return; // Bloque si un scan est en cours
+    if (scanResult.status !== 'scanning') return; // Bloque si un scan est déjà en cours
     
-    setScanResult({ status: 'loading' }); // Affiche le chargement
+    setScanResult({ status: 'loading' }); // Affiche l'indicateur de chargement
 
     try {
       const fetchedProduct = await fetchProduct(data);
@@ -62,6 +82,15 @@ export default function Scanner() {
 
   // Fonction pour fermer le modal et réinitialiser le scanner
   const resetScanner = () => setScanResult({ status: 'scanning' });
+
+  // Fonction pour naviguer vers la page de détails du produit
+  const navigateToProductDetails = (product: Product) => {
+    // On passe l'objet produit entier en le convertissant en chaîne JSON
+    router.push({
+      pathname: './screens/productDetail', // Assurez-vous que le fichier app/ProductDetails.tsx existe
+      params: { product: JSON.stringify(product) },
+    });
+  };
 
   // Affiche l'écran de permission si nécessaire
   if (!permission?.granted) {
@@ -97,21 +126,39 @@ export default function Scanner() {
         onRequestClose={resetScanner}
       >
         <Pressable style={styles.modalOverlay} onPress={resetScanner}>
-          <Pressable style={styles.modalContent}>
-            <View style={styles.modalHandle} />
-            
-            {/* Affiche le contenu en fonction du résultat */}
-            {scanResult.status === 'found' && (
+          {/* Le contenu du Modal change si un produit a été trouvé ou non */}
+          
+          {scanResult.status === 'found' && (
+            <TouchableOpacity 
+                style={styles.miniModalContent} 
+                onPress={() => navigateToProductDetails(scanResult.product)}
+                activeOpacity={0.9}
+            >
               <View style={styles.productInfoContainer}>
-                {scanResult.product.image_small_url && (
-                  <Image source={{ uri: scanResult.product.image_small_url }} style={styles.productImage} />
-                )}
-                <Text style={styles.productName}>{scanResult.product.product_name}</Text>
+                <Image
+                  source={{ uri: scanResult.product.image_url || 'https://via.placeholder.com/64' }}
+                  style={styles.productImageMini}
+                />
+                <View style={styles.productTextContainer}>
+                    <Text style={styles.productNameMini} numberOfLines={1}>{scanResult.product.product_name}</Text>
+                    <Text style={styles.productBrandMini} numberOfLines={1}>{scanResult.product.brands}</Text>
+                </View>
+                <View style={styles.scoreContainerMini}>
+                    <Text style={[styles.scoreTextMini, { color: getScoreColor(scanResult.product.custom_score) }]}>
+                        {scanResult.product.custom_score ?? '?'}
+                    </Text>
+                    <Text style={styles.scoreUnitMini}>/100</Text>
+                    <Text style={[styles.scoreDescriptionMini, { color: getScoreColor(scanResult.product.custom_score) }]}>
+                        {getScoreDescription(scanResult.product.custom_score)}
+                    </Text>
+                </View>
               </View>
-            )}
+            </TouchableOpacity>
+          )}
 
-            {scanResult.status === 'notFound' && (
-              <>
+          {scanResult.status === 'notFound' && (
+            <View style={styles.modalContentNotFound}>
+                <View style={styles.modalHandle} />
                 <Text style={styles.notFoundTitle}>Produit inconnu</Text>
                 <Text style={styles.notFoundSubtitle}>
                   Aidez la communauté en ajoutant ce produit à la base de données.
@@ -127,9 +174,8 @@ export default function Scanner() {
                 >
                   <Text style={styles.addButtonText}>Compléter les informations</Text>
                 </TouchableOpacity>
-              </>
-            )}
-          </Pressable>
+            </View>
+          )}
         </Pressable>
       </Modal>
     </View>
@@ -143,12 +189,45 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', pointerEvents: 'none' },
   scanBox: { width: 250, height: 150, borderWidth: 2, borderColor: 'white', borderRadius: 12 },
   loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.0)' },
-  modalContent: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingTop: 12, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 20 },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
+  miniModalContent: { 
+    backgroundColor: 'white', 
+    borderTopLeftRadius: 20, 
+    borderTopRightRadius: 20, 
+    padding: 15,
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: -3 }, 
+    shadowOpacity: 0.1, 
+    shadowRadius: 5, 
+    elevation: 20,
+    minHeight: 120,
+    justifyContent: 'center',
+  },
+  productInfoContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    width: '100%',
+  },
+  productImageMini: { width: 60, height: 60, borderRadius: 8, marginRight: 15, resizeMode: 'contain' },
+  productTextContainer: { flex: 1, marginRight: 15 },
+  productNameMini: { fontSize: 16, fontWeight: 'bold', color: '#111827' },
+  productBrandMini: { fontSize: 13, color: '#6B7280' },
+  scoreContainerMini: { 
+    alignItems: 'center',
+    flexDirection: 'column',
+  },
+  scoreTextMini: { fontSize: 24, fontWeight: 'bold' },
+  scoreUnitMini: { fontSize: 10, fontWeight: 'bold', color: '#6B7280', marginTop: -4 },
+  scoreDescriptionMini: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+  modalContentNotFound: { 
+    backgroundColor: 'white', 
+    borderTopLeftRadius: 20, 
+    borderTopRightRadius: 20, 
+    padding: 20, 
+    paddingTop: 12, 
+    alignItems: 'center', 
+  },
   modalHandle: { width: 48, height: 6, backgroundColor: '#D1D5DB', borderRadius: 3, marginBottom: 20 },
-  productInfoContainer: { flexDirection: 'row', alignItems: 'center', width: '100%' },
-  productImage: { width: 64, height: 64, borderRadius: 8, marginRight: 16 },
-  productName: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
   notFoundTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 8, color: '#111827' },
   notFoundSubtitle: { fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 24 },
   addButton: { backgroundColor: '#84CC16', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 99, alignItems: 'center', width: '100%' },
