@@ -20,14 +20,15 @@ class Product(Base):
     updated_at = Column(DateTime, onupdate=func.now())
     is_verified = Column(Boolean, default=False)
     image_url = Column(String, nullable=True)
-    quantily = Column(String, nullable=True)
     category = Column(String, nullable=True)
     additives_tags = Column(JSON, nullable=True)
     custom_score = Column(Integer, nullable=True)
 
-    nutriscore = Column(String) # La lettre du Nutri-Score (a, b, c...)
+    nutri_score = Column(String) # La lettre du Nutri-Score (a, b, c...)
     nova_group = Column(Integer) # Le degré de transformation (1, 2, 3, ou 4)
     ecoscore_grade = Column(String) # La lettre de l'Eco-Score
+    detail_custom_score = Column(JSON, nullable=True)
+
 
 class Submission(Base):
     __tablename__ = "submissions"

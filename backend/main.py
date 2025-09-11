@@ -152,7 +152,11 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
         off_product_data = data.get("product")
         
         # 3. On calcule le score
-        custom_score = bd_scoring.calculate_score(off_product_data)
+        scoringGlobal = bd_scoring.calculate_score(off_product_data)
+        custom_score = scoringGlobal.get('score')
+        detail_custom_score = scoringGlobal.get('details')
+        print(f"Score calculé : {custom_score}")
+        
         
         # 4. On prépare les données pour les sauvegarder dans notre table 'products'
         product_to_create = bd_schemas.ProductCreate(
@@ -162,7 +166,14 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
             nutriments=off_product_data.get('nutriments'),
             image_url=off_product_data.get('image_url'),
             ingredients_text=off_product_data.get('ingredients_text'),
-            custom_score=custom_score
+
+            nutri_score=off_product_data.get('nutriscore_grade'),
+            nova_group=off_product_data.get('nova_group'),
+            additives_tags=off_product_data.get('additives_tags', []),
+            ecoscore_grade=off_product_data.get('ecoscore_grade'),
+            
+            custom_score = custom_score,
+            detail_custom_score=detail_custom_score
         )
         
         # 5. On appelle le CRUD pour créer le produit dans notre base de données
@@ -219,7 +230,7 @@ async def create_product_submission(
     # On crée un objet Pydantic avec les données du formulaire et les chemins des images
     submission_data = bd_schemas.SubmissionCreate(
         barcode=barcode,
-        typeProduct=typeProduct,
+        typeProduct=typeProduct, 
         productName=productName, # Assurez-vous que ce champ existe dans votre schéma
         brand=brand,             # Assurez-vous que ce champ existe dans votre schéma
         image_front_url=front_image_path,
@@ -326,7 +337,11 @@ async def login_admin(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.delete("/testapi")
+
+
+
+
+@app.delete("/testapi") #Juste pour voir la structure de l'API d'OpenFoodFacts
 async def test_api(barcode: str):
     print(f"Produit non trouvé localement, recherche sur Open Food Facts pour {barcode}...")
     off_api_url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
@@ -340,10 +355,8 @@ async def test_api(barcode: str):
     data = response.json()
     return {"message": data}
 
-
-
-
 """
+
 @app.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
    

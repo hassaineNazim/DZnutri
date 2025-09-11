@@ -1,6 +1,6 @@
 
 from pydantic import BaseModel
-from typing import Optional, Dict, Any 
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 # --- 1. Le Schéma de Base ---
@@ -15,9 +15,13 @@ class ProductBase(BaseModel):
     ingredients_text: Optional[str] = None
     # On ajoute les nouveaux champs que nous avons définis
     image_url: Optional[str] = None
-    quantity: Optional[str] = None
     category: Optional[str] = None
-    additives_tags: Optional[Dict[str, Any]] = None
+    additives_tags: Optional[List[str]] = []
+    nutri_score: Optional[str] = None  
+    nova_group: Optional[int] = None
+    ecoscore_grade: Optional[str] = None
+    custom_score: Optional[int] = None
+    detail_custom_score: Optional[Dict[str, Any]] = None
 
 class SubmissionBase(BaseModel):
     barcode: str

@@ -1,8 +1,8 @@
-"""Structure finale correcte
+"""structure_initiale
 
-Revision ID: 3f5db6b45ec9
+Revision ID: 714a20ca76f7
 Revises: 
-Create Date: 2025-08-21 18:00:58.430336
+Create Date: 2025-09-11 02:54:49.439392
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '3f5db6b45ec9'
+revision: str = '714a20ca76f7'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -46,10 +46,13 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('is_verified', sa.Boolean(), nullable=True),
     sa.Column('image_url', sa.String(), nullable=True),
-    sa.Column('quantily', sa.String(), nullable=True),
     sa.Column('category', sa.String(), nullable=True),
     sa.Column('additives_tags', sa.JSON(), nullable=True),
     sa.Column('custom_score', sa.Integer(), nullable=True),
+    sa.Column('nutriscore', sa.String(), nullable=True),
+    sa.Column('nova_group', sa.Integer(), nullable=True),
+    sa.Column('ecoscore_grade', sa.String(), nullable=True),
+    sa.Column('detail_custom_score', sa.JSON(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -60,9 +63,12 @@ def upgrade() -> None:
     sa.Column('barcode', sa.String(), nullable=False),
     sa.Column('image_front_url', sa.String(), nullable=False),
     sa.Column('image_ingredients_url', sa.String(), nullable=True),
+    sa.Column('productName', sa.String(), nullable=True),
+    sa.Column('brand', sa.String(), nullable=True),
     sa.Column('status', sa.String(), nullable=True),
     sa.Column('submitted_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.Column('typeProduct', sa.String(), nullable=True),
+    sa.Column('ocr_ingredients_text', sa.String(), nullable=True),
     sa.Column('submitted_by_user_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['submitted_by_user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')

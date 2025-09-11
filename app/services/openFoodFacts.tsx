@@ -1,4 +1,3 @@
-
 import { API_URL } from "../config/api";
 
 export const fetchProduct = async (barcode: string) => {
@@ -12,10 +11,11 @@ export const fetchProduct = async (barcode: string) => {
       return null; 
     }
     console.log(data.product);
+    
     return data.product;
   } catch (error) {
     console.error("Erreur dans fetchProduct:", error);
     return null; 
 
   }
-};
+}; 
