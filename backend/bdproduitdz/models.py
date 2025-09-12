@@ -48,4 +48,14 @@ class Submission(Base):
     submitted_by_user_id = Column(Integer, ForeignKey("users.id"))
     submitted_by = relationship("UserTable", back_populates="submissions")
 
+class ScanHistory(Base):
+    __tablename__ = "scan_history"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("produits.id"), nullable=False)
+    scanned_at = Column(DateTime, server_default=func.now())
+
+
+
 print("--- Le fichier des modèles PRODUIT est chargé ---")
