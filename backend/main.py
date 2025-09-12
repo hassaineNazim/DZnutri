@@ -36,7 +36,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # CORS configuration for frontend
 app.add_middleware( 
     CORSMiddleware,
-    allow_origins=["*"], #allow all origins 
+    allow_origins=["*"], #allow all origins only in dev mod for security
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -200,6 +200,9 @@ async def create_product_submission(
     image_ingredients: Optional[UploadFile] = File(None)
 ):
 
+    # --- LIGNE DE VÉRIFICATION ---
+    print(f"--- Fichier Ingrédients Reçu : {image_ingredients.filename if image_ingredients else 'Aucun fichier'} ---")
+    # ----------------------------
     """
     Permet à un utilisateur connecté de soumettre un nouveau produit avec des photos.
     """
@@ -226,6 +229,9 @@ async def create_product_submission(
     if ingredients_image_path:
         # On lance l'analyse OCR sur l'image des ingrédients
         ocr_text = bd_ocr.detect_text_from_image(ingredients_image_path)
+        # --- VÉRIFICATION CRUCIALE ---
+        print(f"[MAIN DEBUG] Texte retourné par la fonction OCR : '{ocr_text}'")
+        # ------------------------------
     
     # On crée un objet Pydantic avec les données du formulaire et les chemins des images
     submission_data = bd_schemas.SubmissionCreate(
@@ -266,24 +272,23 @@ async def get_submissions_for_admin(
 @app.post("/api/admin/submissions/{submission_id}/approve")
 async def approve_product_submission(
     submission_id: int,
+    # On attend un corps de requête avec les données de l'admin
+    admin_data: bd_schemas.AdminProductApproval, 
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_admin)
 ):
     """
-    Endpoint pour approuver une soumission et la transférer vers la table des produits.
+    Endpoint pour approuver une soumission. Reçoit les données complètes de l'admin.
     """
-
-    
     try:
-        approved_product = await bd_crud.approve_submission(db, submission_id, current_user.id)
+        approved_product = await bd_crud.approve_submission(db, submission_id, admin_data)
         return {
             "message": "Soumission approuvée avec succès",
             "product": approved_product
         }
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de l'approbation: {str(e)}")
+        raise HTTPException(status_code=404, detail=str(e))
+    
 
 @app.post("/api/admin/submissions/{submission_id}/reject")
 async def reject_product_submission(

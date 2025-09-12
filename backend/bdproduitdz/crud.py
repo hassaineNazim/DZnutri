@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from . import models , schemas
+from . import models , schemas, scoring
 
 
 async def getProduitByBarcode(db: AsyncSession, barcode: str):
@@ -34,50 +34,46 @@ async def get_all_submissions(db: AsyncSession, status: str = "pending"):
     )
     return result.scalars().all()
 
-async def approve_submission(db: AsyncSession, submission_id: int, admin_user_id: int):
+# Dans produit/crud.py
+from . import scoring
+
+async def approve_submission(db: AsyncSession, submission_id: int, admin_data: schemas.AdminProductApproval):
     """
-    Approuve une soumission et la transfère vers la table des produits.
-    La soumission est supprimée après l'approbation.
+    Approuve une soumission en utilisant les données validées par l'admin.
     """
-    # Récupérer la soumission
-    result = await db.execute(
-        select(models.Submission).where(models.Submission.id == submission_id)
-    )
+    # 1. Récupérer la soumission pour avoir le barcode et les images
+    result = await db.execute(select(models.Submission).where(models.Submission.id == submission_id))
     submission = result.scalars().first()
     
-    if not submission:
-        raise ValueError("Soumission non trouvée")
+    if not submission or submission.status != "pending":
+        raise ValueError("Soumission non trouvée ou déjà traitée")
+
+    # 2. Préparer les données complètes pour le scoring
+    # On combine les données de l'admin avec le barcode de la soumission
+    full_product_data_for_scoring = {
+        **admin_data.model_dump(),
+        "barcode": submission.barcode
+    }
     
-    if submission.status != "pending":
-        raise ValueError("Cette soumission a déjà été traitée")
+    # 3. Calculer le score
+    score_result = scoring.calculate_score(full_product_data_for_scoring)
     
-    # Créer un nouveau produit à partir de la soumission
-    new_product = models.Product(
+    # 4. Préparer les données pour la création du produit final
+    product_to_create = schemas.ProductCreate(
+        **admin_data.model_dump(),
         barcode=submission.barcode,
-        product_name=f"Produit {submission.barcode}",  # Nom par défaut, peut être modifié plus tard
-        brand=None,
-        nutriments={},
-        ingredients_text="",
-        user_id=submission.submitted_by_user_id,
-        is_verified=True,
         image_url=submission.image_front_url,
-        quantily="",
-        category=submission.typeProduct,
-        additives_tags={},
-        custom_score=None
+        custom_score=score_result.get('score')
     )
+
+    created_product = await create_product(db, product=product_to_create)
     
-    # Ajouter le produit à la base de données
-    db.add(new_product)
-    
-    # Supprimer la soumission de la base de données
-    await db.delete(submission)
-    
-    # Sauvegarder les changements
+    # 5. Mettre à jour le statut de la soumission
+    submission.status = "approved"
+    db.add(submission)
     await db.commit()
-    await db.refresh(new_product)
     
-    return new_product
+    return created_product
 
 async def reject_submission(db: AsyncSession, submission_id: int):
     """
@@ -107,6 +103,7 @@ async def create_product(db: AsyncSession, product: schemas.ProductCreate) -> mo
     """
     Crée un nouveau produit dans la base de données à partir d'un schéma Pydantic.
     """
+
     # Crée un objet de base de données à partir des données du schéma
     db_product = models.Product(**product.model_dump())
     

@@ -30,6 +30,8 @@ class SubmissionBase(BaseModel):
     productName : str 
     image_ingredients_url: Optional[str] = None
     typeProduct: str
+    ocr_ingredients_text: Optional[str] = None
+    parsed_nutriments: Optional[str] = None
     
 
 
@@ -74,4 +76,16 @@ class Submission(SubmissionBase):
 
     class Config:
         orm_mode = True
+
+
+class AdminProductApproval(BaseModel):
+    product_name: str
+    brand: str
+    category: Optional[str] = None
+    ingredients_text: Optional[str] = None
+    nutriments: Optional[Dict[str, Any]] = {}
+    additives_tags: Optional[List[str]] = []
+    nutriscore_grade: Optional[str] = None
+    nova_group: Optional[int] = None
+    ecoscore_grade: Optional[str] = None
 
