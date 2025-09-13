@@ -1,113 +1,69 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useEffect, useState } from "react";
-import { FlatList, Text, TouchableOpacity, View } from "react-native";
-import ListItem from "../components/ListItem";
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, FlatList, Text, View } from 'react-native';
+import ListItem from '../components/ListItem';
+import { deleteFromHistory, fetchHistory } from '../services/saveHistorique';
 
-export default function Reco() {
-  const [history, setHistory] = useState<any[]>([]);
+type Product = {
+  id: number;
+  brands?: string;
+  product_name?: string;
+  image_url?: string;
+  custom_score?: number;
+  nutrition_grades?: string;
 
-  useEffect(() => {
-    
-    const loadHistory = async () => {
-  const saved = await AsyncStorage.getItem('scanHistory');
-  if (saved) {
+};
+
+export default function HistoriquePage() {
+  const [history, setHistory] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 2. On utilise useFocusEffect pour charger les données à chaque fois que l'écran est affiché
+  useFocusEffect(
+    useCallback(() => {
+      const loadHistoryFromServer = async () => {
+        setLoading(true);
+        const serverHistory = await fetchHistory();
+        setHistory(serverHistory);
+        setLoading(false);
+      };
+
+      loadHistoryFromServer();
+    }, [])
+  );
+
+  // Affiche un indicateur de chargement
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center bg-white dark:bg-[#181A20]">
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+   const handleDelete = async (itemId: number) => {
     try {
-      const parsedData = JSON.parse(saved);
-      // Filter out any null, undefined, or invalid entries
-      const cleanData = parsedData.filter(item => item && item.code);
-      setHistory(cleanData);
+      // 1. On dit au backend de supprimer l'élément
+      await deleteFromHistory(itemId);
+      // 2. Si la suppression réussit, on met à jour l'affichage localement
+      setHistory(prevHistory => prevHistory.filter(item => item.id !== itemId));
     } catch (e) {
-      // If JSON is corrupted, start with a fresh history
-      console.error("Failed to parse history, clearing it.", e);
-      setHistory([]);
-      await AsyncStorage.removeItem('scanHistory');
+      console.error(e);
     }
-  } else {
-    setHistory([]);
-  }
-};
-    loadHistory();
-  }, []);
-
-useFocusEffect(
-  useCallback(() => {
-    const loadHistory = async () => {
-      const saved = await AsyncStorage.getItem('scanHistory');
-      
-      if (saved) setHistory(JSON.parse(saved));
-      else setHistory([]);
-    };
-
-    loadHistory();
-  }, [])
-);
-
-
- const handleDeleteItem = (id) => {
-    const updatedData = history.filter((item) => item?.id !== id);
-    setHistory(updatedData);
-    AsyncStorage.setItem('scanHistory', JSON.stringify(updatedData))
-   
-  };
-
-  const renderItem = ({ item }) => {
-  // If the item is somehow invalid, don't render anything for it.
-  if (!item) {
-    return null;
-  }
-  return <ListItem item={item} onDelete={handleDeleteItem} />;
-};
-
-
-const clearHistory = async () => {
-    await AsyncStorage.removeItem('scanHistory');
-    setHistory([]);
   };
 
   return (
-    <View className="flex-auto bg-white dark:bg-[#181A20] p-4">
-
-
+    <View className="flex-1 bg-white dark:bg-[#181A20] p-4">
       <FlatList
         data={history}
-        
-
+        // 3. Le keyExtractor utilise maintenant l'ID numérique de la base de données
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => <ListItem item={item} onDelete={() => handleDelete(item.id)} />}
         ListEmptyComponent={
-            <View className="flex-1 items-center justify-center">
-              <Text className="text-gray-500">Aucun historique trouvé</Text>
-            </View>
-          
+          <View className="flex-1 items-center justify-center mt-20">
+            <Text className="text-gray-500 text-lg">Aucun historique de scan.</Text>
+          </View>
         }
-
-ListFooterComponent={() => (
-    history.length > 5 ? (
-      <View className="h-32">
-        <TouchableOpacity 
-          onPress={clearHistory} 
-          className="bg-red-500 p-2 rounded mb-4"
-        > 
-          <Text className="text-center text-white font-medium">
-            Clear History
-          </Text>
-        </TouchableOpacity>
-      </View>
-    ) : null
-  )}
-
-        keyExtractor={(item, index) => item?.code || index.toString()}
-        renderItem={renderItem}
-        
       />
-     
-      
-     
-
-      
     </View>
   );
 }
-
-
-
-

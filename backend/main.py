@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from typing import Optional
 from bdproduitdz import ocr as bd_ocr
 from bdproduitdz import scoring as bd_scoring
+from bdproduitdz import parser as bd_parser
 
 
 Path("uploads").mkdir(exist_ok=True)
@@ -226,12 +227,11 @@ async def create_product_submission(
             image_ingredients.file.close()
 
     ocr_text = ""
+    parsed_nutriments = {}
     if ingredients_image_path:
-        # On lance l'analyse OCR sur l'image des ingrédients
         ocr_text = bd_ocr.detect_text_from_image(ingredients_image_path)
-        # --- VÉRIFICATION CRUCIALE ---
-        print(f"[MAIN DEBUG] Texte retourné par la fonction OCR : '{ocr_text}'")
-        # ------------------------------
+        # On appelle le parser pour extraire les données
+        parsed_nutriments = bd_parser.parse_nutritional_info_improved(ocr_text)
     
     # On crée un objet Pydantic avec les données du formulaire et les chemins des images
     submission_data = bd_schemas.SubmissionCreate(
@@ -241,7 +241,8 @@ async def create_product_submission(
         brand=brand,             # Assurez-vous que ce champ existe dans votre schéma
         image_front_url=front_image_path,
         image_ingredients_url=ingredients_image_path,
-        ocr_ingredients_text=ocr_text
+        ocr_ingredients_text=ocr_text,
+        parsed_nutriments=parsed_nutriments
     )
     
 
@@ -343,10 +344,42 @@ async def login_admin(
 
 
 
+# Endpoint pour sauvegarder un nouveau scan
+@app.post("/api/history/{product_id}")
+async def save_scan_history(
+    
+    product_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_user)
+):
+    await bd_crud.add_scan_to_history(db, user_id=current_user.id, product_id=product_id)
+    return {"status": "success", "message": "Scan sauvegardé"}
 
+# Endpoint pour récupérer l'historique de l'utilisateur
+@app.get("/api/history")
+async def get_scan_history(
+    db: AsyncSession = Depends(get_db),
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_user)
+):
+    history = await bd_crud.get_user_history(db, user_id=current_user.id)
+    return history
 
+@app.delete("/api/history/product/{product_id}") 
+async def delete_history_item(
+    product_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_user)
+):
+    try:
+        # On passe le product_id à la fonction CRUD
+        await bd_crud.delete_scan_from_history(
+            db, user_id=current_user.id, product_id=product_id
+        )
+        return {"status": "success", "message": "Historique supprimé"}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
-@app.delete("/testapi") #Juste pour voir la structure de l'API d'OpenFoodFacts
+@app.put("/testapi") #Juste pour voir la structure de l'API d'OpenFoodFacts
 async def test_api(barcode: str):
     print(f"Produit non trouvé localement, recherche sur Open Food Facts pour {barcode}...")
     off_api_url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"

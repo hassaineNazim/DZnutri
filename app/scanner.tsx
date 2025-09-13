@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { fetchProduct } from './services/openFoodFacts'; // Adaptez le chemin
-import { saveToHistory } from './services/saveLocal'; // Adaptez le chemin
+import { saveToHistory } from './services/saveHistorique'; // Adaptez le chemin
 
 // Le type Product doit correspondre à ce que votre API retourne
 type Product = {

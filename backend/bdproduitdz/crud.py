@@ -34,31 +34,22 @@ async def get_all_submissions(db: AsyncSession, status: str = "pending"):
     )
     return result.scalars().all()
 
-# Dans produit/crud.py
-from . import scoring
-
 async def approve_submission(db: AsyncSession, submission_id: int, admin_data: schemas.AdminProductApproval):
     """
     Approuve une soumission en utilisant les données validées par l'admin.
     """
-    # 1. Récupérer la soumission pour avoir le barcode et les images
     result = await db.execute(select(models.Submission).where(models.Submission.id == submission_id))
     submission = result.scalars().first()
     
     if not submission or submission.status != "pending":
         raise ValueError("Soumission non trouvée ou déjà traitée")
-
-    # 2. Préparer les données complètes pour le scoring
-    # On combine les données de l'admin avec le barcode de la soumission
     full_product_data_for_scoring = {
         **admin_data.model_dump(),
         "barcode": submission.barcode
     }
     
-    # 3. Calculer le score
     score_result = scoring.calculate_score(full_product_data_for_scoring)
     
-    # 4. Préparer les données pour la création du produit final
     product_to_create = schemas.ProductCreate(
         **admin_data.model_dump(),
         barcode=submission.barcode,
@@ -68,7 +59,6 @@ async def approve_submission(db: AsyncSession, submission_id: int, admin_data: s
 
     created_product = await create_product(db, product=product_to_create)
     
-    # 5. Mettre à jour le statut de la soumission
     submission.status = "approved"
     db.add(submission)
     await db.commit()
@@ -90,10 +80,10 @@ async def reject_submission(db: AsyncSession, submission_id: int):
     if submission.status != "pending":
         raise ValueError("Cette soumission a déjà été traitée")
     
-    # Mettre à jour le statut de la soumission
+   
     submission.status = "rejected"
     
-    # Sauvegarder les changements
+
     await db.commit()
     await db.refresh(submission)
     
@@ -103,16 +93,60 @@ async def create_product(db: AsyncSession, product: schemas.ProductCreate) -> mo
     """
     Crée un nouveau produit dans la base de données à partir d'un schéma Pydantic.
     """
-
-    # Crée un objet de base de données à partir des données du schéma
     db_product = models.Product(**product.model_dump())
-    
-    # Ajoute, sauvegarde et rafraîchit l'objet
+
     db.add(db_product)
     await db.commit()
     await db.refresh(db_product)
     
     return db_product
 
+
+async def add_scan_to_history(db: AsyncSession, user_id: int, product_id: int):
+    # (Optionnel) Vérifier si le dernier scan pour cet utilisateur est le même produit
+    # pour éviter les doublons rapides.
+    new_scan = models.ScanHistory(user_id=user_id, product_id=product_id)
+    db.add(new_scan)
+    await db.commit()
+    return new_scan
+
+async def get_user_history(db: AsyncSession, user_id: int):
+    # Récupère les scans et les produits associés
+    result = await db.execute(
+        select(models.Product)
+        .join(models.ScanHistory, models.Product.id == models.ScanHistory.product_id)
+        .where(models.ScanHistory.user_id == user_id)
+        .order_by(models.ScanHistory.scanned_at.desc())
+        .limit(50) # On limite aux 50 derniers scans par exemple
+    )
+    return result.scalars().all()
+
+async def delete_scan_from_history(db: AsyncSession, user_id: int, product_id: int):
+    """
+    Supprime un élément spécifique de l'historique d'un utilisateur.
+    Vérifie que l'élément appartient bien à l'utilisateur avant de le supprimer.
+    """
+    
+    # 1. On cherche l'entrée dans l'historique qui correspond à la fois à l'ID de l'historique
+    #    ET à l'ID de l'utilisateur. C'est la partie sécurité.
+    result = await db.execute(
+        select(models.ScanHistory).where(
+            models.ScanHistory.product_id == product_id,
+            models.ScanHistory.user_id == user_id
+            ).order_by(models.ScanHistory.scanned_at.desc())
+    )
+    
+    history_item = result.scalars().first()
+    
+    # 2. Si on ne trouve rien (soit l'historique n'existe pas, soit il n'appartient pas au bon utilisateur),
+    #    on lève une erreur.
+    if not history_item:
+        raise ValueError("Élément d'historique non trouvé ou non autorisé")
+        
+    # 3. Si l'élément est trouvé, on le supprime
+    await db.delete(history_item)
+    await db.commit()
+    
+    return True 
 
 
