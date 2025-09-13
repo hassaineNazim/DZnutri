@@ -1,4 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 import ListItem from '../components/ListItem';
@@ -17,13 +18,21 @@ type Product = {
 export default function HistoriquePage() {
   const [history, setHistory] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // 2. On utilise useFocusEffect pour charger les données à chaque fois que l'écran est affiché
   useFocusEffect(
     useCallback(() => {
       const loadHistoryFromServer = async () => {
         setLoading(true);
-        const serverHistory = await fetchHistory();
+        const serverHistory = await fetchHistory();    
+
+         // --- LIGNE DE VÉRIFICATION ---
+         if (serverHistory.length > 0) {
+          console.log("Données reçues par le frontend (premier produit) :", serverHistory[0]);
+         }
+         // ----------------------------
+        
         setHistory(serverHistory);
         setLoading(false);
       };
@@ -51,13 +60,34 @@ export default function HistoriquePage() {
     }
   };
 
+  const handleItemPress = (product: Product) => {
+    // On passe l'objet produit entier en le convertissant en chaîne JSON
+    router.push({
+      pathname: '../screens/productDetail', 
+      params: { product: JSON.stringify(product) },
+    });
+  };
+
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
     <View className="flex-1 bg-white dark:bg-[#181A20] p-4">
       <FlatList
         data={history}
-        // 3. Le keyExtractor utilise maintenant l'ID numérique de la base de données
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <ListItem item={item} onDelete={() => handleDelete(item.id)} />}
+        // 4. On passe la fonction de navigation au composant ListItem
+        renderItem={({ item }) => (
+          <ListItem
+            item={item}
+            onPress={() => handleItemPress(item)}
+          />
+        )}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center mt-20">
             <Text className="text-gray-500 text-lg">Aucun historique de scan.</Text>
