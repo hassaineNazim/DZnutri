@@ -378,6 +378,18 @@ async def delete_history_item(
         return {"status": "success", "message": "Historique supprimé"}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    
+
+@app.get("/api/history/stats")
+async def get_history_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_user)
+):
+    """
+    Endpoint sécurisé pour récupérer les statistiques de l'historique de l'utilisateur.
+    """
+    stats = await bd_crud.get_user_history_stats(db, user_id=current_user.id)
+    return stats
 
 @app.put("/testapi") #Juste pour voir la structure de l'API d'OpenFoodFacts
 async def test_api(barcode: str):

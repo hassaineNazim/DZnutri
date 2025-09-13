@@ -149,4 +149,44 @@ async def delete_scan_from_history(db: AsyncSession, user_id: int, product_id: i
     
     return True 
 
+async def get_user_history_stats(db: AsyncSession, user_id: int):
+    """
+    Récupère tous les scores de l'historique d'un utilisateur et calcule des statistiques.
+    """
+    # On fait une requête pour récupérer uniquement la colonne custom_score
+    result = await db.execute(
+        select(models.Product.custom_score)
+        .join(models.ScanHistory, models.Product.id == models.ScanHistory.product_id)
+        .where(models.ScanHistory.user_id == user_id)
+    )
+    scores = result.scalars().all()
+
+    if not scores:
+        return {
+            "total_scans": 0,
+            "average_score": 0,
+            "distribution": {"excellent": 0, "bon": 0, "mediocre": 0, "mauvais": 0}
+        }
+
+    # Calcul des statistiques
+    total_scans = len(scores)
+    average_score = round(sum(scores) / total_scans)
+    
+    distribution = {"excellent": 0, "bon": 0, "mediocre": 0, "mauvais": 0}
+    for score in scores:
+        if score >= 75:
+            distribution["excellent"] += 1
+        elif score >= 50:
+            distribution["bon"] += 1
+        elif score >= 25:
+            distribution["mediocre"] += 1
+        else:
+            distribution["mauvais"] += 1
+            
+    return {
+        "total_scans": total_scans,
+        "average_score": average_score,
+        "distribution": distribution
+    }
+
 

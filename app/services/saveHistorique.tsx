@@ -42,3 +42,13 @@ export const deleteFromHistory = async (itemId: number) => {
     throw error; 
   }
 };
+
+export const fetchHistoryStats = async () => {
+  try {
+    const response = await api.get('/api/history/stats');
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des statistiques:", error);
+    return null;
+  }
+};

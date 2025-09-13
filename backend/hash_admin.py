@@ -1,8 +1,8 @@
 from auth.security import hash_password
 
 # Choisissez des mots de passe forts pour vos admins
-password_admin1 = "nazimhassaine2003"
-password_admin2 = "djalalaymen2002"
+password_admin1 = "2232003"
+password_admin2 = "8122002"
 
 hashed1 = hash_password(password_admin1)
 hashed2 = hash_password(password_admin2)
