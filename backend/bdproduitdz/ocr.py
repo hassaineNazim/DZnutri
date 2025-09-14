@@ -1,8 +1,7 @@
-# Dans produit/ocr.py
 from google.cloud import vision
 import os
 
-KEY_FILENAME = "dznutri-632fbb70c039.json" # <--- METTEZ LE BON NOM DE VOTRE FICHIER JSON
+KEY_FILENAME = "dznutri-632fbb70c039.json"
 KEY_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), KEY_FILENAME)
 
 def detect_text_from_image(file_path: str) -> str:
@@ -26,15 +25,17 @@ def detect_text_from_image(file_path: str) -> str:
             content = image_file.read()
 
         image = vision.Image(content=content)
-        response = client.text_detection(image=image)
-        
+
+        response = client.document_text_detection(image=image)
+
         if response.error.message:
             raise Exception(response.error.message)
 
-        detected_text = response.text_annotations[0].description if response.text_annotations else ""
-        print(f"[OCR DEBUG] Texte détecté : {detected_text[:100]}...")
-        return detected_text
-        
+        # fullTextAnnotation contient tout le texte structuré
+        full_text = response.full_text_annotation.text if response.full_text_annotation.text else ""
+        print(f"[OCR DEBUG] Texte détecté : {full_text[:200]}...")  # juste un aperçu
+        return full_text
+
     except Exception as e:
         print(f"[OCR ERREUR] Erreur lors de l'appel à Google Vision API : {e}")
         return f"Erreur OCR : {e}"

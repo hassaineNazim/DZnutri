@@ -5,18 +5,18 @@ import httpx, certifi
 from google.oauth2 import id_token 
 from google.auth.transport import requests
 from sqlalchemy.ext.asyncio import AsyncSession
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from typing import Optional
+import shutil
+from database import get_db
 from auth import models as auth_models
 from auth import schemas as auth_schemas
 from auth import security as auth_security
 from auth import crud as auth_crud
 from auth import jwt as auth_jwt
 from bdproduitdz import crud as bd_crud
-from database import get_db
 from bdproduitdz import schemas as bd_schemas
-import shutil
-from pathlib import Path
-from fastapi.staticfiles import StaticFiles
-from typing import Optional
 from bdproduitdz import ocr as bd_ocr
 from bdproduitdz import scoring as bd_scoring
 from bdproduitdz import parser as bd_parser
@@ -343,8 +343,6 @@ async def login_admin(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-
-# Endpoint pour sauvegarder un nouveau scan
 @app.post("/api/history/{product_id}")
 async def save_scan_history(
     
@@ -352,15 +350,19 @@ async def save_scan_history(
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_user)
 ):
+    """
+    Endpoint pour sauvegarder un scan dans l'historique."""
     await bd_crud.add_scan_to_history(db, user_id=current_user.id, product_id=product_id)
     return {"status": "success", "message": "Scan sauvegardé"}
 
-# Endpoint pour récupérer l'historique de l'utilisateur
 @app.get("/api/history")
 async def get_scan_history(
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_user)
 ):
+    """
+    Endpoint sauvegardant l'historique de l'utilisateur.
+    """
     history = await bd_crud.get_user_history(db, user_id=current_user.id)
     return history
 
@@ -370,6 +372,9 @@ async def delete_history_item(
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_user)
 ):
+    """
+    Endpoint pour supprimer un produit de l'historique de l'utilisateur.
+    """
     try:
         # On passe le product_id à la fonction CRUD
         await bd_crud.delete_scan_from_history(

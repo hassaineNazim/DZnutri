@@ -1,5 +1,5 @@
 import { Check, ChevronDown, ChevronUp, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState } from 'react'; // "React" doit être importé
 
 const SubmissionCard = ({ submission, onApprove, onReject, loading }) => {
   const [showDetails, setShowDetails] = useState(false);
@@ -28,15 +28,11 @@ const SubmissionCard = ({ submission, onApprove, onReject, loading }) => {
         </div>
       </div>
 
-      {/* --- SECTION DÉTAILS (MODIFIÉE) --- */}
+      {/* --- SECTION DÉTAILS (inchangée) --- */}
       {showDetails && (
         <div className="px-4 pb-4 border-t border-gray-200">
           <h4 className="text-md font-semibold text-gray-800 mt-3 mb-2">Ingrédients</h4>
-          
-          {/* Grille à deux colonnes */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-            {/* Colonne 1 : Texte extrait par l'OCR */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Texte Détecté (IA)
@@ -47,8 +43,6 @@ const SubmissionCard = ({ submission, onApprove, onReject, loading }) => {
                 value={submission.ocr_ingredients_text || 'Aucun texte détecté.'}
               />
             </div>
-
-            {/* Colonne 2 : Image des ingrédients */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Image Fournie
@@ -69,7 +63,7 @@ const SubmissionCard = ({ submission, onApprove, onReject, loading }) => {
         </div>
       )}
 
-      {/* --- Barre d'actions (inchangée) --- */}
+      {/* --- Barre d'actions (modifiée) --- */}
       <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
         <button
           onClick={() => setShowDetails(!showDetails)}
@@ -81,11 +75,22 @@ const SubmissionCard = ({ submission, onApprove, onReject, loading }) => {
 
         {submission.status === 'pending' && (
           <div className="flex space-x-2">
-            <button onClick={() => onApprove(submission.id)} disabled={loading} className="flex items-center justify-center space-x-2 bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 disabled:opacity-50">
+            <button 
+              // --- MODIFICATION ICI ---
+              // On passe l'objet submission entier à la fonction onApprove
+              onClick={() => onApprove(submission)} 
+              // ------------------------
+              disabled={loading} 
+              className="flex items-center justify-center space-x-2 bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 disabled:opacity-50"
+            >
               <Check className="h-4 w-4" />
               <span className="text-sm font-semibold">Approve</span>
             </button>
-            <button onClick={() => onReject(submission.id)} disabled={loading} className="flex items-center justify-center space-x-2 bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 disabled:opacity-50">
+            <button 
+              onClick={() => onReject(submission.id)} 
+              disabled={loading} 
+              className="flex items-center justify-center space-x-2 bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 disabled:opacity-50"
+            >
               <X className="h-4 w-4" />
               <span className="text-sm font-semibold">Reject</span>
             </button>
