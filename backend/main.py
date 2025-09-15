@@ -9,6 +9,12 @@ from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
 import shutil
+import cloudinary
+import os
+import cloudinary.uploader
+from functools import partial
+import asyncio
+from dotenv import load_dotenv
 from database import get_db
 from auth import models as auth_models
 from auth import schemas as auth_schemas
@@ -20,6 +26,14 @@ from bdproduitdz import schemas as bd_schemas
 from bdproduitdz import ocr as bd_ocr
 from bdproduitdz import scoring as bd_scoring
 from bdproduitdz import parser as bd_parser
+
+load_dotenv() 
+
+cloudinary.config(
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key = os.getenv("CLOUDINARY_API_KEY"),
+    api_secret = os.getenv("CLOUDINARY_API_SECRET")
+)
 
 
 Path("uploads").mkdir(exist_ok=True)
@@ -188,34 +202,29 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
 
 @app.post("/api/submission", response_model=bd_schemas.Submission)
 async def create_product_submission(
-    # On ne reçoit plus un seul objet JSON, mais des champs de formulaire séparés
     db: AsyncSession = Depends(get_db),
     current_user: auth_schemas.User = Depends(auth_security.get_current_user),
     barcode: str = Form(...),
     typeProduct: str = Form(...),
     productName: str = Form(...),
     brand: str = Form(...),
-    # On attend un fichier nommé "image_front"
     image_front: UploadFile = File(...),
-    # On attend un deuxième fichier optionnel nommé "image_ingredients"
     image_ingredients: Optional[UploadFile] = File(None)
 ):
 
     # --- LIGNE DE VÉRIFICATION ---
-    print(f"--- Fichier Ingrédients Reçu : {image_ingredients.filename if image_ingredients else 'Aucun fichier'} ---")
+    # print(f"--- Fichier Ingrédients Reçu : {image_ingredients.filename if image_ingredients else 'Aucun fichier'} ---")
     # ----------------------------
     """
     Permet à un utilisateur connecté de soumettre un nouveau produit avec des photos.
     """
-    # 1. Sauvegarder la première image
-    # On crée un nom de fichier unique pour éviter les conflits
-    front_image_path = f"uploads/front_{barcode}_{image_front.filename}"
+    loop = asyncio.get_running_loop()
+    '''front_image_path = f"uploads/front_{barcode}_{image_front.filename}"
     try:
         with open(front_image_path, "wb") as buffer:
             shutil.copyfileobj(image_front.file, buffer)
     finally:
         image_front.file.close()
-
     # 2. Sauvegarder la deuxième image si elle existe
     ingredients_image_path = None
     if image_ingredients:
@@ -225,6 +234,19 @@ async def create_product_submission(
                 shutil.copyfileobj(image_ingredients.file, buffer)
         finally:
             image_ingredients.file.close()
+    '''
+
+    # Upload de la première image
+    upload_func_front = partial(cloudinary.uploader.upload, file=image_front.file)
+    upload_result_front = await loop.run_in_executor(None, upload_func_front)
+    front_image_path = upload_result_front.get('secure_url')
+
+    # Upload de la deuxième image si elle existe
+    ingredients_image_path = None
+    if image_ingredients:
+        upload_func_ing = partial(cloudinary.uploader.upload, file=image_ingredients.file)
+        upload_result_ing = await loop.run_in_executor(None, upload_func_ing)
+        ingredients_image_path = upload_result_ing.get('secure_url')
 
     ocr_text = ""
     parsed_nutriments = {}
