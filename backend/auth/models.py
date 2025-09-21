@@ -24,6 +24,8 @@ class UserTable(Base):
 
 
 
+
+
 print("--- Le fichier des modèles AUTH est chargé ---")
     
 

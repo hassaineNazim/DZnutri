@@ -236,12 +236,10 @@ async def create_product_submission(
             image_ingredients.file.close()
     '''
 
-    # Upload de la première image
     upload_func_front = partial(cloudinary.uploader.upload, file=image_front.file)
     upload_result_front = await loop.run_in_executor(None, upload_func_front)
     front_image_path = upload_result_front.get('secure_url')
 
-    # Upload de la deuxième image si elle existe
     ingredients_image_path = None
     if image_ingredients:
         upload_func_ing = partial(cloudinary.uploader.upload, file=image_ingredients.file)
@@ -251,16 +249,15 @@ async def create_product_submission(
     ocr_text = ""
     parsed_nutriments = {}
     if ingredients_image_path:
-        ocr_text = bd_ocr.detect_text_from_image(ingredients_image_path)
-        # On appelle le parser pour extraire les données
+        ocr_text = bd_ocr.detect_text_from_url(ingredients_image_path)
         parsed_nutriments = bd_parser.parse_nutritional_info_improved(ocr_text)
     
-    # On crée un objet Pydantic avec les données du formulaire et les chemins des images
+   
     submission_data = bd_schemas.SubmissionCreate(
         barcode=barcode,
         typeProduct=typeProduct, 
-        productName=productName, # Assurez-vous que ce champ existe dans votre schéma
-        brand=brand,             # Assurez-vous que ce champ existe dans votre schéma
+        productName=productName, 
+        brand=brand,             
         image_front_url=front_image_path,
         image_ingredients_url=ingredients_image_path,
         ocr_ingredients_text=ocr_text,
