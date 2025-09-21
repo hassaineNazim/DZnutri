@@ -41,12 +41,10 @@ const StatBar = ({ label, count, total, color }: { label: string; count: number;
   </View>
 );
 
-// --- Composant Principal de la Page Analyse ---
 export default function AnalysePage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // useFocusEffect recharge les données à chaque fois que l'utilisateur affiche cet écran
   useFocusEffect(
     useCallback(() => {
       const loadStats = async () => {
@@ -59,7 +57,6 @@ export default function AnalysePage() {
     }, [])
   );
 
-  // Affiche un indicateur pendant le chargement initial
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -68,7 +65,6 @@ export default function AnalysePage() {
     );
   }
 
-  // Affiche un message si l'historique est vide
   if (!stats || stats.total_scans === 0) {
     return (
       <View style={styles.centerContainer}>

@@ -22,7 +22,7 @@ type Product = {
   brands?: string;
   image_url?: string;
   custom_score?: number;
-  // Ajoutez les autres champs que vous voudrez passer à la page de détail
+  
 };
 
 // On utilise un seul état pour gérer les différents cas du scanner
