@@ -1,31 +1,25 @@
-import os
-from dotenv import load_dotenv
+import ssl
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from typing import AsyncGenerator
-import re # On importe le module pour les expressions régulières
+import os
+from dotenv import load_dotenv
 
-# On charge les variables du fichier .env
-load_dotenv()
+
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-if DATABASE_URL is None:
-    raise ValueError("La variable d'environnement DATABASE_URL n'est pas définie !")
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = True
+ssl_context.verify_mode = ssl.CERT_REQUIRED
 
-# --- CORRECTION ICI ---
-# On prépare un dictionnaire pour les arguments de connexion supplémentaires
-connect_args = {}
-# On vérifie si l'URL contient sslmode=require (ce qui est le cas pour Neon)
-if "sslmode=require" in DATABASE_URL:
-    # Si oui, on ajoute l'argument 'ssl' que 'asyncpg' comprend
-    connect_args["ssl"] = "require"
-    # On nettoie l'URL pour enlever le paramètre que SQLAlchemy ne comprend pas
-    DATABASE_URL = re.sub(r"\?sslmode=require$", "", DATABASE_URL)
-# --------------------
+engine = create_async_engine(
+    DATABASE_URL,
+    connect_args={"ssl": ssl_context},
+    echo=True
+)
 
-# On passe les arguments de connexion supplémentaires lors de la création du moteur
-engine = create_async_engine(DATABASE_URL, echo=True, connect_args=connect_args)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 
