@@ -56,6 +56,17 @@ class ScanHistory(Base):
     product_id = Column(Integer, ForeignKey("produits.id"), nullable=False)
     scanned_at = Column(DateTime, server_default=func.now())
 
+class Additif(Base):
+    __tablename__ = "additifs"
+
+    id = Column(Integer, primary_key=True)
+    e_number = Column(String, unique=True, index=True, nullable=False) 
+    name = Column(String, index=True) 
+    danger_level = Column(Integer, nullable=True) 
+    description = Column(String, nullable=True)
+    source = Column(String, nullable=True)
+    category = Column(String, nullable=True)
 
 
-print("--- Le fichier des modèles PRODUIT est chargé ---")
+print("--- Le fichier des modèles Produit est chargé ---")
+
