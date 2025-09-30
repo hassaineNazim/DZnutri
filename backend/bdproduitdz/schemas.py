@@ -26,6 +26,7 @@ class SubmissionBase(BaseModel):
     typeProduct: str
     ocr_ingredients_text: Optional[str] = None
     parsed_nutriments: Optional[Dict[str, Any]]
+    found_additives: Optional[List[Dict[str, Any]]] = []
 
 class ProductCreate(ProductBase):
     pass #

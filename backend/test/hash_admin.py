@@ -11,13 +11,13 @@ sys.path.insert(0, project_root)
 from auth.security import hash_password
 
 # Le reste de votre code ne change pas
-password_admin1 = "mot_de_passe_pour_admin1"
-password_admin2 = "mot_de_passe_pour_admin2"
+password_admin1 = "2232003"
+password_admin2 = "8122002"
 
 hashed1 = hash_password(password_admin1)
 hashed2 = hash_password(password_admin2)
 
 print("--- Hashes à copier ---")
-print(f"Admin 1 ('admin'): {hashed1}")
-print(f"Admin 2 ('superadmin'): {hashed2}")
+print(f"Admin 1 ('NAZIM'): {hashed1}")
+print(f"Admin 2 ('AYMEN'): {hashed2}")
 print("--- Fin des hashes ---")

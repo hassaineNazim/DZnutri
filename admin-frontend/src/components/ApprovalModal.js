@@ -3,54 +3,87 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
 const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
-  // --- États pour les champs du formulaire ---
   const [productName, setProductName] = useState('');
   const [brand, setBrand] = useState('');
   const [category, setCategory] = useState('');
   const [ingredientsText, setIngredientsText] = useState('');
   const [additives, setAdditives] = useState(''); // Pour les additifs, sous forme de texte
-  const [novaGroup, setNovaGroup] = useState(''); // Pour le groupe NOVA
+  const [novaGroup, setNovaGroup] = useState(''); 
+  
   
   const [nutriments, setNutriments] = useState({
     'energy-kcal_100g': '',
     'saturated-fat_100g': '',
     'sugars_100g': '',
     'salt_100g': '',
-    'proteins_100g': '', // Ajout
-    'fiber_100g': '',      // Ajout
+    'proteins_100g': '', 
+    'fiber_100g': '',      
   });
 
-  // --- Initialisation du formulaire avec les données de la soumission ---
-  useEffect(() => {
-    if (submission) {
-      // Pré-remplissage des champs de base
-      setProductName(submission.productName || '');
-      setBrand(submission.brand || '');
-      setCategory(submission.typeProduct || '');
-      setIngredientsText(submission.ocr_ingredients_text || '');
+useEffect(() => {
+  if (submission) {
+    // Pré-remplissage des champs de base (inchangé)
+    setProductName(submission.productName || '');
+    setBrand(submission.brand || '');
+    setCategory(submission.typeProduct || '');
+    setIngredientsText(submission.ocr_ingredients_text || '');
 
-      // Pré-remplissage des nutriments avec les valeurs parsées par le backend
-      const parsed = submission.parsed_nutriments || {};
-      setNutriments({
-        'energy-kcal_100g': parsed['energy_kcal_100g']?.toString() || '',
-        'saturated-fat_100g': parsed['saturated_fat_100g']?.toString() || '',
-        'sugars_100g': parsed['sugars_100g']?.toString() || '',
-        'salt_100g': parsed['salt_100g']?.toString() || '',
-        'proteins_100g': parsed['proteins_100g']?.toString() || '',
-        'fiber_100g': parsed['fiber_100g']?.toString() || '',
-      });
+    // --- CORRECTION : On parse les champs JSON ---
+
+    // 1. Pour les nutriments
+    let parsedNutriments = {};
+    if (typeof submission.parsed_nutriments === 'string') {
+      try {
+        parsedNutriments = JSON.parse(submission.parsed_nutriments);
+      } catch (e) { console.error("Erreur de parsing des nutriments:", e); }
+    } else {
+      parsedNutriments = submission.parsed_nutriments || {};
     }
-  }, [submission]);
+    
+    setNutriments({
+      'energy-kcal_100g': parsedNutriments['energy_kcal_100g']?.toString() || '',
+      'saturated-fat_100g': parsedNutriments['saturated_fat_100g']?.toString() || '',
+      'sugars_100g': parsedNutriments['sugars_100g']?.toString() || '',
+      'salt_100g': parsedNutriments['salt_100g']?.toString() || '',
+      'proteins_100g': parsedNutriments['proteins_100g']?.toString() || '',
+      'fiber_100g': parsedNutriments['fiber_100g']?.toString() || '',
+    });
 
-  // --- Gestion de la soumission ---
-  const handleConfirm = () => {
-    // 1. On prépare les données finales pour l'API
+    // --- CORRECTION POUR LES ADDITIFS ---
+    let additivesArray = submission.found_additives;
+
+
+
+    // 1. On vérifie si la donnée reçue n'est PAS un tableau
+    if (additivesArray && !Array.isArray(additivesArray)) {
+      // Si ce n'est pas un tableau (ex: c'est un objet), on le met dans un tableau
+      additivesArray = [additivesArray]; 
+    }
+    
+    // 2. On s'assure qu'on a bien un tableau avant de continuer
+    if (Array.isArray(additivesArray)) {
+      const additivesString = additivesArray.map(add => add.e_number).join(', ');
+      // Cette ligne va maintenant s'exécuter correctement
+      setAdditives(additivesString);
+    } else {
+      // En cas de doute, on met le champ à vide
+      setAdditives('');
+    }
+    // ---------------------------------------------
+    console.log(additivesArray);
+
+  }
+}, [submission]);
+
+  
+
+    const handleConfirm = () => {
+    // On prépare les données finales pour l'API
     const adminData = {
       product_name: productName,
-      brand,
-      category,
+      brand: brand,
+      category: category,
       ingredients_text: ingredientsText,
-      // On convertit les valeurs des nutriments en nombres
       nutriments: {
         'energy-kcal_100g': parseFloat(nutriments['energy-kcal_100g']) || 0,
         'saturated-fat_100g': parseFloat(nutriments['saturated-fat_100g']) || 0,
@@ -64,9 +97,10 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
       nova_group: parseInt(novaGroup) || null,
     };
 
-    // 2. On appelle la fonction du composant parent
+    // On appelle la fonction du composant parent
     onConfirm(submission.id, adminData);
   };
+  
   
   const handleNutrimentChange = (key, value) => {
       setNutriments(prev => ({ ...prev, [key]: value }));
@@ -138,14 +172,14 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
               </div>
               
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Groupe NOVA (1-4)</label>
-                  <input type="number" value={novaGroup} onChange={(e) => setNovaGroup(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Additifs (ex: e330, e951)</label>
-                  <input type="text" value={additives} onChange={(e) => setAdditives(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="Séparés par une virgule" />
-                </div>
+                 <div>
+                <label className="block text-sm font-medium text-gray-700">Groupe NOVA (1-4)</label>
+                <input type="number" value={novaGroup} onChange={(e) => setNovaGroup(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Additifs (ex: e330, e951)</label>
+                <input type="text" value={additives} onChange={(e) => setAdditives(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="Séparés par une virgule" />
+              </div>
               </div>
             </div>
 

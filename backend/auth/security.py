@@ -16,7 +16,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/google")
 async def get_current_user(
     token: str = Depends(oauth2_scheme), 
     db: AsyncSession = Depends(get_db)
-) -> auth_schemas.User:
+) -> auth_models.UserTable:
     """
     Dépendance pour obtenir l'utilisateur actuel à partir d'un token JWT.
     """
@@ -34,11 +34,11 @@ async def get_current_user(
     if username is None:
         raise credentials_exception
         
-    user = await auth_crud.get_user_by_username(db, username=username)
-    if user is None:
+    user_in_db = await auth_crud.get_user_by_username(db, username=username)
+    if user_in_db is None:
         raise credentials_exception
         
-    return auth_schemas.User(id=user.id, username=user.username, email=user.email)
+    return user_in_db
 
 
 async def get_current_admin(

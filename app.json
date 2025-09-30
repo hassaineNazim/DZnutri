@@ -4,7 +4,7 @@
     "slug": "DZnutri",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/bet_holding_phone_V2.png",
     "scheme": "dznutri",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,8 +14,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo.png",
-        "backgroundColor": "#468249"
+        "foregroundImage": "./assets/images/bet_default_logo.png",
+        "backgroundColor": "#ffffff"
       },
       "package": "com.Nazim.dznutri",
       "permissions": [
@@ -28,7 +28,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png",
+      "favicon": "./assets/images/bet_holding_phone_V2.png",
       "history": {
         "origin": false
       }
@@ -38,7 +38,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/bet_holding_phone_V2.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
