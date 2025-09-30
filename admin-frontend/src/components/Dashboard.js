@@ -1,5 +1,5 @@
 import { CheckCircle, Filter, LogOut, Package, RefreshCw, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/auth';
 import { submissionsAPI } from '../api/submissions';
@@ -7,58 +7,63 @@ import ApprovalModal from './ApprovalModal';
 import SubmissionCard from './SubmissionCard';
 
 const Dashboard = () => {
-  const [submissions, setSubmissions] = useState([]);
+  // 1. Un seul état pour stocker TOUTES les soumissions
+  const [allSubmissions, setAllSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('pending');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [stats, setStats] = useState({
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-  });
   
   const navigate = useNavigate();
 
-  const fetchSubmissions = async (status = 'pending') => {
+  // 2. Une seule fonction pour tout récupérer du backend
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await submissionsAPI.getSubmissions(status);
-      setSubmissions(response.submissions || []);
-    } catch (err) {
-      setError('Failed to fetch submissions. Please try again.');
-      console.error('Error fetching submissions:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      // On utilise getSubmissions avec différents statuts pour les stats
+      // On lance les 3 appels en parallèle pour plus d'efficacité
       const [pending, approved, rejected] = await Promise.all([
         submissionsAPI.getSubmissions('pending'),
         submissionsAPI.getSubmissions('approved'),
         submissionsAPI.getSubmissions('rejected'),
       ]);
-      
-      setStats({
-        pending: pending.count || 0,
-        approved: approved.count || 0,
-        rejected: rejected.count || 0,
-      });
+      // On combine les résultats en une seule liste
+      setAllSubmissions([
+        ...(pending.submissions || []),
+        ...(approved.submissions || []),
+        ...(rejected.submissions || []),
+      ]);
     } catch (err) {
-      console.error('Error fetching stats:', err);
+      setError('Failed to fetch data. Please try again.');
+      console.error('Error fetching data:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // On lance la récupération des données une seule fois au chargement
   useEffect(() => {
-    fetchSubmissions(filter);
-    fetchStats();
-  }, [filter]);
+    fetchData();
+  }, []);
+
+  // 3. Les stats sont maintenant un calcul simple, pas un appel API.
+  // useMemo met en cache le résultat tant que 'allSubmissions' ne change pas.
+  const stats = useMemo(() => {
+    return {
+      pending: allSubmissions.filter(s => s.status === 'pending').length,
+      approved: allSubmissions.filter(s => s.status === 'approved').length,
+      rejected: allSubmissions.filter(s => s.status === 'rejected').length,
+    };
+  }, [allSubmissions]);
+
+  // 4. La liste affichée est aussi un calcul.
+  // Elle se met à jour instantanément quand le filtre change, sans appel API.
+  const filteredSubmissions = useMemo(() => {
+    if (!filter) return allSubmissions;
+    return allSubmissions.filter(s => s.status === filter);
+  }, [allSubmissions, filter]);
 
   const handleOpenApproveModal = (submission) => {
     setSelectedSubmission(submission);
@@ -69,11 +74,11 @@ const Dashboard = () => {
     try {
       setActionLoading(true);
       await submissionsAPI.approveSubmission(submissionId, adminData);
-      setSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
-      fetchStats();
+      // Après une action, on rafraîchit toutes les données
+      fetchData();
       setIsModalOpen(false);
     } catch (err) {
-      setError('Failed to approve submission. Please try again.');
+      setError('Failed to approve submission.');
     } finally {
       setActionLoading(false);
     }
@@ -83,8 +88,8 @@ const Dashboard = () => {
     try {
       setActionLoading(true);
       await submissionsAPI.rejectSubmission(submissionId);
-      setSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
-      fetchStats();
+      // Après une action, on rafraîchit toutes les données
+      fetchData();
     } catch (err) {
       setError('Failed to reject submission.');
     } finally {
@@ -98,9 +103,7 @@ const Dashboard = () => {
   };
 
   const handleRefresh = () => {
-    setError('');
-    fetchSubmissions(filter);
-    fetchStats();
+    fetchData();
   };
 
   return (
@@ -202,14 +205,14 @@ const Dashboard = () => {
               <RefreshCw className="h-8 w-8 text-gray-400 animate-spin mx-auto mb-4" />
               <p className="text-gray-500">Chargement...</p>
             </div>
-          ) : submissions.length === 0 ? (
+          ) : filteredSubmissions.length === 0 ? (
             <div className="text-center py-12">
               <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune soumission</h3>
               <p className="text-gray-500">Il n'y a aucune soumission avec le statut "{filter}".</p>
             </div>
           ) : (
-            submissions.map((submission) => (
+            filteredSubmissions.map((submission) => (
               <SubmissionCard
                 key={submission.id}
                 submission={submission}

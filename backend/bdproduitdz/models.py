@@ -44,6 +44,8 @@ class Submission(Base):
     typeProduct = Column(String, nullable=True)
     ocr_ingredients_text = Column(String, nullable=True)
     parsed_nutriments = Column(JSON, nullable=True)
+    found_additives = Column(JSON, nullable=True) 
+    
 
     submitted_by_user_id = Column(Integer, ForeignKey("users.id"))
     submitted_by = relationship("UserTable", back_populates="submissions")
