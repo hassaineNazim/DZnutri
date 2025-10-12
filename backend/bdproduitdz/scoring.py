@@ -1,13 +1,10 @@
 import logging
+import asyncio
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from . import crud
 from typing import Dict, Any, Set
 
-# exemples d'additifs "controversés" avec poids (tu peux étendre)
-ADDITIFS_PENALTY = {
-    "en:e951": 5,   # Aspartame
-    "en:e621": 4,   # Glutamate monosodique
-    "en:e250": 6,   # Nitrite de sodium
-    "en:e120": 2,   # Cochenille
-}
 
 def to_float_safe(v):
     try:
@@ -37,7 +34,8 @@ def normalize_nova(product: Dict[str, Any]):
                     return None
     return None
 
-def calculate_score(product_data: Dict[str, Any]) -> Dict[str, Any]:
+async def calculate_score(db: AsyncSession, product_data: Dict[str, Any]) -> Dict[str, Any]:
+
     """
     Retourne dict {'score': int, 'details': {...}}.
     Score sur 0..100, 100 = "meilleur".
@@ -90,12 +88,15 @@ def calculate_score(product_data: Dict[str, Any]) -> Dict[str, Any]:
 
     # Additifs : récupérer la liste et intersection avec le mapping
     additives = set([a.lower() for a in product_data.get("additives_tags", []) or []])
+    additifs_penalty = crud.get_additifs_penalty(db)
     matched_add = {}
+
     for add in additives:
-        if add in ADDITIFS_PENALTY:
-            penalty = ADDITIFS_PENALTY[add]
+        if add in additifs_penalty:
+            penalty = additifs_penalty[add]
             matched_add[add] = penalty
-            score -= penalty
+            score -= penalty * 2 # a ajuster dans le futur
+
     if matched_add:
         details["additives"] = matched_add
 

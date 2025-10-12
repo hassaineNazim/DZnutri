@@ -1,6 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from . import models , schemas, scoring
+from . import additives_parser
+from sqlalchemy.orm import load_only
+from typing import Dict, Tuple
 
 
 async def getProduitByBarcode(db: AsyncSession, barcode: str):
@@ -36,32 +39,50 @@ async def get_all_submissions(db: AsyncSession, status: str = "pending"):
 
 async def approve_submission(db: AsyncSession, submission_id: int, admin_data: schemas.AdminProductApproval):
     """
-    Approuve une soumission en utilisant les données validées par l'admin.
+    Approuve une soumission, analyse les additifs, calcule le score,
+    crée le produit final, et met à jour le statut de la soumission.
     """
+    # Étape 1 : Récupérer la soumission originale pour le barcode et les images
     result = await db.execute(select(models.Submission).where(models.Submission.id == submission_id))
     submission = result.scalars().first()
     
     if not submission or submission.status != "pending":
         raise ValueError("Soumission non trouvée ou déjà traitée")
-    full_product_data_for_scoring = {
+
+    # Étape 2 : Analyser le texte des ingrédients validé par l'admin
+    found_additives = await additives_parser.find_additives_in_text(db, admin_data.ingredients_text)
+    
+    # On prépare une simple liste des codes additifs pour la sauvegarde
+    additives_tags_for_db = [add.e_number for add in found_additives]
+
+    # Étape 3 : Préparer toutes les données pour le scoring
+    # On combine les données du formulaire de l'admin avec la liste des additifs trouvés.
+    data_for_scoring = {
         **admin_data.model_dump(),
-        "barcode": submission.barcode
+        "additives_tags": additives_tags_for_db 
     }
     
-    score_result = scoring.calculate_score(full_product_data_for_scoring)
+    # Étape 4 : Calculer le score final
+    # On passe les données complètes ET la liste des objets additifs (avec leur niveau de danger)
+    score_result = scoring.calculate_score(data_for_scoring, found_additives)
     
+    # Étape 5 : Préparer les données pour la création du produit final dans la table 'produits'
     product_to_create = schemas.ProductCreate(
-        **admin_data.model_dump(),
+        **admin_data.model_dump(), # On utilise les données validées par l'admin
         barcode=submission.barcode,
         image_url=submission.image_front_url,
-        custom_score=score_result.get('score')
+        additives_tags=additives_tags_for_db,
+        custom_score=score_result.get('score'),
+        detail_custom_score=score_result.get('details')
     )
 
+    # On appelle la fonction CRUD pour créer le produit
     created_product = await create_product(db, product=product_to_create)
     
+    # Étape 6 : Mettre à jour le statut de la soumission
     submission.status = "approved"
     db.add(submission)
-    await db.commit()
+    await db.commit() # Sauvegarde les changements (la création du produit et la mise à jour du statut)
     
     return created_product
 
@@ -168,7 +189,6 @@ async def get_user_history_stats(db: AsyncSession, user_id: int):
             "distribution": {"excellent": 0, "bon": 0, "mediocre": 0, "mauvais": 0}
         }
 
-    # Calcul des statistiques
     total_scans = len(scores)
     average_score = round(sum(scores) / total_scans)
     
@@ -188,5 +208,34 @@ async def get_user_history_stats(db: AsyncSession, user_id: int):
         "average_score": average_score,
         "distribution": distribution
     }
+
+
+async def get_additifs_penalty(db: AsyncSession) -> Dict[str, float]:
+    query = select(models.Additif.e_number, models.Additif.danger_level)
+    result = await db.execute(query)
+    rows = result.all()  # liste de tuples (e_number, danger_level)
+    return {str(r[0]).strip().lower(): float(r[1] or 0.0) for r in rows if r[0]}
+
+
+
+
+
+"""
+async def get_penalties_for_additives(db: AsyncSession, additive_codes: list[str]):
+    if not additive_codes:
+        return {}
+
+    query = (
+        select(models.Additif)
+        .options(load_only(models.Additif.e_number, models.Additif.danger_level))
+        .where(models.Additif.e_number.in_(additive_codes))
+    )
+    result = await db.execute(query)
+    penalties = result.scalars().all()
+    return {a.code.lower(): a.penalty for a in penalties}
+
+"""
+
+
 
 
