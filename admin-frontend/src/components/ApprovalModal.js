@@ -7,7 +7,7 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
   const [brand, setBrand] = useState('');
   const [category, setCategory] = useState('');
   const [ingredientsText, setIngredientsText] = useState('');
-  const [additives, setAdditives] = useState(''); // Pour les additifs, sous forme de texte
+  const [additives, setAdditives] = useState(''); 
   const [novaGroup, setNovaGroup] = useState(''); 
   
   
@@ -21,60 +21,59 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
   });
 
 useEffect(() => {
-  if (submission) {
-    // Pré-remplissage des champs de base (inchangé)
-    setProductName(submission.productName || '');
-    setBrand(submission.brand || '');
-    setCategory(submission.typeProduct || '');
-    setIngredientsText(submission.ocr_ingredients_text || '');
+    if (submission) {
+        // Pré-remplissage des champs de base (inchangé)
+        setProductName(submission.productName || '');
+        setBrand(submission.brand || '');
+        setCategory(submission.typeProduct || '');
+        setIngredientsText(submission.ocr_ingredients_text || '');
 
-    // --- CORRECTION : On parse les champs JSON ---
+        // Pré-remplissage des nutriments (votre code est correct)
+        let parsedNutriments = {};
+        if (typeof submission.parsed_additives === 'string') {
+            try {
+                parsedNutriments = JSON.parse(submission.parsed_nutriments);
+            } catch (e) { console.error("Erreur de parsing des nutriments:", e); }
+        } else {
+            parsedNutriments = submission.parsed_nutriments || {};
+        }
+        setNutriments({
+            'energy-kcal_100g': parsedNutriments['energy_kcal_100g']?.toString() || '',
+            'saturated-fat_100g': parsedNutriments['saturated-fat_100g']?.toString() || '',
+            'sugars_100g': parsedNutriments['sugars_100g']?.toString() || '',
+            'salt_100g': parsedNutriments['salt_100g']?.toString() || '',
+            'proteins_100g': parsedNutriments['proteins_100g']?.toString() || '',
+            'fiber_100g': parsedNutriments['fiber_100g']?.toString() || '',
+        });
 
-    // 1. Pour les nutriments
-    let parsedNutriments = {};
-    if (typeof submission.parsed_nutriments === 'string') {
-      try {
-        parsedNutriments = JSON.parse(submission.parsed_nutriments);
-      } catch (e) { console.error("Erreur de parsing des nutriments:", e); }
-    } else {
-      parsedNutriments = submission.parsed_nutriments || {};
+        // --- CORRECTION FINALE POUR LES ADDITIFS ---
+        let additivesData = submission.found_additives;
+
+        // Étape 1 : On s'assure que les données sont bien un objet ou un tableau (pas du texte)
+        if (typeof additivesData === 'string') {
+            try {
+                additivesData = JSON.parse(additivesData);
+            } catch (e) {
+                console.error("Erreur de parsing des additifs:", e);
+                additivesData = []; // En cas d'erreur, on utilise un tableau vide
+            }
+        }
+
+        // Étape 2 : On s'assure qu'on a bien un tableau sur lequel travailler
+        const additivesArray = Array.isArray(additivesData) ? additivesData : [];
+
+        // Étape 3 : On transforme le tableau en chaîne de caractères
+        const additivesString = additivesArray
+            .map(add => add.e_number) // On extrait les 'e_number'
+            .filter(Boolean)         // On retire les valeurs vides ou nulles
+            .join(', ');             // On crée la chaîne "E951, E330"
+
+        // Étape 4 : On met à jour l'état, ce qui va remplir le champ
+        setAdditives(additivesString);
+        // ---------------------------------------------
+        console.log("Additives:", additivesString);
     }
-    
-    setNutriments({
-      'energy-kcal_100g': parsedNutriments['energy_kcal_100g']?.toString() || '',
-      'saturated-fat_100g': parsedNutriments['saturated_fat_100g']?.toString() || '',
-      'sugars_100g': parsedNutriments['sugars_100g']?.toString() || '',
-      'salt_100g': parsedNutriments['salt_100g']?.toString() || '',
-      'proteins_100g': parsedNutriments['proteins_100g']?.toString() || '',
-      'fiber_100g': parsedNutriments['fiber_100g']?.toString() || '',
-    });
-
-    // --- CORRECTION POUR LES ADDITIFS ---
-    let additivesArray = submission.found_additives;
-
-
-
-    // 1. On vérifie si la donnée reçue n'est PAS un tableau
-    if (additivesArray && !Array.isArray(additivesArray)) {
-      // Si ce n'est pas un tableau (ex: c'est un objet), on le met dans un tableau
-      additivesArray = [additivesArray]; 
-    }
-    
-    // 2. On s'assure qu'on a bien un tableau avant de continuer
-    if (Array.isArray(additivesArray)) {
-      const additivesString = additivesArray.map(add => add.e_number).join(', ');
-      // Cette ligne va maintenant s'exécuter correctement
-      setAdditives(additivesString);
-    } else {
-      // En cas de doute, on met le champ à vide
-      setAdditives('');
-    }
-    // ---------------------------------------------
-    console.log(additivesArray);
-
-  }
 }, [submission]);
-
   
 
     const handleConfirm = () => {
