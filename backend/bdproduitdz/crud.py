@@ -37,54 +37,56 @@ async def get_all_submissions(db: AsyncSession, status: str = "pending"):
     )
     return result.scalars().all()
 
+# Dans produit/crud.py
+
 async def approve_submission(db: AsyncSession, submission_id: int, admin_data: schemas.AdminProductApproval):
     """
-    Approuve une soumission, analyse les additifs, calcule le score,
-    crée le produit final, et met à jour le statut de la soumission.
+    Approuve une soumission en utilisant les données validées par l'admin.
     """
-    # Étape 1 : Récupérer la soumission originale pour le barcode et les images
+    # 1. Récupérer la soumission (inchangé)
     result = await db.execute(select(models.Submission).where(models.Submission.id == submission_id))
     submission = result.scalars().first()
     
     if not submission or submission.status != "pending":
         raise ValueError("Soumission non trouvée ou déjà traitée")
 
-    # Étape 2 : Analyser le texte des ingrédients validé par l'admin
-    found_additives = await additives_parser.find_additives_in_text(db, admin_data.ingredients_text)
     
-    # On prépare une simple liste des codes additifs pour la sauvegarde
-    additives_tags_for_db = [add.e_number for add in found_additives]
 
-    # Étape 3 : Préparer toutes les données pour le scoring
-    # On combine les données du formulaire de l'admin avec la liste des additifs trouvés.
+    # --- CORRECTION ICI ---
+    # 3. Préparer UN SEUL dictionnaire complet pour le scoring
     data_for_scoring = {
-        **admin_data.model_dump(),
-        "additives_tags": additives_tags_for_db 
+        **admin_data.model_dump(),  
     }
     
-    # Étape 4 : Calculer le score final
-    # On passe les données complètes ET la liste des objets additifs (avec leur niveau de danger)
-    score_result = scoring.calculate_score(data_for_scoring, found_additives)
+    # 4. Ajouter un print pour vérifier que les données sont bien là
+    print("--- Données envoyées au scoring ---")
+    print(data_for_scoring)
+    print("----------------------------------")
+
+    # 5. Calculer le score final
+    score_result = await scoring.calculate_score(db, data_for_scoring)
+    # 4. Ajouter un print pour vérifier que les données sont bien là
+    print("--- Données du scoring ---")
+    print(score_result)
+    print("----------------------------------")
     
-    # Étape 5 : Préparer les données pour la création du produit final dans la table 'produits'
+    # 6. Préparer et créer le produit final (inchangé)
     product_to_create = schemas.ProductCreate(
-        **admin_data.model_dump(), # On utilise les données validées par l'admin
+        **admin_data.model_dump(),
         barcode=submission.barcode,
         image_url=submission.image_front_url,
-        additives_tags=additives_tags_for_db,
         custom_score=score_result.get('score'),
         detail_custom_score=score_result.get('details')
     )
-
-    # On appelle la fonction CRUD pour créer le produit
     created_product = await create_product(db, product=product_to_create)
     
-    # Étape 6 : Mettre à jour le statut de la soumission
+    # 7. Mettre à jour le statut de la soumission (inchangé)
     submission.status = "approved"
     db.add(submission)
-    await db.commit() # Sauvegarde les changements (la création du produit et la mise à jour du statut)
+    await db.commit()
     
     return created_product
+
 
 async def reject_submission(db: AsyncSession, submission_id: int):
     """
