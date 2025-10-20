@@ -33,7 +33,6 @@ class ProductCreate(ProductBase):
 class Product(ProductBase):
     
     id: int
-   
     is_verified: bool
     
     class Config:

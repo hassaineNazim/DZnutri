@@ -88,7 +88,7 @@ async def calculate_score(db: AsyncSession, product_data: Dict[str, Any]) -> Dic
 
     # Additifs : récupérer la liste et intersection avec le mapping
     additives = set([a.lower() for a in product_data.get("additives_tags", []) or []])
-    additifs_penalty = crud.get_additifs_penalty(db)
+    additifs_penalty = await crud.get_additifs_penalty(db)
     matched_add = {}
 
     for add in additives:

@@ -284,6 +284,9 @@ async def approve_product_submission(
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_admin)
 ):
+    # --- AJOUTEZ CETTE LIGNE DE DÉBOGAGE ---
+    print(f"--- Données reçues pour l'approbation : {admin_data.model_dump_json(indent=2)} ---")
+    # ------------------------------------
     """
     Endpoint pour approuver une soumission. Reçoit les données complètes de l'admin.
     """

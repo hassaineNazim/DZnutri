@@ -94,8 +94,9 @@ useEffect(() => {
       // On transforme la chaîne d'additifs en une liste
       additives_tags: additives.split(',').map(tag => tag.trim()).filter(Boolean),
       nova_group: parseInt(novaGroup) || null,
-    };
 
+    };
+    console.log("Données envoyées à l'API :", adminData);
     // On appelle la fonction du composant parent
     onConfirm(submission.id, adminData);
   };
