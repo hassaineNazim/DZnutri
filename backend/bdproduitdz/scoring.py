@@ -91,11 +91,23 @@ async def calculate_score(db: AsyncSession, product_data: Dict[str, Any]) -> Dic
     additifs_penalty = await crud.get_additifs_penalty(db)
     matched_add = {}
 
+    unknown_additifs = []
+
     for add in additives:
-        if add in additifs_penalty:
-            penalty = additifs_penalty[add]
-            matched_add[add] = penalty
-            score -= penalty * 2 # a ajuster dans le futur
+      if add in additifs_penalty:
+        penalty = additifs_penalty[add]
+        matched_add[add] = penalty
+        score -= penalty * 2
+      else:
+        unknown_additifs.append(add)
+
+     # Ajoute les additifs inconnus dans la table AdditifPending
+    if unknown_additifs:
+     await crud.store_or_increment_pending_additifs(db, unknown_additifs)
+    
+    print("--- Additifs ---")
+    print(unknown_additifs)
+    print("-----------------")
 
     if matched_add:
         details["additives"] = matched_add
