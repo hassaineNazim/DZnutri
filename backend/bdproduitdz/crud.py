@@ -1,9 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from . import models , schemas, scoring
 from . import additives_parser
 from sqlalchemy.orm import load_only
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
+from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from datetime import datetime
+import logging
 
 
 async def getProduitByBarcode(db: AsyncSession, barcode: str):
@@ -219,6 +223,55 @@ async def get_additifs_penalty(db: AsyncSession) -> Dict[str, float]:
     return {str(r[0]).strip().lower(): float(r[1] or 0.0) for r in rows if r[0]}
 
 
+
+def normalize_code(code: str) -> str:
+    """Nettoie un tag d'additif pour ne garder que le code E."""
+    if not code:
+        return ""
+    c = str(code).strip().upper() # Met en majuscules pour la cohérence
+    if ":" in c:
+        c = c.split(":")[-1]
+    return c
+
+
+async def store_or_increment_pending_additifs(db: AsyncSession, additives: List[str]):
+    """
+    Insère de nouveaux additifs ou incrémente le compteur de ceux qui existent déjà,
+    en une seule requête "upsert".
+    """
+    if not additives:
+        return
+
+    # Normalisation et dédoublonnage
+    normalized_codes = {normalize_code(a) for a in additives if a}
+    normalized_codes.discard("")  # Retire les chaînes vides
+    if not normalized_codes:
+        return
+
+    # Préparer les données pour l'insertion
+    insert_data = [
+        {'e_code': code, 'count': 1, 'status': 'pending'}
+        for code in normalized_codes
+    ]
+
+    # Créer la commande INSERT ... ON CONFLICT DO UPDATE
+    stmt = insert(models.AdditifPending).values(insert_data)
+
+    update_on_conflict_stmt = stmt.on_conflict_do_update(
+        index_elements=['e_code'],  # colonne unique
+        set_={
+            'count': models.AdditifPending.count + 1  # incrémenter le compteur
+        }
+    )
+
+    try:
+        await db.execute(update_on_conflict_stmt)
+        await db.commit()
+        return list(normalized_codes)
+    except Exception as e:
+        await db.rollback()
+        print(f"Erreur lors de l'upsert des additifs : {e}")     
+  
 
 
 
