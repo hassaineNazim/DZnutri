@@ -1,6 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from . import models , schemas, scoring
+from . import additives_parser
+from sqlalchemy.orm import load_only
+from typing import Dict, Tuple, List
+from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from datetime import datetime
+import logging
 
 
 async def getProduitByBarcode(db: AsyncSession, barcode: str):
@@ -34,36 +41,56 @@ async def get_all_submissions(db: AsyncSession, status: str = "pending"):
     )
     return result.scalars().all()
 
+# Dans produit/crud.py
+
 async def approve_submission(db: AsyncSession, submission_id: int, admin_data: schemas.AdminProductApproval):
     """
     Approuve une soumission en utilisant les données validées par l'admin.
     """
+    # 1. Récupérer la soumission (inchangé)
     result = await db.execute(select(models.Submission).where(models.Submission.id == submission_id))
     submission = result.scalars().first()
     
     if not submission or submission.status != "pending":
         raise ValueError("Soumission non trouvée ou déjà traitée")
-    full_product_data_for_scoring = {
-        **admin_data.model_dump(),
-        "barcode": submission.barcode
+
+    
+
+    # --- CORRECTION ICI ---
+    # 3. Préparer UN SEUL dictionnaire complet pour le scoring
+    data_for_scoring = {
+        **admin_data.model_dump(),  
     }
     
-    score_result = scoring.calculate_score(full_product_data_for_scoring)
+    # 4. Ajouter un print pour vérifier que les données sont bien là
+    print("--- Données envoyées au scoring ---")
+    print(data_for_scoring)
+    print("----------------------------------")
+
+    # 5. Calculer le score final
+    score_result = await scoring.calculate_score(db, data_for_scoring)
+    # 4. Ajouter un print pour vérifier que les données sont bien là
+    print("--- Données du scoring ---")
+    print(score_result)
+    print("----------------------------------")
     
+    # 6. Préparer et créer le produit final (inchangé)
     product_to_create = schemas.ProductCreate(
         **admin_data.model_dump(),
         barcode=submission.barcode,
         image_url=submission.image_front_url,
-        custom_score=score_result.get('score')
+        custom_score=score_result.get('score'),
+        detail_custom_score=score_result.get('details')
     )
-
     created_product = await create_product(db, product=product_to_create)
     
+    # 7. Mettre à jour le statut de la soumission (inchangé)
     submission.status = "approved"
     db.add(submission)
     await db.commit()
     
     return created_product
+
 
 async def reject_submission(db: AsyncSession, submission_id: int):
     """
@@ -168,7 +195,6 @@ async def get_user_history_stats(db: AsyncSession, user_id: int):
             "distribution": {"excellent": 0, "bon": 0, "mediocre": 0, "mauvais": 0}
         }
 
-    # Calcul des statistiques
     total_scans = len(scores)
     average_score = round(sum(scores) / total_scans)
     
@@ -188,5 +214,83 @@ async def get_user_history_stats(db: AsyncSession, user_id: int):
         "average_score": average_score,
         "distribution": distribution
     }
+
+
+async def get_additifs_penalty(db: AsyncSession) -> Dict[str, float]:
+    query = select(models.Additif.e_number, models.Additif.danger_level)
+    result = await db.execute(query)
+    rows = result.all()  # liste de tuples (e_number, danger_level)
+    return {str(r[0]).strip().lower(): float(r[1] or 0.0) for r in rows if r[0]}
+
+
+
+def normalize_code(code: str) -> str:
+    """Nettoie un tag d'additif pour ne garder que le code E."""
+    if not code:
+        return ""
+    c = str(code).strip().upper() # Met en majuscules pour la cohérence
+    if ":" in c:
+        c = c.split(":")[-1]
+    return c
+
+
+async def store_or_increment_pending_additifs(db: AsyncSession, additives: List[str]):
+    """
+    Insère de nouveaux additifs ou incrémente le compteur de ceux qui existent déjà,
+    en une seule requête "upsert".
+    """
+    if not additives:
+        return
+
+    # Normalisation et dédoublonnage
+    normalized_codes = {normalize_code(a) for a in additives if a}
+    normalized_codes.discard("")  # Retire les chaînes vides
+    if not normalized_codes:
+        return
+
+    # Préparer les données pour l'insertion
+    insert_data = [
+        {'e_code': code, 'count': 1, 'status': 'pending'}
+        for code in normalized_codes
+    ]
+
+    # Créer la commande INSERT ... ON CONFLICT DO UPDATE
+    stmt = insert(models.AdditifPending).values(insert_data)
+
+    update_on_conflict_stmt = stmt.on_conflict_do_update(
+        index_elements=['e_code'],  # colonne unique
+        set_={
+            'count': models.AdditifPending.count + 1  # incrémenter le compteur
+        }
+    )
+
+    try:
+        await db.execute(update_on_conflict_stmt)
+        await db.commit()
+        return list(normalized_codes)
+    except Exception as e:
+        await db.rollback()
+        print(f"Erreur lors de l'upsert des additifs : {e}")     
+  
+
+
+
+"""
+async def get_penalties_for_additives(db: AsyncSession, additive_codes: list[str]):
+    if not additive_codes:
+        return {}
+
+    query = (
+        select(models.Additif)
+        .options(load_only(models.Additif.e_number, models.Additif.danger_level))
+        .where(models.Additif.e_number.in_(additive_codes))
+    )
+    result = await db.execute(query)
+    penalties = result.scalars().all()
+    return {a.code.lower(): a.penalty for a in penalties}
+
+"""
+
+
 
 

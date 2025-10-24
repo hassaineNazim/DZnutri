@@ -70,5 +70,16 @@ class Additif(Base):
     category = Column(String, nullable=True)
 
 
+class AdditifPending(Base):
+    __tablename__ = "additifs_pending"
+
+    id = Column(Integer, primary_key=True, index=True)
+    e_code = Column(String, unique=True, nullable=False, index=True)
+    source = Column(String, default="openfoodfacts")
+    count = Column(Integer, default=1) 
+    first_seen_at = Column(DateTime, default=func.now)
+    reviewed = Column(Boolean, default=False)
+
+
 print("--- Le fichier des modèles Produit est chargé ---")
 

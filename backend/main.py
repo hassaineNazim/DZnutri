@@ -168,13 +168,13 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
         off_product_data = data.get("product")
         
         # 3. On calcule le score
-        scoringGlobal = bd_scoring.calculate_score(off_product_data)
+        scoringGlobal = await bd_scoring.calculate_score(db, off_product_data)
         custom_score = scoringGlobal.get('score')
         detail_custom_score = scoringGlobal.get('details')
         print(f"Score calculé : {custom_score}")
         
         
-        # 4. On prépare les données pour les sauvegarder dans notre table 'products'
+        # 4. On prépare les données pour les sauvegarder dans notre table 'products' 
         product_to_create = bd_schemas.ProductCreate(
             barcode=off_product_data.get('code', barcode),
             product_name=off_product_data.get('product_name_fr', off_product_data.get('product_name')),
@@ -284,6 +284,9 @@ async def approve_product_submission(
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_admin)
 ):
+    # --- AJOUTEZ CETTE LIGNE DE DÉBOGAGE ---
+    print(f"--- Données reçues pour l'approbation : {admin_data.model_dump_json(indent=2)} ---")
+    # ------------------------------------
     """
     Endpoint pour approuver une soumission. Reçoit les données complètes de l'admin.
     """
