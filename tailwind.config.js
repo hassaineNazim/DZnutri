@@ -1,7 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: "class",
-  content: [ "./app/**/*.{js,jsx,ts,tsx}" ],
+  content: [ "./app/**/*.{js,jsx,ts,tsx}",
+    "node_modules/lucide-react/**/*.js",
+
+   ],
   presets: [require("nativewind/preset")],
   theme: {
     extend: {},

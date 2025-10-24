@@ -8,7 +8,7 @@ import { ChevronRight, Info, Languages, Palette, User } from 'lucide-react-nativ
 // On importe le hook de NativeWind pour gérer le thème (clair/sombre)
 import { useColorScheme } from 'nativewind';
 import Dropdown from '../../components/Dropdown'; // Assurez-vous que le chemin est correct
-
+import { SupportedLang, useTranslation } from '../../i18n';
 /**
  * Composant Section
  * Regroupe visuellement les paramètres dans des cartes pour une meilleure organisation.
@@ -36,7 +36,7 @@ const Section = ({ title, children }) => (
  * NOTE: Pour un projet plus grand, il serait préférable de déplacer ce composant
  * dans son propre fichier (ex: /components/ListItem.tsx).
  */
-const ListItem = ({ icon, label, value, onPress, children, isLast = false }) => {
+const ListItem = ({ icon, label, value, onPress, children, isLast = false }: { icon?: any; label?: any; value?: any; onPress?: any; children?: any; isLast?: boolean }) => {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -68,74 +68,75 @@ const ListItem = ({ icon, label, value, onPress, children, isLast = false }) => 
 export default function SettingsPage() {
   const languageData = [
     { value: 'fr', label: 'Français' },
-    { value: 'en', label: 'Anglais' },
-    { value: 'ar', label: 'Arabe' },
+    { value: 'en', label: 'English' },
+    { value: 'ar', label: 'العربية' },
   ];
+
+  const { lang, setLanguage, t } = useTranslation();
+  const { setFollowSystem, follow } = useTranslation();
+
   const router = useRouter();
   const { colorScheme, setColorScheme } = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
-
-  // Simule la récupération de la langue actuelle.
-  // Dans une vraie application, cette valeur viendrait de AsyncStorage ou d'un state manager.
-  const [currentLanguage, setCurrentLanguage] = useState('Français');
+  const [currentLanguage, setCurrentLanguage] = useState('');
 
   const toggleTheme = () => {
     setColorScheme(isDarkMode ? 'light' : 'dark');
   };
-
+const iconColor = colorScheme === 'dark' ? '#E5E7EB' : '#374151';
   // Un composant conteneur pour les icônes afin de standardiser leur style.
-  const IconContainer = ({ children }) => (
+  const IconContainer = ({ children }: { children?: React.ReactNode }) => (
     <View className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 items-center justify-center">
       {children}
     </View>
   );
 
   return (
-  
-    <ScrollView 
+    <ScrollView
       className="flex-1 bg-gray-50 dark:bg-black"
       contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 32 }}
       showsVerticalScrollIndicator={false}
     >
-   
-
-      <Section title="Général">
+      <Section title={t('settings_language') || 'Général'}>
         <ListItem
           icon={
             <IconContainer>
-              {/* L'icône utilise les classes de NativeWind pour s'adapter au thème */}
-              <User size={20} className="text-gray-700 dark:text-gray-200" />
+           
+  <User size={20} color={iconColor} />
+
             </IconContainer>
           }
-          label="Compte"
+          label={t('account') ?? 'Compte'}
           onPress={() => router.push('/reglage/compte')}
         />
-<ListItem
-          icon={<IconContainer><Languages size={20} className="text-gray-700 dark:text-gray-200" /></IconContainer>}
-          label="Langue"
+
+        <ListItem
+          icon={<IconContainer><Languages size={20} color={iconColor} /></IconContainer>}
+          label={t('settings_language')}
         >
-          {/* Le Dropdown est maintenant un enfant du ListItem */}
-          <Dropdown
-            data={languageData}
-            onChange={(item) => {
-              console.log("Langue sélectionnée:", item);
-              // Ici, vous mettriez à jour la langue dans votre application (ex: i18n, AsyncStorage)
-            }}
-            placeholder="Choisir"
-          />
+         
+          {!follow && (
+            <Dropdown
+              data={languageData}
+              onChange={(item) => {
+                setLanguage(item.value as SupportedLang);
+                setCurrentLanguage(item.label);
+              }}
+              placeholder={lang === 'fr' ? 'Français' : lang === 'en' ? 'English' : lang === 'ar' ? 'العربية' : 'Select Language'}
+            />
+          )}
         </ListItem>
+
         <ListItem
           icon={
             <IconContainer>
-              <Palette size={20} className="text-gray-700 dark:text-gray-200" />
+              <Palette size={20} color={iconColor} />
             </IconContainer>
           }
-          label="Thème sombre"
-          isLast={true} // Indique que c'est le dernier élément de la section
+          label={t('theme_dark') ?? 'Thème sombre'}
+          isLast={true}
         >
-          {/* Le Switch est maintenant un enfant du ListItem, ce qui est plus propre et sémantique */}
           <Switch
-          className=''
             value={isDarkMode}
             onValueChange={toggleTheme}
             trackColor={{ false: '#E5E7EB', true: '#22c55e' }}
@@ -144,14 +145,14 @@ export default function SettingsPage() {
         </ListItem>
       </Section>
 
-      <Section title="À propos">
+      <Section title={t('about') ?? 'À propos'}>
         <ListItem
           icon={
             <IconContainer>
-              <Info size={20} className="text-gray-700 dark:text-gray-200" />
+              <Info size={20} color={iconColor} />
             </IconContainer>
           }
-          label="Qui sommes-nous ?"
+          label={t('who_are_we') ?? 'Qui sommes-nous ?'}
           onPress={() => router.push('/reglage/apropos')}
           isLast={true}
         />

@@ -1,8 +1,9 @@
 import { Tabs } from "expo-router";
 import { Text, useColorScheme, View } from "react-native";
 import BottomNavBar from "../components/BottomNavBar";
-
+import { useTranslation } from "../i18n";
 export default function TabLayout() {
+    const { t } = useTranslation();
     const colorScheme = useColorScheme();
     return (
         
@@ -22,10 +23,10 @@ export default function TabLayout() {
                         </Text>
                     ),
             }}>
-                <Tabs.Screen name="historique" options={{ title: "Historique" } } />
-                <Tabs.Screen name="reglage" options={{ title: "Réglage" }} />
-                <Tabs.Screen name="analyse" options={{ title: "Analyse" }} />
-                <Tabs.Screen name="rech" options={{ title: "Recherche" }} />
+                <Tabs.Screen name="historique" options={{ title: t('historique') } } />
+                <Tabs.Screen name="reglage" options={{ title: t('reglage') }} />
+                <Tabs.Screen name="analyse" options={{ title: t('analyse') }} />
+                <Tabs.Screen name="rech" options={{ title: t('rech') }} />
                 
             </Tabs>
             

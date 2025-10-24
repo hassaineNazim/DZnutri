@@ -13,12 +13,14 @@ import {
   Settings
 } from "react-native-fbsdk-next";
 import { API_URL } from '../config/api';
+import { useTranslation } from '../i18n';
 
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
 export default function Login() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const redirectUri = Platform.select({
  
@@ -148,8 +150,8 @@ console.log('Redirect URI:', redirectUri);
 
   return (
     <View className="flex-1 justify-center bg-white p-6">
-      <Text className="text-4xl font-bold text-gray-800 mb-4 text-center">Bienvenue</Text>
-      <Text className="text-lg text-gray-500 mb-12 text-center">Connectez-vous pour commencer</Text>
+      <Text className="text-4xl font-bold text-gray-800 mb-4 text-center">{t('welcome')}</Text>
+      <Text className="text-lg text-gray-500 mb-12 text-center">{t('connect')}</Text>
       
       <TouchableOpacity
         disabled={!request || loading}
@@ -161,7 +163,7 @@ console.log('Redirect URI:', redirectUri);
         {loading ? (
           <ActivityIndicator color="white" />
         ) : (
-          <Text className="text-white text-lg font-bold">Se connecter avec Google</Text>
+          <Text className="text-white text-lg font-bold">{t('signin_google')}</Text>
         )}
       </TouchableOpacity>
 
@@ -178,7 +180,7 @@ console.log('Redirect URI:', redirectUri);
         {loading ? (
           <ActivityIndicator color="white" />
         ) : (
-          <Text className="text-white text-lg font-bold">Se connecter avec Facebook</Text>
+          <Text className="text-white text-lg font-bold">{t('signin_facebook')}</Text>
         )}
       </TouchableOpacity>
 

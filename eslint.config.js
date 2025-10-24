@@ -1,10 +1,11 @@
-// https://docs.expo.dev/guides/using-eslint/
-const { defineConfig } = require('eslint/config');
+// eslint.config.js
+
 const expoConfig = require('eslint-config-expo/flat');
 
-module.exports = defineConfig([
+// Just export the array directly
+module.exports = [
   expoConfig,
   {
     ignores: ['dist/*'],
   },
-]);
+];

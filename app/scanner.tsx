@@ -2,16 +2,17 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Button,
-  Image,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Button,
+    Image,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
+import { useTranslation } from './i18n';
 import { fetchProduct } from './services/openFoodFacts'; // Adaptez le chemin
 import { saveToHistory } from './services/saveHistorique'; // Adaptez le chemin
 
@@ -51,6 +52,7 @@ const getScoreDescription = (score?: number) => {
 
 // --- Composant Principal du Scanner ---
 export default function Scanner() {
+  const { t } = useTranslation();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanResult, setScanResult] = useState<ScanResult>({ status: 'scanning' });
   const router = useRouter();
@@ -96,8 +98,8 @@ export default function Scanner() {
   if (!permission?.granted) {
     return (
       <View style={styles.permissionContainer}>
-        <Text>Nous avons besoin de la permission de la caméra.</Text>
-        <Button onPress={requestPermission} title="Donner la permission" />
+        <Text>{t('camera_permission_needed')}</Text>
+        <Button onPress={requestPermission} title={t('give_camera_permission')} />
       </View>
     );
   }
@@ -159,9 +161,9 @@ export default function Scanner() {
           {scanResult.status === 'notFound' && (
             <View style={styles.modalContentNotFound}>
                 <View style={styles.modalHandle} />
-                <Text style={styles.notFoundTitle}>Produit inconnu</Text>
+                <Text style={styles.notFoundTitle}>{t('unknown_product')}</Text>
                 <Text style={styles.notFoundSubtitle}>
-                  Aidez la communauté en ajoutant ce produit à la base de données.
+                  {t('help_add_product') ?? 'Aidez la communauté en ajoutant ce produit à la base de données.'}
                 </Text>
                 <TouchableOpacity
                   style={styles.addButton}
@@ -172,7 +174,7 @@ export default function Scanner() {
                     });
                   }}
                 >
-                  <Text style={styles.addButtonText}>Compléter les informations</Text>
+                  <Text style={styles.addButtonText}>{t('complete_info')}</Text>
                 </TouchableOpacity>
             </View>
           )}
