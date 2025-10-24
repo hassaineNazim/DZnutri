@@ -7,7 +7,7 @@ import ApprovalModal from './ApprovalModal';
 import SubmissionCard from './SubmissionCard';
 
 const Dashboard = () => {
-  // 1. Un seul état pour stocker TOUTES les soumissions
+  // Un seul état pour stocker TOUTES les soumissions
   const [allSubmissions, setAllSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -18,18 +18,16 @@ const Dashboard = () => {
   
   const navigate = useNavigate();
 
-  // 2. Une seule fonction pour tout récupérer du backend
+  // Une seule fonction pour tout récupérer du backend
   const fetchData = async () => {
     try {
       setLoading(true);
       setError('');
-      // On lance les 3 appels en parallèle pour plus d'efficacité
       const [pending, approved, rejected] = await Promise.all([
         submissionsAPI.getSubmissions('pending'),
         submissionsAPI.getSubmissions('approved'),
         submissionsAPI.getSubmissions('rejected'),
       ]);
-      // On combine les résultats en une seule liste
       setAllSubmissions([
         ...(pending.submissions || []),
         ...(approved.submissions || []),
@@ -48,20 +46,15 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  // 3. Les stats sont maintenant un calcul simple, pas un appel API.
-  // useMemo met en cache le résultat tant que 'allSubmissions' ne change pas.
-  const stats = useMemo(() => {
-    return {
-      pending: allSubmissions.filter(s => s.status === 'pending').length,
-      approved: allSubmissions.filter(s => s.status === 'approved').length,
-      rejected: allSubmissions.filter(s => s.status === 'rejected').length,
-    };
-  }, [allSubmissions]);
+  // Les stats sont maintenant un calcul, pas un appel API.
+  const stats = useMemo(() => ({
+    pending: allSubmissions.filter(s => s.status === 'pending').length,
+    approved: allSubmissions.filter(s => s.status === 'approved').length,
+    rejected: allSubmissions.filter(s => s.status === 'rejected').length,
+  }), [allSubmissions]);
 
-  // 4. La liste affichée est aussi un calcul.
-  // Elle se met à jour instantanément quand le filtre change, sans appel API.
+  // La liste affichée est aussi un calcul.
   const filteredSubmissions = useMemo(() => {
-    if (!filter) return allSubmissions;
     return allSubmissions.filter(s => s.status === filter);
   }, [allSubmissions, filter]);
 
@@ -70,17 +63,22 @@ const Dashboard = () => {
     setIsModalOpen(true);
   };
 
+  // --- FONCTION CORRIGÉE ---
   const handleConfirmApproval = async (submissionId, adminData) => {
     try {
       setActionLoading(true);
       await submissionsAPI.approveSubmission(submissionId, adminData);
-      // Après une action, on rafraîchit toutes les données
-      fetchData();
+      // Après une action, on rafraîchit simplement toutes les données
+      await fetchData(); 
       setIsModalOpen(false);
+      // --- AJOUTEZ CETTE LIGNE ---
+      window.location.reload();
+      // --------------------------
     } catch (err) {
       setError('Failed to approve submission.');
     } finally {
       setActionLoading(false);
+      
     }
   };
 
@@ -88,8 +86,8 @@ const Dashboard = () => {
     try {
       setActionLoading(true);
       await submissionsAPI.rejectSubmission(submissionId);
-      // Après une action, on rafraîchit toutes les données
-      fetchData();
+       // Après une action, on rafraîchit simplement toutes les données
+      await fetchData();
     } catch (err) {
       setError('Failed to reject submission.');
     } finally {
