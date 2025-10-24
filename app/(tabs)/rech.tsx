@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ActivityIndicator, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import "../../global.css";
+import { useTranslation } from "../i18n";
 
 
 
@@ -13,6 +14,7 @@ type Product = {
 };
 
 export default function Rech() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,7 @@ export default function Rech() {
                 
                 <TextInput
                     className="rounded-md  py-3 text-base w-full bg-white dark:bg-neutral-900 placeholder:px-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 border border-gray-200 dark:border-neutral-700 focus:border-emerald-400 dark:focus:border-emerald-500 outline-none text-gray-800 dark:text-gray-200"
-                    placeholder="Rechercher des produits..."
+                    placeholder={t('search_products')}
                    
                     value={query}
                     onChangeText={setQuery}
@@ -70,16 +72,16 @@ export default function Rech() {
                 <View className="w-16 h-16 rounded-md bg-gray-300 mr-4" />
               )}
               <View className="flex-1">
-                <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200">{item.product_name || 'No name'}</Text>
-                <Text className="text-sm text-gray-500">{item.brands || 'No brand'}</Text>
+                <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200">{item.product_name || t('no_name')}</Text>
+                <Text className="text-sm text-gray-500">{item.brands || t('no_brand')}</Text>
               </View>
                  <View className={item.nutrition_grades === "a" ? "bg-green-500 ml-auto rounded-md " : item.nutrition_grades === "b" ? "bg-yellow-500 ml-auto rounded-md" : "bg-red-500 ml-auto rounded-md"}  >
-            <Text className="text-slate-100 py-1 px-2 font-bold" >{item.nutrition_grades !== null ? item.nutrition_grades.toUpperCase() : 'N/A'}</Text>
+            <Text className="text-slate-100 py-1 px-2 font-bold" >{item.nutrition_grades !== null ? item.nutrition_grades.toUpperCase() : t('not_available')}</Text>
             </View>
             </TouchableOpacity> 
           )}
           ListEmptyComponent={
-            <Text className="text-gray-500 text-center mt-4">No products found</Text>
+            <Text className="text-gray-500 text-center mt-4">{t('no_products_found')}</Text>
           }
         />
       )}

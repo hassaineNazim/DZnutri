@@ -1,8 +1,9 @@
 import { Stack, useRouter } from "expo-router";
 import { useColorScheme, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-
+import { useTranslation } from "./i18n";
 export default function RootLayout() {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const router = useRouter();
   return (
@@ -27,7 +28,7 @@ export default function RootLayout() {
               }}  />
             <Stack.Screen name="screens/ajouterProd" options={{
                 headerShown: true,
-                headerTitle: "Ajouter un produit",
+                headerTitle: t('add_product'),
                 
                 headerStyle: {
                   backgroundColor: 'transparent',

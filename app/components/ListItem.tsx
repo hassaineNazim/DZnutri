@@ -8,6 +8,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { useTranslation } from '../i18n';
 
 // 1. Définition des props corrigée
 export type ListItemProps = {
@@ -21,9 +22,12 @@ export type ListItemProps = {
   };
   onPress: () => void; // Requis pour la navigation
   onDelete?: (id: number) => void; // Optionnel
+  onLongPress?: () => void; // for selection
+  selected?: boolean;
 };
 
-export default function ListItem({ item, onPress, onDelete }: ListItemProps) {
+export default function ListItem({ item, onPress, onDelete, onLongPress, selected = false }: ListItemProps) {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
 
@@ -46,7 +50,7 @@ export default function ListItem({ item, onPress, onDelete }: ListItemProps) {
 
   return (
     // 2. Le conteneur principal est un TouchableOpacity qui gère le clic pour la navigation
-    <TouchableOpacity onPress={onPress} style={[styles.card, cardStyle]}>
+    <TouchableOpacity onPress={onPress} onLongPress={onLongPress} style={[styles.card, cardStyle, selected ? styles.selectedCard : null]}>
       {/* Image ou Placeholder */}
       {item.image_url ? (
         <Image source={{ uri: item.image_url }} style={styles.image} />
@@ -59,13 +63,13 @@ export default function ListItem({ item, onPress, onDelete }: ListItemProps) {
       {/* Infos Texte */}
       <View style={styles.textContainer}>
         <Text style={[styles.productName, textStyle]} numberOfLines={1}>
-          {item.product_name || "Produit inconnu"}
+          {item.product_name || t('product_unknown')}
         </Text>
         <Text style={[styles.brandName, subTextStyle]} numberOfLines={1}>
-          {item.brand || "Marque inconnue"}
+          {item.brand || t('brand_unknown')}
         </Text>
         <Text style={[styles.score, subTextStyle]}>
-          Score: {item.custom_score ?? "N/A"}
+          {t('score_label')}: {item.custom_score ?? "N/A"}
         </Text>
       </View>
 
@@ -76,11 +80,11 @@ export default function ListItem({ item, onPress, onDelete }: ListItemProps) {
         </Text>
       </View>
 
-      {/* 3. Le bouton Delete n'apparaît que si la fonction onDelete est fournie */}
-      {onDelete && (
-        <TouchableOpacity onPress={() => onDelete(item.id)} style={styles.deleteButton}>
-          <MaterialIcons name="delete" size={22} color="#EF4444" />
-        </TouchableOpacity>
+      {/* Selected overlay */}
+      {selected && (
+        <View style={styles.selectedOverlay} pointerEvents="none">
+          
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -137,4 +141,20 @@ const styles = StyleSheet.create({
   nutriScoreE: { backgroundColor: "#DC2626" },
   nutriScoreDefault: { backgroundColor: "#6B7280" },
   deleteButton: { padding: 6 },
+  selectedCard: { borderColor: '#22c55e', borderWidth: 2 },
+  selectedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(34,197,94,0.15)',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#16a34a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

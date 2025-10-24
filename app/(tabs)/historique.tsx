@@ -1,8 +1,10 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import ConfirmModal from '../components/ConfirmModal';
 import ListItem from '../components/ListItem';
+import { useTranslation } from '../i18n';
 import { deleteFromHistory, fetchHistory } from '../services/saveHistorique';
 
 type Product = {
@@ -18,6 +20,9 @@ type Product = {
 export default function HistoriquePage() {
   const [history, setHistory] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const { t } = useTranslation();
   const router = useRouter();
 
   // 2. On utilise useFocusEffect pour charger les données à chaque fois que l'écran est affiché
@@ -60,6 +65,28 @@ export default function HistoriquePage() {
     }
   };
 
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const clearSelection = () => setSelectedIds([]);
+
+  const confirmDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    setConfirmVisible(true);
+  };
+
+  const deleteSelected = async () => {
+    try {
+      // call backend delete for each selected id
+      await Promise.all(selectedIds.map(id => deleteFromHistory(id)));
+      setHistory(prev => prev.filter(item => !selectedIds.includes(item.id)));
+      clearSelection();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleItemPress = (product: Product) => {
     // On passe l'objet produit entier en le convertissant en chaîne JSON
     router.push({
@@ -78,6 +105,57 @@ export default function HistoriquePage() {
 
   return (
     <View className="flex-1 bg-white dark:bg-[#181A20] p-4">
+     
+      {selectedIds.length > 0 && (
+      <View 
+  className="
+    flex-row items-center justify-between bg-white dark:bg-neutral-800 
+    p-3 rounded-xl mb-3 shadow-md 
+    flex-wrap 
+  "
+>
+  
+  <Text className="font-semibold text-base text-gray-900 dark:text-gray-100 mb-2 sm:mb-0">
+    {selectedIds.length} {t('selected') ?? 'sélectionné(s)'}
+  </Text>
+
+  
+  <View 
+    className="
+      flex-row space-x-2 
+      flex-wrap 
+      justify-end 
+      gap-y-2 
+    "
+  >
+    <Pressable
+      onPress={() => setSelectedIds(history.map((h) => h.id))}
+      className="px-3 py-2 bg-gray-100 dark:bg-neutral-700 rounded-lg active:opacity-70"
+    >
+      <Text className="font-medium text-gray-800 dark:text-gray-200">
+        {t('select_all')}
+      </Text>
+    </Pressable>
+
+    
+    <Pressable
+      onPress={clearSelection}
+      className="px-3 py-2 bg-gray-100 dark:bg-neutral-700 rounded-lg active:opacity-70"
+    >
+      <Text className="font-medium text-gray-800 dark:text-gray-200">
+        {t('deselect_all')}
+      </Text>
+    </Pressable>
+
+    <Pressable
+      onPress={confirmDeleteSelected}
+      className="px-3 py-2 bg-red-600 rounded-lg active:opacity-70"
+    >
+      <Text className="text-white font-medium">{t('confirm')}</Text>
+    </Pressable>
+  </View>
+</View>
+      )}
       <FlatList
         data={history}
         keyExtractor={(item) => item.id.toString()}
@@ -85,7 +163,16 @@ export default function HistoriquePage() {
         renderItem={({ item }) => (
           <ListItem
             item={item}
-            onPress={() => handleItemPress(item)}
+            onPress={() => {
+              if (selectedIds.length > 0) {
+                // in selection mode, tap toggles selection
+                toggleSelect(item.id);
+              } else {
+                handleItemPress(item);
+              }
+            }}
+            onLongPress={() => toggleSelect(item.id)}
+            selected={selectedIds.includes(item.id)}
           />
         )}
         ListEmptyComponent={
@@ -93,6 +180,15 @@ export default function HistoriquePage() {
             <Text className="text-gray-500 text-lg">Aucun historique de scan.</Text>
           </View>
         }
+      />
+      <ConfirmModal
+        visible={confirmVisible}
+        title={t('confirm_delete_title')}
+        message={t('confirm_delete_message')}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={async () => { setConfirmVisible(false); await deleteSelected(); }}
+        confirmLabel={t('confirm')}
+        cancelLabel={t('cancel')}
       />
     </View>
   );

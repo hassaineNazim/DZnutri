@@ -1,6 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from '../i18n';
 import { fetchHistoryStats } from '../services/saveHistorique';
 
 type StatsData = {
@@ -44,6 +45,8 @@ const StatBar = ({ label, count, total, color }: { label: string; count: number;
 export default function AnalysePage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { t, lang } = useTranslation();
+  if (__DEV__) console.log('[Analyse] render lang=', lang, 'title=', t('your_analysis'));
 
   useFocusEffect(
     useCallback(() => {
@@ -68,18 +71,18 @@ export default function AnalysePage() {
   if (!stats || stats.total_scans === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.emptyText}>Scannez des produits pour voir vos statistiques.</Text>
+        <Text style={styles.emptyText}>{t('scan_stats_empty')}</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Votre Analyse</Text>
+  <Text style={styles.title}>{t('your_analysis')}</Text>
       
       {/* Carte du score moyen */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Qualité moyenne de vos produits</Text>
+  <Text style={styles.sectionTitle}>{t('average_quality')}</Text>
         <View style={[styles.scoreCircle, { backgroundColor: getScoreColor(stats.average_score) }]}>
           <Text style={styles.scoreText}>{stats.average_score}</Text>
         </View>
@@ -90,11 +93,11 @@ export default function AnalysePage() {
 
       {/* Carte de la distribution des produits */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Répartition de vos {stats.total_scans} scans</Text>
-        <StatBar label="Excellent" count={stats.distribution.excellent} total={stats.total_scans} color="#22C55E" />
-        <StatBar label="Bon" count={stats.distribution.bon} total={stats.total_scans} color="#84CC16" />
-        <StatBar label="Médiocre" count={stats.distribution.mediocre} total={stats.total_scans} color="#F97316" />
-        <StatBar label="Mauvais" count={stats.distribution.mauvais} total={stats.total_scans} color="#EF4444" />
+        <Text style={styles.sectionTitle}>{t('distribution_of_scans').replace('{count}', String(stats.total_scans))}</Text>
+        <StatBar label={t('excellent')} count={stats.distribution.excellent} total={stats.total_scans} color="#22C55E" />
+        <StatBar label={t('good')} count={stats.distribution.bon} total={stats.total_scans} color="#84CC16" />
+        <StatBar label={t('mediocre')} count={stats.distribution.mediocre} total={stats.total_scans} color="#F97316" />
+        <StatBar label={t('bad')} count={stats.distribution.mauvais} total={stats.total_scans} color="#EF4444" />
       </View>
     </ScrollView>
   );
