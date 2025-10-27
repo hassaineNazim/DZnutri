@@ -16,7 +16,8 @@ import { SupportedLang, useTranslation } from '../../i18n';
  * @param {string} props.title - Le titre de la section.
  * @param {React.ReactNode} props.children - Les éléments enfants (généralement des ListItems).
  */
-const Section = ({ title, children }) => (
+
+const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
   <View className="mb-6">
     {/* Titre de la section, en majuscules pour le style */}
     <Text className="text-sm font-semibold text-gray-500 dark:text-gray-400 px-4 mb-2 uppercase">

@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from 'expo-router';
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import React, { useEffect, useState } from 'react';
+
 import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from 'react-native';
 import {
   AccessToken,
@@ -14,11 +14,13 @@ import {
 } from "react-native-fbsdk-next";
 import { API_URL } from '../config/api';
 import { useTranslation } from '../i18n';
+import { registerForPushAndSendToServer } from '../services/PushNotif';
+
 
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
-export default function Login() {
+  export default function Login() {
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -110,6 +112,7 @@ console.log('Redirect URI:', redirectUri);
             getUserFBData();
             if(data?.accessToken)
             handleFacebookResponse(data.accessToken);
+            registerForPushAndSendToServer();
           });
         }
       },
