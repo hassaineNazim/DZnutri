@@ -37,3 +37,9 @@ async def get_user_by_username(db: AsyncSession, username: str):
     """Récupère un utilisateur par son nom d'utilisateur."""
     result = await db.execute(select(models.UserTable).where(models.UserTable.username == username))
     return result.scalars().first()
+
+
+async def get_user_by_id(db: AsyncSession, user_id: int):
+    """Récupère un utilisateur par son ID."""
+    result = await db.execute(select(models.UserTable).where(models.UserTable.id == user_id))
+    return result.scalars().first()
