@@ -233,6 +233,18 @@ def normalize_code(code: str) -> str:
         c = c.split(":")[-1]
     return c
 
+async def save_user_push_token(db: AsyncSession, user_id: int, token: str):
+    """Sauvegarde le token de notification push de l'utilisateur."""
+    result = await db.execute(select(models.UserTable).where(models.UserTable.id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise ValueError("Utilisateur non trouvé")
+    
+    user.userPushToken = token
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
 
 async def store_or_increment_pending_additifs(db: AsyncSession, additives: List[str]):
     """

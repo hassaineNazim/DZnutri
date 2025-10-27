@@ -63,6 +63,14 @@
       ],
       "expo-tracking-transparency",
       "expo-font"
+      ,      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/bet_default_logo.png",
+          "color": "#ffffff",
+          "iosDisplayInForeground": true
+        }
+      ]
     ],
 
     "experiments": {
