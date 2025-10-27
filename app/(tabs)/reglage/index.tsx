@@ -109,6 +109,23 @@ const iconColor = colorScheme === 'dark' ? '#E5E7EB' : '#374151';
           label={t('account') ?? 'Compte'}
           onPress={() => router.push('/reglage/compte')}
         />
+        {/* --- AJOUTEZ CE BLOC --- */}
+        <ListItem
+          icon={
+            <IconContainer>
+              <Languages size={20} color={iconColor} />
+            </IconContainer>
+          }
+          label={t('settings_follow_system') ?? 'Suivre la langue du système'}
+        >
+          <Switch
+            value={follow}
+            onValueChange={(value) => setFollowSystem(value)} // Appelle la fonction de votre hook
+            trackColor={{ false: '#E5E7EB', true: '#22c55e' }}
+            thumbColor={'#f4f3f4'}
+          />
+        </ListItem>
+        {/* --------------------- */}
 
         <ListItem
           icon={<IconContainer><Languages size={20} color={iconColor} /></IconContainer>}
