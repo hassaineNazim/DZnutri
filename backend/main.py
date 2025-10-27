@@ -279,10 +279,12 @@ async def get_submissions_for_admin(
 @app.post("/api/admin/submissions/{submission_id}/approve")
 async def approve_product_submission(
     submission_id: int,
+    submitted_by_user_id: int,
     # On attend un corps de requête avec les données de l'admin
     admin_data: bd_schemas.AdminProductApproval, 
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_admin)
+    
 ):
     # --- AJOUTEZ CETTE LIGNE DE DÉBOGAGE ---
     print(f"--- Données reçues pour l'approbation : {admin_data.model_dump_json(indent=2)} ---")
@@ -291,10 +293,11 @@ async def approve_product_submission(
     Endpoint pour approuver une soumission. Reçoit les données complètes de l'admin.
     """
     try:
-        approved_product = await bd_crud.approve_submission(db, submission_id, admin_data)
+        approved_product = await bd_crud.approve_submission(db, submission_id, admin_data, )
         return {
             "message": "Soumission approuvée avec succès",
-            "product": approved_product
+            "product": approved_product,
+            "submitting_user_id": submitted_by_user_id
         }
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

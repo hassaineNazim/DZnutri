@@ -14,7 +14,7 @@ class UserTable(Base):
 
     hashed_password = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)
-
+    userPushToken = Column(String, nullable=True)  
     products = relationship("Product", back_populates="user")
     submissions = relationship("Submission", back_populates="submitted_by")
 
