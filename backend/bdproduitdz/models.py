@@ -62,7 +62,9 @@ class Additif(Base):
     __tablename__ = "additifs"
 
     id = Column(Integer, primary_key=True)
-    e_number = Column(String, unique=True, index=True, nullable=False) 
+    e_number = Column(String, unique=True, index=True, nullable=True) 
+    sin_number = Column(String, nullable=True)
+    ins_number = Column(String, nullable=True)
     name = Column(String, index=True) 
     danger_level = Column(Integer, nullable=True) 
     description = Column(String, nullable=True)
@@ -75,6 +77,8 @@ class AdditifPending(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     e_code = Column(String, unique=True, nullable=False, index=True)
+    sin_number = Column(String, nullable=True)
+    ins_number = Column(String, nullable=True)
     source = Column(String, default="openfoodfacts")
     count = Column(Integer, default=1) 
     first_seen_at = Column(DateTime, default=func.now)

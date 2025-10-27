@@ -44,7 +44,7 @@ export default function Dropdown({ data, onChange, placeholder }: DropDownProps)
       <TouchableOpacity
         ref={buttonRef}
         onPress={toggleExpanded}
-        className="flex-1"
+        className="flex-row items-center justify-between px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
         activeOpacity={0.7}
       >
         <View className="flex-row items-center justify-end space-x-2">
