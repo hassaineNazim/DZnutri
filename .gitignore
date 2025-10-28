@@ -47,3 +47,6 @@ app-example
 backend/dz-nutri-app-0903244cb317.json
 backend/dznutri-632fbb70c039.json
 .env
+
+
+android/local.properties
