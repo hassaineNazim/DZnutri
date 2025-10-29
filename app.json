@@ -21,8 +21,8 @@
       "permissions": [
         "android.permission.CAMERA"
 
-      ]
-
+      ],
+"googleServicesFile": "./path/to/google-services.json"
      
     },
     "web": {
