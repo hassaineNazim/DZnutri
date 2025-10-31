@@ -22,7 +22,7 @@
         "android.permission.CAMERA"
 
       ],
-"googleServicesFile": "./path/to/google-services.json"
+"googleServicesFile": "./google-services.json"
      
     },
     "web": {

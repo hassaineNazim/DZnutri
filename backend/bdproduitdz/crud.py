@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from . import models , schemas, scoring
+from auth import models as auth_models
 from . import additives_parser
 from sqlalchemy.orm import load_only
 from typing import Dict, Tuple, List
@@ -89,7 +90,8 @@ async def approve_submission(db: AsyncSession, submission_id: int, admin_data: s
     db.add(submission)
     await db.commit()
     
-    return created_product
+    # Retourner le produit créé ET l'id de l'utilisateur qui a soumis
+    return created_product, submission.submitted_by_user_id
 
 
 async def reject_submission(db: AsyncSession, submission_id: int):
@@ -234,8 +236,12 @@ def normalize_code(code: str) -> str:
     return c
 
 async def save_user_push_token(db: AsyncSession, user_id: int, token: str):
-    """Sauvegarde le token de notification push de l'utilisateur."""
-    result = await db.execute(select(models.UserTable).where(models.UserTable.id == user_id))
+    """Sauvegarde le token de notification push de l'utilisateur.
+
+    Note: users are defined in the auth app (auth.models.UserTable), not in this module's
+    local models module. Use auth_models.UserTable here.
+    """
+    result = await db.execute(select(auth_models.UserTable).where(auth_models.UserTable.id == user_id))
     user = result.scalars().first()
     if not user:
         raise ValueError("Utilisateur non trouvé")
@@ -284,10 +290,20 @@ async def store_or_increment_pending_additifs(db: AsyncSession, additives: List[
         await db.rollback()
         print(f"Erreur lors de l'upsert des additifs : {e}")     
   
-
-
-
+async def get_user_by_submission(db: AsyncSession, submission_id: int) :
+    
+    result = await db.execute(
+        select(models.Submission.submitted_by_user_id)
+        .where(models.Submission.id == submission_id)
+    )
+    user = result.scalars()
+    print(user)
+    if user is None:
+        raise ValueError("Soumission non trouvée")
+    return user
 """
+
+
 async def get_penalties_for_additives(db: AsyncSession, additive_codes: list[str]):
     if not additive_codes:
         return {}

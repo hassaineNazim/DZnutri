@@ -9,11 +9,11 @@ export const submissionsAPI = {
   },
 
   // Approve a submission
-  approveSubmission: async (submissionId, adminData, submitted_by_user_id) => {
-    const response = await api.post(`/api/admin/submissions/${submissionId}/approve`, { adminData, submitted_by_user_id });
-    console.log("Approved submission:", response.data);
+  approveSubmission: async (submissionId, adminData) => {
+    // adminData should be a plain object matching the server's AdminProductApproval schema
+    const response = await api.post(`/api/admin/submissions/${submissionId}/approve`, adminData);
     return response.data;
-},
+  },
 
   // Reject a submission
   rejectSubmission: async (submissionId) => {
