@@ -76,6 +76,7 @@ const Dashboard = () => {
       // --------------------------
     } catch (err) {
       setError('Failed to approve submission.');
+      console.error('Error approving submission:', err);
     } finally {
       setActionLoading(false);
       

@@ -1,13 +1,20 @@
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select 
 import httpx, certifi
+
+import os
+import requests
+from requests.exceptions import ConnectionError, HTTPError
 from google.oauth2 import id_token 
 from google.auth.transport import requests
-from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
+from pydantic import BaseModel
 import shutil
 import cloudinary
 import os
@@ -27,6 +34,14 @@ from bdproduitdz import ocr as bd_ocr
 from bdproduitdz import scoring as bd_scoring
 from bdproduitdz import parser as bd_parser
 from bdproduitdz import additives_parser as bd_additives 
+import logging
+from exponent_server_sdk import (
+        DeviceNotRegisteredError,
+        PushClient,
+        PushMessage,
+        PushServerError,
+        PushTicketError,
+    )
 
 load_dotenv() 
 
@@ -46,6 +61,83 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
+# NOTE: we no longer use a preconfigured requests.Session here; the PushClient
+# will use its default transport. If you later want to enable an EXPO_TOKEN or
+# custom session headers, re-add a session and pass it to PushClient().
+
+
+# Helper to send Expo push notifications using exponent_server_sdk in a thread
+async def send_expo_push(db: AsyncSession, user_id: int, to_token: str, title: str, body: str, data: dict | None = None):
+    """
+    Envoie une notification push en utilisant la SDK Expo dans un thread séparé
+    avec un timeout et des logs de débogage clairs.
+    """
+    
+    # --- 1. Imports à l'intérieur pour éviter le blocage au démarrage ---
+    from exponent_server_sdk import (
+        DeviceNotRegisteredError,
+        PushClient,
+        PushMessage,
+        PushServerError,
+        PushTicketError,
+    )
+    
+    def _publish():
+        """La fonction synchrone (bloquante) qui s'exécutera dans un thread."""
+        print(f"--- [PID {os.getpid()}] _publish: Création du client et du message...", flush=True)
+        client = PushClient()
+        message = PushMessage(to=to_token, title=title, body=body, data=data, sound="default", priority='high')
+        print(f"------------------- [############# you sent this : {message} ############. ------------------------", flush=True)
+        
+        print(f"--- [PID {os.getpid()}] _publish: Envoi vers Expo (c'est l'étape lente)... ---", flush=True)
+        
+        # C'est l'appel réseau bloquant
+        response = client.publish(message) 
+        
+        print(f"--- [PID {os.getpid()}] _publish: Réponse reçue d'Expo. ---", flush=True)
+        return response
+    
+    
+    # --- Début du bloc Try/Except principal ---
+    try:
+        print(f"--- send_expo_push: Préparation de l'envoi pour user {user_id}...", flush=True)
+        
+        # Création de la tâche à exécuter dans le thread
+        tache_thread = asyncio.to_thread(_publish)
+        
+        # --- 2. On attend la tâche avec un TIMEOUT DE 30 SECONDES ---
+        response = await asyncio.wait_for(tache_thread, timeout=30.0)
+        
+        print(f"--- send_expo_push: Tâche terminée. Validation de la réponse...", flush=True)
+
+        # --- 3. Validation de la réponse (sans 'await') ---
+        try:
+            response.validate_response()
+            print(f"--- send_expo_push: SUCCÈS. Notification envoyée. ---", flush=True)
+            return True
+            
+        except DeviceNotRegisteredError:
+            print(f"--- send_expo_push: ERREUR: DeviceNotRegisteredError. Le token {to_token} est invalide.", flush=True)
+            # (Votre code pour effacer le token ira ici)
+            return False
+            
+        except PushTicketError as exc:
+            print(f"--- send_expo_push: ERREUR: PushTicketError: {exc.push_response}", flush=True)
+            return False
+
+    # --- 4. Gestion des erreurs, Y COMPRIS LE TIMEOUT ---
+    except asyncio.TimeoutError:
+        print(f"--- send_expo_push: ERREUR: TIMEOUT après 30 secondes. La requête a été annulée.", flush=True)
+        return False
+    
+    except PushServerError as exc:
+        print(f"--- send_expo_push: ERREUR: PushServerError: {exc.errors} {exc.response_data}", flush=True)
+        return False
+        
+    except Exception as e:
+        print(f"--- send_expo_push: ERREUR CRITIQUE INATTENDUE: {e}", flush=True)
+        return False
 # Toute URL commençant par /uploads cherchera un fichier dans le dossier "uploads".
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
@@ -275,17 +367,19 @@ async def get_submissions_for_admin(
     submissions = await bd_crud.get_all_submissions(db, status=status)
     return {"submissions": submissions, "count": len(submissions)}
 
+class PushToken(BaseModel):
+    expo_push_token: str
+
+
 @app.post("/api/me/push-token")
 async def push_token(
-    token: str,
+    payload: PushToken,
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_user)
 ):
-    """
-    Endpoint pour pousser un token vers un utilisateur.
-    """
+   
     try:
-        await bd_crud.save_user_push_token(db, current_user.id, token)
+        await bd_crud.save_user_push_token(db, current_user.id, payload.expo_push_token)
         return {"message": "Token poussé avec succès"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors du push du token: {str(e)}")
@@ -293,25 +387,55 @@ async def push_token(
 @app.post("/api/admin/submissions/{submission_id}/approve")
 async def approve_product_submission(
     submission_id: int,
+    
     # On attend un corps de requête avec les données de l'admin
     admin_data: bd_schemas.AdminProductApproval, 
     db: AsyncSession = Depends(get_db),
-    current_user: auth_models.UserTable = Depends(auth_security.get_current_admin)
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_admin),
+
 ):
-    # --- AJOUTEZ CETTE LIGNE DE DÉBOGAGE ---
-    print(f"--- Données reçues pour l'approbation : {admin_data.model_dump_json(indent=2)} ---")
-    # ------------------------------------
+
     """
     Endpoint pour approuver une soumission. Reçoit les données complètes de l'admin.
     """
     try:
-        approved_product = await bd_crud.approve_submission(db, submission_id, admin_data)
+        
+        # approve_submission now returns (created_product, submitting_user_id)
+        result = await bd_crud.approve_submission(db, submission_id, admin_data)
+      
+        if isinstance(result, tuple):
+            approved_product, submitting_user_id = result
+            print(f"--- Produit approuvé : {approved_product} ---", flush=True)
+        else:
+            approved_product = result
+            submitting_user_id = None
+
+        # Notify the submitting user if they have a stored Expo push token
+        if submitting_user_id:
+            try:
+                submitting_user = await auth_crud.get_user_by_id(db, submitting_user_id)
+                if submitting_user and getattr(submitting_user, 'userPushToken', None):
+                    to_token = submitting_user.userPushToken 
+                    
+                    title = "Votre produit a été approuvé"
+                    body = f"Le produit {getattr(approved_product, 'product_name', None) or getattr(approved_product, 'barcode', '')} a été ajouté."
+                    await send_expo_push(db, submitting_user_id, to_token, title, body, data={"product_id": getattr(approved_product, 'id', None)})
+                 
+            except Exception as e:
+                print(f"Erreur lors de l'envoi de la notification push: {e}")
+
         return {
             "message": "Soumission approuvée avec succès",
-            "product": approved_product
+            "product": approved_product,
+            "uploader_id": submitting_user_id
         }
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    
+    
+    
+    
+    
     
 
 @app.post("/api/admin/submissions/{submission_id}/reject")
@@ -417,6 +541,7 @@ async def get_history_stats(
     Endpoint sécurisé pour récupérer les statistiques de l'historique de l'utilisateur.
     """
     stats = await bd_crud.get_user_history_stats(db, user_id=current_user.id)
+
     return stats
 
 @app.put("/testapi") #Juste pour voir la structure de l'API d'OpenFoodFacts

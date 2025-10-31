@@ -1,9 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { Settings } from 'react-native-fbsdk-next';
 import "../global.css";
 import { API_URL } from "./config/api";
 
+// Call this before your app component renders
+Settings.initializeSDK(); 
+
+// ... rest of your App.js
 export default function Index() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoggedIn, setIsLoggedIn] = useState(false);

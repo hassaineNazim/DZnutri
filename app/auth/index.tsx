@@ -54,19 +54,28 @@ console.log('Redirect URI:', redirectUri);
         const { id_token } = response.params;
         
         try {
+          console.log('[auth] attempting POST to', `${API_URL}/auth/google`);
           const backendResponse = await fetch(`${API_URL}/auth/google`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id_token }),
           });
           
-          const data = await backendResponse.json(); 
+          let data;
+          try {
+            data = await backendResponse.json();
+          } catch (jsonErr) {
+            console.warn('[auth] failed to parse JSON from /auth/google', jsonErr);
+            data = null;
+          }
+
+          console.log('[auth] /auth/google status=', backendResponse.status, 'body=', data);
 
           if (backendResponse.ok) {
             await AsyncStorage.setItem('userToken', data.access_token);
             router.replace('/(tabs)/historique');
           } else {
-            setError(`Erreur du serveur : ${data.detail || 'Authentification échouée'}`);
+            setError(`Erreur du serveur : ${data?.detail || 'Authentification échouée'}`);
           }
         } catch (e) {
           setError("Erreur : Impossible de contacter le backend.");
@@ -112,7 +121,7 @@ console.log('Redirect URI:', redirectUri);
             getUserFBData();
             if(data?.accessToken)
             handleFacebookResponse(data.accessToken);
-            registerForPushAndSendToServer();
+            
           });
         }
       },
@@ -124,19 +133,31 @@ console.log('Redirect URI:', redirectUri);
   
   const handleFacebookResponse = async (accessToken: string) => {
     try {
+      console.log('[auth] attempting POST to', `${API_URL}/auth/facebook`);
       const backendResponse = await fetch(`${API_URL}/auth/facebook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: accessToken }),
       });
 
-      const data = await backendResponse.json();
+      let data;
+      try {
+        data = await backendResponse.json();
+      } catch (jsonErr) {
+        console.warn('[auth] failed to parse JSON from /auth/facebook', jsonErr);
+        data = null;
+      }
+
+      console.log('[auth] /auth/facebook status=', backendResponse.status, 'body=', data);
 
       if (backendResponse.ok) {
         await AsyncStorage.setItem('userToken', data.access_token);
+        
+  // register after storing token
+      await registerForPushAndSendToServer();
         router.replace('/(tabs)/historique');
       } else {
-        setError(`Erreur du serveur : ${data.detail || 'Authentification échouée'}`);
+        setError(`Erreur du serveur : ${data?.detail || 'Authentification échouée'}`);
       }
     } catch (e) {
       setError("Erreur : Impossible de contacter le backend.");
