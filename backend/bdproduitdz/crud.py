@@ -140,15 +140,36 @@ async def add_scan_to_history(db: AsyncSession, user_id: int, product_id: int):
     return new_scan
 
 async def get_user_history(db: AsyncSession, user_id: int):
-    # Récupère les scans et les produits associés
+    # Récupère les scans et les produits associés en renvoyant un objet combiné
+    # contenant les informations du produit et la date du scan (scanned_at).
     result = await db.execute(
-        select(models.Product)
-        .join(models.ScanHistory, models.Product.id == models.ScanHistory.product_id)
+        select(models.ScanHistory, models.Product)
+        .join(models.Product, models.Product.id == models.ScanHistory.product_id)
         .where(models.ScanHistory.user_id == user_id)
         .order_by(models.ScanHistory.scanned_at.desc())
-        .limit(50) # On limite aux 50 derniers scans par exemple
+        .limit(50)
     )
-    return result.scalars().all()
+
+    rows = result.all()
+    history_list = []
+    for scan, product in rows:
+        try:
+            scanned_at = scan.scanned_at.isoformat() if getattr(scan, 'scanned_at', None) else None
+        except Exception:
+            scanned_at = None
+
+        history_list.append({
+            'id': product.id,
+            'barcode': product.barcode,
+            'product_name': product.product_name,
+            'brand': product.brand,
+            'image_url': product.image_url,
+            'custom_score': product.custom_score,
+            'nutri_score': getattr(product, 'nutri_score', None),
+            'scanned_at': scanned_at,
+        })
+
+    return history_list
 
 async def delete_scan_from_history(db: AsyncSession, user_id: int, product_id: int):
     """

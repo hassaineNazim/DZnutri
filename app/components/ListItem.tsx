@@ -1,15 +1,8 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
-import {
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useColorScheme,
-  View,
-} from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
+import Svg, { Circle } from 'react-native-svg';
 import { useTranslation } from '../i18n';
-
 // 1. Définition des props corrigée
 export type ListItemProps = {
   item: {
@@ -18,7 +11,8 @@ export type ListItemProps = {
     brand?: string;
     image_url?: string;
     custom_score?: number;
-    nutri_score?: string; 
+    nutri_score?: string;
+    scanned_at?: string | null;
   };
   onPress: () => void; // Requis pour la navigation
   onDelete?: (id: number) => void; // Optionnel
@@ -26,135 +20,151 @@ export type ListItemProps = {
   selected?: boolean;
 };
 
+
+
+
 export default function ListItem({ item, onPress, onDelete, onLongPress, selected = false }: ListItemProps) {
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === "dark";
+// --- Component logic ---
+const score = item.custom_score ?? 0;
+const MAX_SCORE = 100; // IMPORTANT: Change this to your maximum possible score
 
-  // Fonction pour le style du Nutri-Score (inchangée)
-  const getNutriScoreStyle = (grade?: string) => {
-    switch (grade?.toLowerCase()) {
-      case "a": return styles.nutriScoreA;
-      case "b": return styles.nutriScoreB;
-      case "c": return styles.nutriScoreC;
-      case "d": return styles.nutriScoreD;
-      case "e": return styles.nutriScoreE;
-      default: return styles.nutriScoreDefault;
+// SVG parameters
+const size = 56;
+const strokeWidth = 6; // This creates the 6px thick ring from your screenshot
+const center = size / 2;
+const radius = center - (strokeWidth / 2);
+const circumference = 2 * Math.PI * radius;
+
+// Calculate progress
+const progressPercentage = (typeof score === 'number' ? score : 0) / MAX_SCORE;
+const strokeDashoffset = circumference * (1 - progressPercentage);
+
+// Get the color
+const color = getScoreColor(score);
+  const relativeTime = (iso?: string | null) => {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      const diff = Date.now() - d.getTime();
+      const sec = Math.floor(diff / 1000);
+      if (sec < 60) return `${sec}`+t('s');
+      const min = Math.floor(sec / 60);
+      if (min < 60) return `${min}`+t('m');
+      const hr = Math.floor(min / 60);
+      if (hr < 24) return `${hr}`+t('h');
+      const days = Math.floor(hr / 24);
+      return `${days}`+t('d');
+    } catch (e) {
+      return iso;
     }
+    
   };
-  
-  // Styles dynamiques pour le mode sombre
-  const cardStyle = isDarkMode ? styles.cardDark : styles.cardLight;
-  const textStyle = isDarkMode ? styles.textDark : styles.textLight;
-  const subTextStyle = isDarkMode ? styles.subTextDark : styles.subTextLight;
 
   return (
-    // 2. Le conteneur principal est un TouchableOpacity qui gère le clic pour la navigation
-    <TouchableOpacity onPress={onPress} onLongPress={onLongPress} style={[styles.card, cardStyle, selected ? styles.selectedCard : null]}>
-      {/* Image ou Placeholder */}
+    <TouchableOpacity onPress={onPress} onLongPress={onLongPress} className="flex-row items-center p-3 rounded-xl mb-3 bg-slate-100 dark:bg-[#111214] shadow-md" style={selected ? { borderWidth: 2, borderColor: 'limegreen' } : {}}>
       {item.image_url ? (
-        <Image source={{ uri: item.image_url }} style={styles.image} />
+        <Image source={{ uri: item.image_url }} className="w-16 h-16 rounded-lg mr-3" />
       ) : (
-        <View style={[styles.image, styles.imagePlaceholder]}>
+        <View className="w-16 h-16 rounded-lg mr-3 bg-gray-100 justify-center items-center">
           <MaterialIcons name="fastfood" size={28} color="#9CA3AF" />
         </View>
       )}
 
-      {/* Infos Texte */}
-      <View style={styles.textContainer}>
-        <Text style={[styles.productName, textStyle]} numberOfLines={1}>
-          {item.product_name || t('product_unknown')}
-        </Text>
-        <Text style={[styles.brandName, subTextStyle]} numberOfLines={1}>
-          {item.brand || t('brand_unknown')}
-        </Text>
-        <Text style={[styles.score, subTextStyle]}>
-          {t('score_label')}: {item.custom_score ?? "N/A"}
-        </Text>
-      </View>
+      <View className="flex-1">
+        <Text className="text-lg font-bold text-gray-900 dark:text-gray-100" numberOfLines={1}>{item.product_name || t('product_unknown')}</Text>
 
-      {/* Nutri-Score */}
-      <View style={[styles.nutriScoreBadge, getNutriScoreStyle(item.nutri_score)]}>
-        <Text style={styles.nutriScoreText}>
-          {item.nutri_score?.toUpperCase() || "?"}
-        </Text>
-      </View>
+        <Text className="text-sm text-gray-500" numberOfLines={1}>{item.brand || t('brand_unknown')}</Text>
 
-      {/* Selected overlay */}
-      {selected && (
-        <View style={styles.selectedOverlay} pointerEvents="none">
-          
+        <View className="flex-row items-center mt-1">
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: getScoreColor(item.custom_score) }} />
+          <Text className="text-sm ml-2" style={{ color: getScoreColor(item.custom_score) }}>{getQualityLabel(item.custom_score, t)}</Text>
         </View>
-      )}
-    </TouchableOpacity>
+
+        <Text className="text-xs text-gray-400 mt-1">{relativeTime(item.scanned_at)}</Text>
+      </View>
+
+   <View className="ml-3 justify-center items-center" style={{ width: size, height: size }}>
+    
+    {/* SVG container for the rings */}
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {/* Background "track" circle (light grey) */}
+      <Circle
+        stroke="#E6E7E8"
+        fill="none"
+        cx={center}
+        cy={center}
+        r={radius}
+        strokeWidth={strokeWidth}
+      />
+      
+      {/* Foreground "progress" circle */}
+      <Circle
+        stroke={color}
+        fill="none"
+        cx={center}
+        cy={center}
+        r={radius}
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={strokeDashoffset}
+        strokeLinecap="round" // Makes the end of the line rounded
+        transform={`rotate(-90 ${center} ${center})`} // Starts the ring at the top (12 o'clock)
+      />
+    </Svg>
+    
+    {/* This is the white circle and text, absolutely positioned in the center */}
+    <View 
+      style={{ 
+        width: 44, 
+        height: 44, 
+        borderRadius: 22, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        backgroundColor: getbackgroundColor(item.custom_score),
+        position: 'absolute' // This puts it on top of the Svg
+      }}
+    >
+      <Text style={{ 
+        color: color, 
+        fontWeight: '800', 
+        fontSize: 16 
+      }}>
+        {typeof item.custom_score === 'number' ? item.custom_score : (item.custom_score ?? 'N/A')}
+      </Text>
+    </View>
+    
+  </View>
+</TouchableOpacity>
   );
 }
 
-// 4. Styles complets et propres
-const styles = StyleSheet.create({
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  cardLight: { backgroundColor: "white" },
-  cardDark: { backgroundColor: "#27272A" },
-  image: {
-    width: 64,
-    height: 64,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  imagePlaceholder: {
-    backgroundColor: "#F3F4F6",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  textContainer: { flex: 1 },
-  productName: { fontSize: 16, fontWeight: "600" },
-  brandName: { fontSize: 14, marginTop: 2 },
-  score: { fontSize: 13, marginTop: 4 },
-  textLight: { color: "#1F2937" },
-  textDark: { color: "white" },
-  subTextLight: { color: "#6B7280" },
-  subTextDark: { color: "#D1D5DB" },
-  nutriScoreBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 8,
-  },
-  nutriScoreText: { color: "white", fontWeight: "bold" },
-  nutriScoreA: { backgroundColor: "#059669" },
-  nutriScoreB: { backgroundColor: "#84CC16" },
-  nutriScoreC: { backgroundColor: "#F97316" },
-  nutriScoreD: { backgroundColor: "#EF4444" },
-  nutriScoreE: { backgroundColor: "#DC2626" },
-  nutriScoreDefault: { backgroundColor: "#6B7280" },
-  deleteButton: { padding: 6 },
-  selectedCard: { borderColor: '#22c55e', borderWidth: 2 },
-  selectedOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(34,197,94,0.15)',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#16a34a',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+
+
+function getScoreColor(score?: number | null) {
+  if (typeof score !== 'number') return '#9CA3AF';
+  if (score >= 70) return '#16a34a';
+  if (score >= 35) return '#F97316';
+  return '#EF4444';
+}
+function getbackgroundColor(score?: number | null) {
+  if (typeof score !== 'number') return '#FFFFFF';
+  if (score >= 70) return '#D1FAE5';
+  if (score >= 35) return '#FFEDD5';
+  return '#FEE2E2';
+}
+
+function getQualityLabel(score?: number | null, tFn?: any) {
+  // Use i18n translations if available, otherwise fall back to French labels
+  try {
+    if (typeof score !== 'number') return tFn ? tFn('not_available') : 'N/A';
+    if (score >= 70) return tFn ? tFn('excellent') : t('Excellent');
+    if (score >= 35) return tFn ? tFn('mediocre') : 'Médiocre';
+    return tFn ? tFn('bad') : 'Mauvais';
+  } catch (e) {
+    if (typeof score !== 'number') return 'N/A';
+    if (score >= 70) return 'Excellent';
+    if (score >= 35) return 'Médiocre';
+    return 'Mauvais';
+  }
+}

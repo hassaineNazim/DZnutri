@@ -10,10 +10,12 @@ import { deleteFromHistory, fetchHistory } from '../services/saveHistorique';
 type Product = {
   id: number;
   brands?: string;
+  brand?: string;
   product_name?: string;
   image_url?: string;
   custom_score?: number;
   nutrition_grades?: string;
+  scanned_at?: string | null;
 
 };
 

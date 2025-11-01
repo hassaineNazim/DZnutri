@@ -7,6 +7,7 @@ type Product = {
   brands?: string;
   image_url?: string;
   custom_score?: number;
+  scanned_at?: string | null;
 };
 
 export const saveToHistory = async (product: Product): Promise<void> => {

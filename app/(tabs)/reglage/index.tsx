@@ -17,6 +17,7 @@ import { SupportedLang, useTranslation } from '../../i18n';
  * @param {React.ReactNode} props.children - Les éléments enfants (généralement des ListItems).
  */
 
+
 const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
   <View className="mb-6">
     {/* Titre de la section, en majuscules pour le style */}
@@ -71,6 +72,7 @@ export default function SettingsPage() {
     { value: 'fr', label: 'Français' },
     { value: 'en', label: 'English' },
     { value: 'ar', label: 'العربية' },
+    { value: 'fs', label: 'Suivre la langue du système' }
   ];
 
   const { lang, setLanguage, t } = useTranslation();
@@ -84,7 +86,7 @@ export default function SettingsPage() {
   const toggleTheme = () => {
     setColorScheme(isDarkMode ? 'light' : 'dark');
   };
-const iconColor = colorScheme === 'dark' ? '#E5E7EB' : '#374151';
+ const iconColor = colorScheme === 'dark' ? '#E5E7EB' : '#374151';
   // Un composant conteneur pour les icônes afin de standardiser leur style.
   const IconContainer = ({ children }: { children?: React.ReactNode }) => (
     <View className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 items-center justify-center">
@@ -94,7 +96,7 @@ const iconColor = colorScheme === 'dark' ? '#E5E7EB' : '#374151';
 
   return (
     <ScrollView
-      className="flex-1 bg-gray-50 dark:bg-black"
+      className="flex-1 bg-gray-50 dark:bg-[#181A20]"
       contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 32 }}
       showsVerticalScrollIndicator={false}
     >
@@ -110,23 +112,7 @@ const iconColor = colorScheme === 'dark' ? '#E5E7EB' : '#374151';
           label={t('account') ?? 'Compte'}
           onPress={() => router.push('/reglage/compte')}
         />
-        {/* --- AJOUTEZ CE BLOC --- */}
-        <ListItem
-          icon={
-            <IconContainer>
-              <Languages size={20} color={iconColor} />
-            </IconContainer>
-          }
-          label={t('settings_follow_system') ?? 'Suivre la langue du système'}
-        >
-          <Switch
-            value={follow}
-            onValueChange={(value) => setFollowSystem(value)} // Appelle la fonction de votre hook
-            trackColor={{ false: '#E5E7EB', true: '#22c55e' }}
-            thumbColor={'#f4f3f4'}
-          />
-        </ListItem>
-        {/* --------------------- */}
+      
 
         <ListItem
           icon={<IconContainer><Languages size={20} color={iconColor} /></IconContainer>}
@@ -136,9 +122,14 @@ const iconColor = colorScheme === 'dark' ? '#E5E7EB' : '#374151';
           {!follow && (
             <Dropdown
               data={languageData}
-              onChange={(item) => {
+              onChange={(item) => { if (item.value == 'fs') {
+                setFollowSystem(true);
+              } else { setFollowSystem(false);
                 setLanguage(item.value as SupportedLang);
                 setCurrentLanguage(item.label);
+              }
+
+                
               }}
               placeholder={lang === 'fr' ? 'Français' : lang === 'en' ? 'English' : lang === 'ar' ? 'العربية' : 'Select Language'}
             />
