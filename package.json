@@ -54,5 +54,10 @@
     "tailwindcss": "3.3.2",
     "typescript": "~5.3.3"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "nativewind": {
+      "react-native-css-interop": "0.1.22"
+    }
+  }
 }
