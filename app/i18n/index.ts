@@ -61,6 +61,11 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     analyse: 'Analyse',
     rech: 'Recherche',
     selected: 'sélectionné(s)',
+    ago : 'il y a',
+    h : 'h',
+    m : 'm',
+    s : 's',
+    d : 'j',
   },
   en: {
     welcome: 'Welcome',
@@ -101,7 +106,11 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     analyse: 'Analysis',
     rech: 'Search',
     selected: 'selected',
-    
+    ago : 'ago',
+    h : 'h',
+    m : 'm',
+    s : 's',
+    d : 'd',
   },
   ar: {
     welcome: 'مرحبا',
@@ -142,7 +151,11 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     analyse: 'التحليل',
     rech: 'بحث',
     selected: 'محدد',
-  
+    ago: 'منذ',
+    h : 'س',
+    m : 'د',
+    s : 'ث',
+    d : 'ي',
   }
 };
 

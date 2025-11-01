@@ -34,7 +34,7 @@ export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
 
  const { t } = useTranslation();
   return (
-    <View className="flex-row justify-around items-center h-[70px] bg-slate-50 dark:bg-[#181A20] rounded-t-2xl absolute left-0 right-0 bottom-0 shadow-lg z-10">
+    <View className="flex-row justify-around items-center h-[70px] bg-slate-100 dark:bg-[#181A20] rounded-t-2xl absolute left-0 right-0 bottom-0 shadow-lg z-10">
       
       {/* On génère les boutons en bouclant sur les routes */}
       {state.routes.map((route, index) => {

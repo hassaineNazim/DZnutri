@@ -1,8 +1,8 @@
 import { AntDesign } from "@expo/vector-icons";
+import { colorScheme } from "nativewind";
 
 import React, { useRef, useState } from 'react';
 import { FlatList, Modal, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-
 
 type OptionItem = {
   value: string;
@@ -21,6 +21,8 @@ export default function Dropdown({ data, onChange, placeholder }: DropDownProps)
   const [selectedValue, setSelectedValue] = useState<OptionItem | null>(null);
   const [dropdownTop, setDropdownTop] = useState(0);
   const buttonRef = useRef<TouchableOpacity>(null);
+
+  
 
   const toggleExpanded = () => {
     if (buttonRef.current) {
@@ -48,10 +50,11 @@ export default function Dropdown({ data, onChange, placeholder }: DropDownProps)
         activeOpacity={0.7}
       >
         <View className="flex-row items-center justify-end space-x-2">
-          <Text className="text-base text-gray-500 dark:text-gray-400">
+          <Text className="text-base text-gray-500 dark:text-gray-400 ">
             {selectedValue ? selectedValue.label : placeholder}
           </Text>
-          <AntDesign name={expanded ? "up" : "down"} size={16} className="text-gray-400" />
+          <View className="ml-2" />
+          <AntDesign name={expanded ? "up" : "down"} size={12} className="text-gray-400" color={ colorScheme.get() === 'dark' ? '#E5E7EB' : '#374151'} />
         </View>
       </TouchableOpacity>
 
@@ -70,7 +73,7 @@ export default function Dropdown({ data, onChange, placeholder }: DropDownProps)
                     <Text className="text-base text-gray-900 dark:text-gray-100">{item.label}</Text>
                   </TouchableOpacity>
                 )}
-                ItemSeparatorComponent={() => <View className="h-px bg-gray-200 dark:bg-gray-700" />}
+                ItemSeparatorComponent={() => <View className="h-px bg-gray-200 dark:bg-gray-800" />}
               />
             </View>
           </View>

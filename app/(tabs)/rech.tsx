@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { MaterialIcons } from '@expo/vector-icons';
+import { useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import "../../global.css";
 import { useTranslation } from "../i18n";
@@ -18,6 +19,7 @@ export default function Rech() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const inputRef = useRef<TextInput | null>(null);
 
   const searchProducts = async () => {
     if (!query.trim()) return;
@@ -34,17 +36,37 @@ export default function Rech() {
   };
     return (
         <View className="flex-1 bg-white dark:bg-[#181A20] px-4">
-            <View className="w-full max-w-md bg-slate-100 dark:bg-neutral-800 rounded-xl shadow-md p-4 flex-row m-3  right-3">
-                
-                <TextInput
-                    className="rounded-md  py-3 text-base w-full bg-white dark:bg-neutral-900 placeholder:px-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 border border-gray-200 dark:border-neutral-700 focus:border-emerald-400 dark:focus:border-emerald-500 outline-none text-gray-800 dark:text-gray-200"
-                    placeholder={t('search_products')}
-                   
-                    value={query}
-                    onChangeText={setQuery}
-                    onSubmitEditing={searchProducts}
-                    returnKeyType="search"
-                />
+      {/* Search bar styled as a rounded pill with violet border and green input text */}
+      <View className="w-full max-w-md m-3 right-3">
+        <View className="flex-row items-center bg-white dark:bg-neutral-900 rounded-full border-2 dark:border-slate-200 px-3 py-2 shadow-sm">
+          <TouchableOpacity onPress={searchProducts} className="p-1">
+            <MaterialIcons name="search" size={20} color="#4B5563" />
+          </TouchableOpacity>
+
+          <TextInput
+            ref={inputRef}
+            className="ml-3 text-base flex-1 text-emerald-600"
+            placeholder={t('search_products')}
+            placeholderTextColor="#9CA3AF"
+            value={query}
+            onChangeText={setQuery}
+            onSubmitEditing={searchProducts}
+            returnKeyType="search"
+          />
+
+          {query.length > 0 && (
+            <TouchableOpacity
+              onPress={() => {
+                setQuery('');
+                inputRef.current?.focus();
+              }}
+              className="p-1 ml-2"
+            >
+              <MaterialIcons name="close" size={18} color="#4B5563" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
            
 
 
@@ -52,7 +74,7 @@ export default function Rech() {
 
 
 
-            </View>
+            
             
 
               {loading ? (
