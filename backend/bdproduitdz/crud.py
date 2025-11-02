@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from datetime import datetime
 import logging
+from sqlalchemy import func
 
 
 async def getProduitByBarcode(db: AsyncSession, barcode: str):
@@ -132,12 +133,35 @@ async def create_product(db: AsyncSession, product: schemas.ProductCreate) -> mo
 
 
 async def add_scan_to_history(db: AsyncSession, user_id: int, product_id: int):
-    # (Optionnel) Vérifier si le dernier scan pour cet utilisateur est le même produit
-    # pour éviter les doublons rapides.
-    new_scan = models.ScanHistory(user_id=user_id, product_id=product_id)
-    db.add(new_scan)
+    """
+    Ajoute un scan à l'historique.
+    Si le produit a déjà été scanné par cet utilisateur,
+    met à jour le timestamp 'scanned_at' pour le faire remonter.
+    Sinon, crée une nouvelle entrée.
+    """
+    
+    # 1. On vérifie si une entrée existe déjà pour ce user ET ce produit
+    result = await db.execute(
+        select(models.ScanHistory).where(
+            models.ScanHistory.user_id == user_id,
+            models.ScanHistory.product_id == product_id
+        )
+    )
+    existing_scan = result.scalars().first()
+
+    if existing_scan:
+        # 2. Si elle existe : on met à jour son timestamp à "maintenant"
+        existing_scan.scanned_at = func.now()
+        db.add(existing_scan)
+    else:
+        # 3. Si elle n'existe pas : on crée une nouvelle entrée
+        new_scan = models.ScanHistory(user_id=user_id, product_id=product_id)
+        db.add(new_scan)
+    
+    # 4. On sauvegarde les changements
     await db.commit()
-    return new_scan
+    
+    return existing_scan if existing_scan else new_scan
 
 async def get_user_history(db: AsyncSession, user_id: int):
     # Récupère les scans et les produits associés en renvoyant un objet combiné
@@ -239,11 +263,49 @@ async def get_user_history_stats(db: AsyncSession, user_id: int):
     }
 
 
+def normalize_db_key(key: str) -> str:
+    """Nettoie les clés de la base de données pour la comparaison."""
+    if not key:
+        return ""
+    # "E330" -> "e330"
+    # "SIN 330" -> "sin330"
+    return str(key).strip().lower().replace(" ", "")
+
 async def get_additifs_penalty(db: AsyncSession) -> Dict[str, float]:
-    query = select(models.Additif.e_number, models.Additif.danger_level)
+    """
+    Crée un dictionnaire de pénalités pour TOUS les identifiants d'additifs
+    (E, SIN, INS), normalisés pour la recherche.
+    ex: {"e330": 2.0, "sin330": 2.0, "ins330": 2.0, ...}
+    """
+    # 1. On sélectionne tous les identifiants et le niveau de danger
+    query = select(
+        models.Additif.e_number, 
+        models.Additif.sin_number, 
+        models.Additif.ins_number, 
+        models.Additif.danger_level
+    )
     result = await db.execute(query)
-    rows = result.all()  # liste de tuples (e_number, danger_level)
-    return {str(r[0]).strip().lower(): float(r[1] or 0.0) for r in rows if r[0]}
+    
+    penalty_map = {}
+    
+    # 2. On construit le dictionnaire de pénalités
+    for row in result.all():
+        e_number, sin_number, ins_number, danger_level = row
+        penalty = float(danger_level or 0.0)
+
+        # On crée une liste de toutes les clés valides pour cet additif
+        keys_to_add = [
+            normalize_db_key(e_number),
+            normalize_db_key(sin_number),
+            normalize_db_key(ins_number)
+        ]
+
+        # On ajoute chaque clé valide au dictionnaire
+        for key in keys_to_add:
+            if key:
+                penalty_map[key] = penalty
+                
+    return penalty_map
 
 
 
@@ -305,11 +367,11 @@ async def store_or_increment_pending_additifs(db: AsyncSession, additives: List[
 
     try:
         await db.execute(update_on_conflict_stmt)
-        await db.commit()
-        return list(normalized_codes)
+        
     except Exception as e:
-        await db.rollback()
-        print(f"Erreur lors de l'upsert des additifs : {e}")     
+        print(f"Erreur lors de l'upsert des additifs : {e}")
+        
+        raise e    
   
 async def get_user_by_submission(db: AsyncSession, submission_id: int) :
     
