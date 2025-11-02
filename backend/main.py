@@ -106,10 +106,10 @@ async def send_expo_push(db: AsyncSession, user_id: int, to_token: str, title: s
         # Création de la tâche à exécuter dans le thread
         tache_thread = asyncio.to_thread(_publish)
         
-        # --- 2. On attend la tâche avec un TIMEOUT DE 30 SECONDES ---
+        # --- 2. On attend la tâche avec un TIMEOUT DE 30 SECONDES --- 
         response = await asyncio.wait_for(tache_thread, timeout=30.0)
         
-        print(f"--- send_expo_push: Tâche terminée. Validation de la réponse...", flush=True)
+        print(f"--- send_expo_push: Tâche terminée. Validation de la réponse...", flush=True) 
 
         # --- 3. Validation de la réponse (sans 'await') ---
         try:
@@ -139,7 +139,7 @@ async def send_expo_push(db: AsyncSession, user_id: int, to_token: str, title: s
         print(f"--- send_expo_push: ERREUR CRITIQUE INATTENDUE: {e}", flush=True)
         return False
 # Toute URL commençant par /uploads cherchera un fichier dans le dossier "uploads".
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads") 
 
 # CORS configuration for frontend
 app.add_middleware( 

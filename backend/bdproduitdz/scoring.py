@@ -101,16 +101,17 @@ async def calculate_score(db: AsyncSession, product_data: Dict[str, Any]) -> Dic
       else:
         unknown_additifs.append(add)
 
-     # Ajoute les additifs inconnus dans la table AdditifPending
+    """ # Ajoute les additifs inconnus dans la table AdditifPending 
     if unknown_additifs:
      await crud.store_or_increment_pending_additifs(db, unknown_additifs)
+     print("--- Additifs inconnus---")
+     print(unknown_additifs)
+     print("-----------------")"""
     
-    print("--- Additifs ---")
-    print(unknown_additifs)
-    print("-----------------")
-
+    
     if matched_add:
         details["additives"] = matched_add
+
 
     # NOVA
     nova = normalize_nova(product_data)
@@ -122,7 +123,7 @@ async def calculate_score(db: AsyncSession, product_data: Dict[str, Any]) -> Dic
         score -= 10
 
     # labels / bonus
-    labels = set(product_data.get("labels_tags", []) or [])
+    labels = set(product_data.get("labels_tags", []) or [])  
     if "en:organic" in labels or "organic" in labels:
         details.setdefault("labels", []).append("organic")
         score += 10
