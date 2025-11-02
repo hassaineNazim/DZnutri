@@ -5,9 +5,12 @@ from sqlalchemy.future import select
 import traceback
 from datetime import datetime
 
-# Déterminer le chemin du projet
-project_root = os.path.abspath(os.path.dirname(__file__))
+# --- AJOUTEZ CE BLOC AU TOUT DÉBUT ---
+# 1. On trouve le chemin du dossier racine (le dossier 'backend')
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# 2. On l'ajoute au chemin de Python
 sys.path.insert(0, project_root)
+# ------------------------------------
 
 # Import des composants nécessaires
 from database import AsyncSessionLocal, engine
@@ -61,7 +64,7 @@ async def main():
 
                 # Empêcher l’autoflush pendant les opérations async
                 with db.no_autoflush:
-                    score_result = await scoring.calculate_score(db, product_data)
+                    score_result = await scoring.calculate_score(db, product_data,A=1)
 
                 # Mettre à jour les champs du produit
                 product.custom_score = score_result.get("score")
@@ -91,6 +94,6 @@ async def main():
     print(f"\nTerminé ! {updated_count} produits ont été mis à jour avec succès.")
 
 
-# --- Lancement du script ---
+# --- Lancement du script --- calculate_score
 if __name__ == "__main__":
     asyncio.run(main())

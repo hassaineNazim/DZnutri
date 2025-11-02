@@ -367,11 +367,11 @@ async def store_or_increment_pending_additifs(db: AsyncSession, additives: List[
 
     try:
         await db.execute(update_on_conflict_stmt)
-        await db.commit()
-        return list(normalized_codes)
+        
     except Exception as e:
-        await db.rollback()
-        print(f"Erreur lors de l'upsert des additifs : {e}")     
+        print(f"Erreur lors de l'upsert des additifs : {e}")
+        
+        raise e    
   
 async def get_user_by_submission(db: AsyncSession, submission_id: int) :
     
