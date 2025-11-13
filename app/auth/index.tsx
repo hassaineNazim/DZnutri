@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@react-native-google-signin/google-signin";
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from 'expo-router';
@@ -19,7 +20,7 @@ import { registerForPushAndSendToServer } from '../services/PushNotif';
 
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
-
+ const [isSubmitting, setIsSubmitting] = useState(false);
   export default function Login() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -29,10 +30,74 @@ WebBrowser.maybeCompleteAuthSession();
     default: AuthSession.makeRedirectUri(),
   }) as string;
 
+
+
+
+
+const handleGoogleSignIn = async () => {
+  try {
+    setIsSubmitting(true);
+    await GoogleSignin.hasPlayServices();
+    const userInfo = await GoogleSignin.signIn();
+    console.log('Google Sign-In successful, user info:', userInfo);
+    if (isSuccessResponse(userInfo)) { // You can now send the userInfo.idToken to your backend for authentication   
+      const { idToken, user } = userInfo.data;
+        
+        try {
+          console.log('[auth] attempting POST to', `${API_URL}/auth/google`);
+          const backendResponse = await fetch(`${API_URL}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_token: idToken  }),
+          });
+          
+          let data;
+          try {
+            data = await backendResponse.json();
+          } catch (jsonErr) {
+            console.warn('[auth] failed to parse JSON from /auth/google', jsonErr);
+            data = null;
+          }
+
+          console.log('[auth] /auth/google status=', backendResponse.status, 'body=', data);
+
+          if (backendResponse.ok) {
+            await AsyncStorage.setItem('userToken', data.access_token);
+            router.replace('/(tabs)/historique');
+          } else {
+            setError(`Erreur du serveur : ${data?.detail || 'Authentification échouée'}`);
+          }
+        } catch (e) {
+          setError("Erreur : Impossible de contacter le backend.");
+        } finally {
+          setLoading(false);
+        }
+    }
+  } catch (error) {
+    if (isErrorWithCode(error)) {
+      switch (error.code) {
+        case statusCodes.SIGN_IN_CANCELLED:
+          console.log('User cancelled the login flow');
+          break;
+        case statusCodes.IN_PROGRESS:
+          console.log('Sign in is in progress already');
+          break;
+
+
+      }}}}
+
+
+
+
+
+
+
+
+
 console.log('Redirect URI:', redirectUri);
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     iosClientId: '899058288095-sav0ru4ncgbluoj3juvsk7bproklf21h.apps.googleusercontent.com',
-    androidClientId: '899058288095-f6dhdtvfo45vqg2ffveqk584li5ilq2e.apps.googleusercontent.com',
+    androidClientId: '632935078884-ftovu7icqv86p0p3il3s3kk3332ffob2.apps.googleusercontent.com',
     webClientId: '899058288095-137a1fct9pf5hql01n3ofqaa25dirnst.apps.googleusercontent.com',
     redirectUri,
   });
@@ -180,7 +245,7 @@ console.log('Redirect URI:', redirectUri);
       <TouchableOpacity
         disabled={!request || loading}
         onPress={() => {
-          promptAsync();
+          handleGoogleSignIn();
         }}
         className="bg-cyan-500 py-4 rounded-xl flex-row justify-center items-center"
       >
@@ -188,6 +253,7 @@ console.log('Redirect URI:', redirectUri);
           <ActivityIndicator color="white" />
         ) : (
           <Text className="text-white text-lg font-bold">{t('signin_google')}</Text>
+          
         )}
       </TouchableOpacity>
 

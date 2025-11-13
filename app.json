@@ -2,6 +2,7 @@
   "expo": {
     "name": "DZnutri",
     "slug": "DZnutri",
+     "host": "lan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/bet_holding_phone_V2.png",
@@ -70,7 +71,17 @@
           "color": "#ffffff",
           "iosDisplayInForeground": true
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "androidClientId": "632935078884-ftovu7icqv86p0p3il3s3kk3332ffob2.apps.googleusercontent.com",
+          "iosClientId": "632935078884-5j3r6j3r1v6j6p6u7u4q3u4q3u4q3u4q.apps.googleusercontent.com",
+          "iosUrlScheme": "com.googleusercontent.apps.632935078884-5j3r6j3r1v6j6p6u7u4q3u4q3u4q3u4q"
+          
+        }
       ]
+      
     ],
 
     "experiments": {
