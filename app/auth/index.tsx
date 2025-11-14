@@ -1,11 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
+import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@react-native-google-signin/google-signin";
 import { useRouter } from 'expo-router';
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import React, { useEffect, useState } from 'react';
 
-import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import {
   AccessToken,
   LoginManager,
@@ -16,49 +15,71 @@ import { API_URL } from '../config/api';
 import { useTranslation } from '../i18n';
 import { registerForPushAndSendToServer } from '../services/PushNotif';
 
-
-import * as WebBrowser from "expo-web-browser";
-WebBrowser.maybeCompleteAuthSession();
-
-  export default function Login() {
+export default function Login() {
   const router = useRouter();
   const { t } = useTranslation();
-
-  const redirectUri = Platform.select({
- 
-    default: AuthSession.makeRedirectUri(),
-  }) as string;
-
-console.log('Redirect URI:', redirectUri);
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: '899058288095-sav0ru4ncgbluoj3juvsk7bproklf21h.apps.googleusercontent.com',
-    androidClientId: '899058288095-f6dhdtvfo45vqg2ffveqk584li5ilq2e.apps.googleusercontent.com',
-    webClientId: '899058288095-137a1fct9pf5hql01n3ofqaa25dirnst.apps.googleusercontent.com',
-    redirectUri,
-  });
-
-  // Facebook Auth
-  
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const handleAuthResponse = async () => {
-      if (response?.type) {
-        setLoading(true);
-        setError(null);
+    // Initialize GoogleSignin and request tracking on component mount
+    const initializeAuth = async () => {
+      try {
+        console.log('[auth] Configuring GoogleSignin...');
+        await GoogleSignin.configure({
+          iosClientId: '899058288095-sav0ru4ncgbluoj3juvsk7bproklf21h.apps.googleusercontent.com',
+          webClientId: '899058288095-137a1fct9pf5hql01n3ofqaa25dirnst.apps.googleusercontent.com',
+          offlineAccess: true,
+          forceCodeForRefreshToken: true,
+        });
+        console.log('[auth] GoogleSignin configured successfully');
+      } catch (e) {
+        console.error('[auth] Failed to configure GoogleSignin:', e);
       }
 
-      if (response?.type === 'success') {
-        // Avec useIdTokenAuthRequest, le token est directement dans les params
-        const { id_token } = response.params;
+      try {
+        const { status } = await requestTrackingPermissionsAsync();
+        Settings.initializeSDK();
+        if (status === "granted") {
+          await Settings.setAdvertiserTrackingEnabled(true);
+        }
+      } catch (e) {
+        console.warn('[auth] Tracking permission error:', e);
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+    
+      await GoogleSignin.hasPlayServices();
+      
+      
+      const userInfo = await GoogleSignin.signIn();
+     
+      
+      if (isSuccessResponse(userInfo)) {
+        // idToken is in user field for GoogleSignin library
+        const idToken = (userInfo as any).data?.idToken;
+        console.log('[auth] Extracted idToken:', idToken);
+        if (!idToken) {
+          console.error('[auth] No idToken found in userInfo');
+          setError('Erreur : Token non trouvé');
+          setLoading(false);
+          return;
+        }
         
         try {
           console.log('[auth] attempting POST to', `${API_URL}/auth/google`);
           const backendResponse = await fetch(`${API_URL}/auth/google`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id_token }),
+            body: JSON.stringify({ id_token: idToken }),
           });
           
           let data;
@@ -71,44 +92,61 @@ console.log('Redirect URI:', redirectUri);
 
           console.log('[auth] /auth/google status=', backendResponse.status, 'body=', data);
 
-          if (backendResponse.ok) {
+          if (backendResponse.ok && data?.access_token) {
             await AsyncStorage.setItem('userToken', data.access_token);
+            console.log('[auth] Token stored, registering for push...');
+            await registerForPushAndSendToServer();
+            console.log('[auth] Push registered, navigating...');
             router.replace('/(tabs)/historique');
           } else {
             setError(`Erreur du serveur : ${data?.detail || 'Authentification échouée'}`);
           }
         } catch (e) {
+          console.error('[auth] Google auth error:', e);
           setError("Erreur : Impossible de contacter le backend.");
-        } finally {
-          setLoading(false);
         }
-      } else if (response?.type === 'error') {
-        setError("La connexion avec Google a échoué.");
-        setLoading(false);
       }
-    };
-
-    handleAuthResponse();
-  }, [response]);
-
-
-
-   useEffect(() => {
-    const requestTracking = async () => {
-      const { status } = await requestTrackingPermissionsAsync();
-
-      Settings.initializeSDK();
-
-      if (status === "granted") {
-        await Settings.setAdvertiserTrackingEnabled(true);
+    } catch (error) {
+      console.error('[auth] Full error object:', error);
+      console.error('[auth] Error type:', typeof error);
+      console.error('[auth] Error constructor:', (error as any)?.constructor?.name);
+      
+      if (isErrorWithCode(error)) {
+        const code = (error as any).code;
+        console.log('[auth] Error has code:', code);
+        switch (code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            console.log('User cancelled the login flow');
+            setError('Connexion annulée');
+            break;
+          case statusCodes.IN_PROGRESS:
+            console.log('Sign in is in progress already');
+            setError('Connexion en cours...');
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            console.error('Google Play Services not available');
+            setError('Google Play Services non disponibles');
+            break;
+          case statusCodes.SIGN_IN_REQUIRED:
+            console.error('Sign in required');
+            setError('Connexion requise');
+            break;
+          default:
+            console.log('[auth] Unknown error code:', code);
+            setError(`Erreur Google: ${code}`);
+        }
+      } else if (error instanceof Error) {
+        console.error('[auth] Google Sign-In error message:', error.message);
+        setError(error.message || 'Erreur lors de la connexion Google');
+      } else {
+        console.error('[auth] Unknown error type:', JSON.stringify(error));
+        setError('Erreur inconnue lors de la connexion Google');
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    requestTracking();
-  }, []);
-
-  
-  /* Trigger the below function on your custom button press */
   const loginWithFacebook = () => {
     LoginManager.logInWithPermissions(["public_profile", "email"]).then(
       function (result) {
@@ -133,6 +171,8 @@ console.log('Redirect URI:', redirectUri);
   
   const handleFacebookResponse = async (accessToken: string) => {
     try {
+      setLoading(true);
+      setError(null);
       console.log('[auth] attempting POST to', `${API_URL}/auth/facebook`);
       const backendResponse = await fetch(`${API_URL}/auth/facebook`, {
         method: 'POST',
@@ -150,16 +190,17 @@ console.log('Redirect URI:', redirectUri);
 
       console.log('[auth] /auth/facebook status=', backendResponse.status, 'body=', data);
 
-      if (backendResponse.ok) {
+      if (backendResponse.ok && data?.access_token) {
         await AsyncStorage.setItem('userToken', data.access_token);
-        
-  // register after storing token
-      await registerForPushAndSendToServer();
+        console.log('[auth] Token stored, registering for push...');
+        await registerForPushAndSendToServer();
+        console.log('[auth] Push registered, navigating...');
         router.replace('/(tabs)/historique');
       } else {
         setError(`Erreur du serveur : ${data?.detail || 'Authentification échouée'}`);
       }
     } catch (e) {
+      console.error('[auth] Facebook auth error:', e);
       setError("Erreur : Impossible de contacter le backend.");
     } finally {
       setLoading(false);
@@ -178,10 +219,8 @@ console.log('Redirect URI:', redirectUri);
       <Text className="text-lg text-gray-500 mb-12 text-center">{t('connect')}</Text>
       
       <TouchableOpacity
-        disabled={!request || loading}
-        onPress={() => {
-          promptAsync();
-        }}
+        disabled={loading}
+        onPress={handleGoogleSignIn}
         className="bg-cyan-500 py-4 rounded-xl flex-row justify-center items-center"
       >
         {loading ? (
@@ -194,11 +233,8 @@ console.log('Redirect URI:', redirectUri);
       <View className="h-4" />
 
       <TouchableOpacity
-        
-        onPress={() => {
-         
-          loginWithFacebook();
-        }}
+        disabled={loading}
+        onPress={loginWithFacebook}
         className="bg-blue-600 py-4 rounded-xl flex-row justify-center items-center"
       >
         {loading ? (
