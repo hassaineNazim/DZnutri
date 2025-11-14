@@ -6,25 +6,17 @@ import traceback
 from datetime import datetime
 
 # --- AJOUTEZ CE BLOC AU TOUT DÉBUT ---
-# 1. On trouve le chemin du dossier racine (le dossier 'backend')
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-# 2. On l'ajoute au chemin de Python
 sys.path.insert(0, project_root)
 # ------------------------------------
 
-# Import des composants nécessaires
 from database import AsyncSessionLocal, engine
-from auth import models as auth_models  # Import nécessaire pour éviter les problèmes de dépendances
+from auth import models as auth_models
 from bdproduitdz import models, scoring
 
-
 async def main():
-    """
-    Script principal pour recalculer et mettre à jour tous les scores des produits.
-    """
     print("Démarrage du script de mise à jour des scores...")
 
-    # Création d'une session asynchrone
     async with AsyncSessionLocal() as db:
         # --- Étape 1 : Charger la bibliothèque d’additifs ---
         result_additifs = await db.execute(select(models.Additif))
@@ -62,14 +54,12 @@ async def main():
                     "nutriscore_grade": product.nutri_score,
                 }
 
-                # Empêcher l’autoflush pendant les opérations async
                 with db.no_autoflush:
-                    score_result = await scoring.calculate_score(db, product_data,A=1)
+                    score_result = await scoring.calculate_score(db, product_data)
 
-                # Mettre à jour les champs du produit
                 product.custom_score = score_result.get("score")
                 product.detail_custom_score = score_result.get("details")
-                product.updated_at = datetime.utcnow()  # datetime naïf (pas de tz)
+                product.updated_at = datetime.utcnow()
 
                 db.add(product)
                 updated_count += 1
@@ -77,23 +67,26 @@ async def main():
                 # Commit par lot
                 if updated_count % BATCH == 0:
                     await db.commit()
+                    print(f"Lot de {BATCH} produits sauvegardé...")
 
             except Exception as e:
-                try:
-                    await db.rollback()
-                except Exception:
-                    pass
+                # --- CORRECTION ICI ---
+                # On ne fait PAS de rollback. On se contente d'afficher l'erreur
+                # et de passer au produit suivant. La transaction principale reste active.
                 print(f"ERREUR: Impossible de mettre à jour le produit id={prod_id} barcode={barcode} — {e}")
                 traceback.print_exc()
 
         # --- Étape 4 : Sauvegarder les changements restants ---
-        await db.commit()
+        try:
+            await db.commit()
+            print("Sauvegarde du dernier lot...")
+        except Exception as e:
+            print(f"ERREUR lors du commit final: {e}")
+            await db.rollback() # Un rollback ici est correct, s'il y a une erreur finale.
 
-    # Fermer proprement le moteur
     await engine.dispose()
-    print(f"\nTerminé ! {updated_count} produits ont été mis à jour avec succès.")
+    print(f"\nTerminé ! {updated_count} produits ont été mis à jour avec succès.") 
 
 
-# --- Lancement du script --- calculate_score
 if __name__ == "__main__":
     asyncio.run(main())
