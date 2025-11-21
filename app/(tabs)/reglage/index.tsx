@@ -119,7 +119,7 @@ export default function SettingsPage() {
           label={t('settings_language')}
         >
          
-          {!follow && (
+         
             <Dropdown
               data={languageData}
               onChange={(item) => { if (item.value == 'fs') {
@@ -133,7 +133,7 @@ export default function SettingsPage() {
               }}
               placeholder={lang === 'fr' ? 'Français' : lang === 'en' ? 'English' : lang === 'ar' ? 'العربية' : 'Select Language'}
             />
-          )}
+          
         </ListItem>
 
         <ListItem
