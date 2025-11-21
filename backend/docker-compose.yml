@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  # Le service de notre backend FastAPI
+  backend:
+    build: .  # Construit l'image à partir du Dockerfile dans ce dossier
+    ports:
+      - "8000:8000" # Lie le port 8000 de notre PC au port 8000 du conteneur
+    env_file:
+      - .env # Charge les variables d'environnement depuis le fichier .env
+    volumes:
+      - .:/app # Permet le rechargement à chaud : les changements dans votre code sont reflétés dans le conteneur
+    depends_on:
+      - db # Dit à Docker d'attendre que la base de données soit prête
+
+  # Le service de la base de données PostgreSQL
+  db:
+    image: postgres:15 # Utilise l'image officielle de PostgreSQL
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    ports:
+      - "5432:5432" # Lie le port 5432 de notre PC au port 5432 du conteneur
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Sauvegarde les données de la BD
+
+volumes:
+  postgres_data: # Définit le volume pour la persistance des données
