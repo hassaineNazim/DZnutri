@@ -140,14 +140,7 @@ export default function HistoriquePage() {
     </Pressable>
 
     
-    <Pressable
-      onPress={clearSelection}
-      className="px-3 py-2 bg-gray-100 dark:bg-neutral-700 rounded-lg active:opacity-70"
-    >
-      <Text className="font-medium text-gray-800 dark:text-gray-200">
-        {t('deselect_all')}
-      </Text>
-    </Pressable>
+
 
     <Pressable
       onPress={confirmDeleteSelected}

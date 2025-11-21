@@ -12,7 +12,7 @@ export default function RootLayout() {
         <SafeAreaView style={{flex: 1, backgroundColor: colorScheme === 'dark' ? '#000' : 'white'}}>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-       
+            <Stack.Screen name="auth" options={{ headerShown: false }} />
             <Stack.Screen name="scanner"  options={{
                 headerShown: true,
                 headerTitle: "",
