@@ -1,7 +1,10 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
+import { CheckSquare, Trash2, X } from 'lucide-react-native';
+import { useColorScheme } from 'nativewind';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
 import ListItem from '../components/ListItem';
 import { useTranslation } from '../i18n';
@@ -16,7 +19,6 @@ type Product = {
   custom_score?: number;
   nutrition_grades?: string;
   scanned_at?: string | null;
-
 };
 
 export default function HistoriquePage() {
@@ -26,46 +28,20 @@ export default function HistoriquePage() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const { t } = useTranslation();
   const router = useRouter();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
-  // 2. On utilise useFocusEffect pour charger les données à chaque fois que l'écran est affiché
   useFocusEffect(
     useCallback(() => {
       const loadHistoryFromServer = async () => {
         setLoading(true);
-        const serverHistory = await fetchHistory();    
-
-         // --- LIGNE DE VÉRIFICATION ---
-         if (serverHistory.length > 0) {
-          console.log("Données reçues par le frontend (premier produit) :", serverHistory[0]);
-         }
-         // ----------------------------
-        
+        const serverHistory = await fetchHistory();
         setHistory(serverHistory);
         setLoading(false);
       };
-
       loadHistoryFromServer();
     }, [])
   );
-
-  // Affiche un indicateur de chargement
-  if (loading) {
-    return (
-      <View className="flex-1 justify-center items-center bg-white dark:bg-[#181A20]">
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-   const handleDelete = async (itemId: number) => {
-    try {
-      // 1. On dit au backend de supprimer l'élément
-      await deleteFromHistory(itemId);
-      // 2. Si la suppression réussit, on met à jour l'affichage localement
-      setHistory(prevHistory => prevHistory.filter(item => item.id !== itemId));
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const toggleSelect = (id: number) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -80,7 +56,6 @@ export default function HistoriquePage() {
 
   const deleteSelected = async () => {
     try {
-      // call backend delete for each selected id
       await Promise.all(selectedIds.map(id => deleteFromHistory(id)));
       setHistory(prev => prev.filter(item => !selectedIds.includes(item.id)));
       clearSelection();
@@ -90,100 +65,107 @@ export default function HistoriquePage() {
   };
 
   const handleItemPress = (product: Product) => {
-    // On passe l'objet produit entier en le convertissant en chaîne JSON
     router.push({
-      pathname: '../screens/productDetail', 
+      pathname: '../screens/productDetail',
       params: { product: JSON.stringify(product) },
     });
   };
 
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" />
+      <View className="flex-1 justify-center items-center bg-gray-50 dark:bg-[#181A20]">
+        <ActivityIndicator size="large" color="#84CC16" />
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-white dark:bg-[#181A20] p-4">
-     
-      {selectedIds.length > 0 && (
-      <View 
-  className="
-    flex-row items-center justify-between bg-white dark:bg-neutral-800 
-    p-3 rounded-xl mb-3 shadow-md 
-    flex-wrap 
-  "
->
-  
-  <Text className="font-semibold text-base text-gray-900 dark:text-gray-100 mb-2 sm:mb-0">
-    {selectedIds.length} {t('selected') ?? 'sélectionné(s)'}
-  </Text>
+    <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
 
-  
-  <View 
-    className="
-      flex-row space-x-2 
-      flex-wrap 
-      justify-end 
-      gap-y-2 
-    "
-  >
-    <Pressable
-      onPress={() => setSelectedIds(history.map((h) => h.id))}
-      className="px-3 py-2 bg-gray-100 dark:bg-neutral-700 rounded-lg active:opacity-70"
-    >
-      <Text className="font-medium text-gray-800 dark:text-gray-200">
-        {t('select_all')}
-      </Text>
-    </Pressable>
+      {/* Header / Selection Bar */}
+      {selectedIds.length > 0 ? (
+        <Animated.View
+          entering={FadeInDown.duration(300)}
+          layout={Layout.springify()}
+          className="absolute top-4 left-4 right-4 z-10 bg-white dark:bg-[#1F2937] rounded-2xl shadow-lg p-4 flex-row items-center justify-between"
+        >
+          <View className="flex-row items-center space-x-3">
+            <Pressable onPress={clearSelection} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full">
+              <X size={20} color={isDark ? "#D1D5DB" : "#4B5563"} />
+            </Pressable>
+            <Text className="text-lg font-bold text-gray-900 dark:text-white">
+              {selectedIds.length} {t('selected') || 'sélectionné(s)'}
+            </Text>
+          </View>
 
-    
-
-
-    <Pressable
-      onPress={confirmDeleteSelected}
-      className="px-3 py-2 bg-red-600 rounded-lg active:opacity-70"
-    >
-      <Text className="text-white font-medium">{t('confirm')}</Text>
-    </Pressable>
-  </View>
-</View>
+          <View className="flex-row items-center space-x-2">
+            <Pressable
+              onPress={() => setSelectedIds(history.map(h => h.id))}
+              className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full mr-2"
+            >
+              <CheckSquare size={20} color={isDark ? "#D1D5DB" : "#4B5563"} />
+            </Pressable>
+            <Pressable
+              onPress={confirmDeleteSelected}
+              className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full"
+            >
+              <Trash2 size={20} color={isDark ? "#F87171" : "#DC2626"} />
+            </Pressable>
+          </View>
+        </Animated.View>
+      ) : (
+        <View className="px-6 pt-6 pb-2">
+          <Text className="text-3xl font-bold text-gray-900 dark:text-white">
+            {t('history') || "Historique"}
+          </Text>
+          <Text className="text-base text-gray-500 dark:text-gray-400 mt-1">
+            {t('history_subtitle')}
+          </Text>
+        </View>
       )}
-      <FlatList
+
+      <Animated.FlatList
         data={history}
         keyExtractor={(item) => item.id.toString()}
-        // 4. On passe la fonction de navigation au composant ListItem
-        renderItem={({ item }) => (
-          <ListItem
-            item={item}
-            onPress={() => {
-              if (selectedIds.length > 0) {
-                // in selection mode, tap toggles selection
-                toggleSelect(item.id);
-              } else {
-                handleItemPress(item);
-              }
-            }}
-            onLongPress={() => toggleSelect(item.id)}
-            selected={selectedIds.includes(item.id)}
-          />
+        contentContainerStyle={{ padding: 16, paddingTop: selectedIds.length > 0 ? 80 : 16 }}
+        itemLayoutAnimation={Layout.springify()}
+        renderItem={({ item, index }) => (
+          <Animated.View
+            entering={FadeInDown.delay(index * 50).springify()}
+            layout={Layout.springify()}
+          >
+            <ListItem
+              item={item}
+              onPress={() => {
+                if (selectedIds.length > 0) {
+                  toggleSelect(item.id);
+                } else {
+                  handleItemPress(item);
+                }
+              }}
+              onLongPress={() => toggleSelect(item.id)}
+              selected={selectedIds.includes(item.id)}
+            />
+          </Animated.View>
         )}
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center mt-20">
-            <Text className="text-gray-500 text-lg">Aucun historique de scan.</Text>
+          <View className="flex-1 items-center justify-center mt-20 opacity-50">
+            <Trash2 size={64} color="#9CA3AF" />
+            <Text className="text-gray-500 text-lg mt-4 text-center">
+              {t('history_empty')}
+            </Text>
           </View>
         }
       />
+
       <ConfirmModal
         visible={confirmVisible}
-        title={t('confirm_delete_title')}
-        message={t('confirm_delete_message')}
+        title={t('confirm_delete_title') || "Supprimer ?"}
+        message={t('confirm_delete_message') || "Voulez-vous vraiment supprimer ces éléments ?"}
         onCancel={() => setConfirmVisible(false)}
         onConfirm={async () => { setConfirmVisible(false); await deleteSelected(); }}
-        confirmLabel={t('confirm')}
-        cancelLabel={t('cancel')}
+        confirmLabel={t('confirm') || "Supprimer"}
+        cancelLabel={t('cancel') || "Annuler"}
       />
     </View>
   );

@@ -1,10 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import StepHeader from '../components/StepHeader';
+import { useTranslation } from '../i18n';
 
 export default function AjouterProduitInfoPage() {
   const router = useRouter();
-  // 1. On récupère le code-barres et le type passés par la page précédente
+  const { t } = useTranslation();
   const { barcode, type } = useLocalSearchParams<{ barcode: string, type: string }>();
 
   const [productName, setProductName] = useState('');
@@ -12,11 +15,10 @@ export default function AjouterProduitInfoPage() {
 
   const handleNext = () => {
     if (!productName || !brand) {
-      alert("Veuillez remplir le nom et la marque du produit.");
+      Alert.alert(t('add_product_title'), t('fill_all_fields'));
       return;
     }
 
-    // 4. On passe TOUTES les informations à la dernière page (la photo)
     router.push({
       pathname: './ajouterProdPhoto',
       params: { barcode, type, productName, brand },
@@ -24,80 +26,58 @@ export default function AjouterProduitInfoPage() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Détails du produit</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-gray-50 dark:bg-[#181A20]"
+    >
+      <ScrollView className="flex-1 p-6">
+        <StepHeader step={2} title={t('step_2_title')} />
 
-      {/* 2. Le champ code-barres est pré-rempli et non modifiable */}
-      <Text style={styles.label}>Code-barres</Text>
-      <TextInput
-        style={[styles.input, styles.disabledInput]}
-        value={barcode}
-        editable={false} 
-      />
+        <Animated.View entering={FadeInDown.delay(100).springify()} className="bg-white dark:bg-[#1F2937] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <Text className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t('product_details')}</Text>
 
-      <Text style={styles.label}>Nom du produit</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ex: Biscuit Prince"
-        value={productName}
-        onChangeText={setProductName}
-      />
+          {/* Barcode (Read-only) */}
+          <View className="mb-5">
+            <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 ml-1">{t('barcode')}</Text>
+            <View className="bg-gray-100 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+              <Text className="text-gray-500 dark:text-gray-400 font-mono">{barcode}</Text>
+            </View>
+          </View>
 
-      <Text style={styles.label}>Marque</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ex: LU"
-        value={brand}
-        onChangeText={setBrand}
-      />
-      
-      {/* 3. Le bouton "Suivant" */}
-      <TouchableOpacity style={styles.button} onPress={handleNext}>
-        <Text style={styles.buttonText}>Suivant</Text>
-      </TouchableOpacity>
-    </View>
+          {/* Product Name */}
+          <View className="mb-5">
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ml-1">{t('product_name')}</Text>
+            <TextInput
+              className="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-emerald-500 dark:focus:border-emerald-500"
+              placeholder={t('product_name_placeholder')}
+              placeholderTextColor="#9CA3AF"
+              value={productName}
+              onChangeText={setProductName}
+            />
+          </View>
+
+          {/* Brand */}
+          <View className="mb-8">
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ml-1">{t('brand')}</Text>
+            <TextInput
+              className="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-emerald-500 dark:focus:border-emerald-500"
+              placeholder={t('brand_placeholder')}
+              placeholderTextColor="#9CA3AF"
+              value={brand}
+              onChangeText={setBrand}
+            />
+          </View>
+
+          {/* Next Button */}
+          <TouchableOpacity
+            onPress={handleNext}
+            className="bg-emerald-500 py-4 rounded-xl items-center shadow-lg shadow-emerald-500/30 active:bg-emerald-600"
+          >
+            <Text className="text-white font-bold text-lg">{t('next')}</Text>
+          </TouchableOpacity>
+
+        </Animated.View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
-
-// Styles pour un design propre
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    backgroundColor: 'white',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 32,
-    marginTop: 40,
-  },
-  label: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#F3F4F6',
-    padding: 16,
-    borderRadius: 12,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  disabledInput: {
-    backgroundColor: '#E5E7EB',
-    color: '#6B7280',
-  },
-  button: {
-    backgroundColor: '#84CC16',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});

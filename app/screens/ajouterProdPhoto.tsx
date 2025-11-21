@@ -1,20 +1,25 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Camera, Check, RefreshCw } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
-  StyleSheet,
+  ScrollView,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
+import StepHeader from '../components/StepHeader';
 import { API_URL } from '../config/api';
+import { useTranslation } from '../i18n';
 
 export default function AjouterProduitPhotoPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{
     barcode: string;
     type: string;
@@ -26,12 +31,10 @@ export default function AjouterProduitPhotoPage() {
   const [imageIngredientsUri, setImageIngredientsUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // CORRECTION 1 : La fonction pour prendre une photo a maintenant un paramètre
-  // pour savoir quel état mettre à jour (photo avant OU photo ingrédients).
   const takePhoto = async (setImageToUpdate: (uri: string) => void) => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (permissionResult.granted === false) {
-      alert("La permission d'utiliser la caméra est requise !");
+      Alert.alert(t('add_product_title'), t('camera_permission_needed'));
       return;
     }
 
@@ -47,14 +50,14 @@ export default function AjouterProduitPhotoPage() {
 
   const handleSubmission = async () => {
     if (!imageUri || !imageIngredientsUri) {
-      Alert.alert('Erreur', 'Veuillez prendre les deux photos du produit.');
+      Alert.alert(t('add_product_title'), t('photo_error'));
       return;
     }
     setLoading(true);
 
     try {
       const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) throw new Error('Utilisateur non connecté.');
+      if (!userToken) throw new Error(t('connect')); // Or generic error
 
       const formData = new FormData();
       formData.append('barcode', params.barcode as string);
@@ -67,7 +70,7 @@ export default function AjouterProduitPhotoPage() {
         name: `front_${params.barcode}.jpg`,
         type: 'image/jpeg',
       } as any);
-      
+
       formData.append('image_ingredients', {
         uri: imageIngredientsUri,
         name: `ingredients_${params.barcode}.jpg`,
@@ -82,113 +85,101 @@ export default function AjouterProduitPhotoPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Erreur du serveur');
+        throw new Error(errorData.detail || 'Server Error');
       }
 
-      Alert.alert('Succès !', 'Produit soumis pour validation. Merci !', [
+      Alert.alert(t('success_title'), t('success_message'), [
         {
           text: 'OK',
           onPress: () => router.replace('../scanner'),
         },
       ]);
     } catch (error: any) {
-      Alert.alert('Erreur', error.message);
+      Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const PhotoButton = ({
+    uri,
+    onPress,
+    label,
+    stepNumber
+  }: {
+    uri: string | null,
+    onPress: () => void,
+    label: string,
+    stepNumber: number
+  }) => (
+    <Animated.View entering={FadeInDown.delay(stepNumber * 100).springify()} className="mb-6">
+      <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 ml-1">
+        {stepNumber}. {label}
+      </Text>
+
+      {uri ? (
+        <View className="relative">
+          <Image source={{ uri }} className="w-full h-64 rounded-2xl bg-gray-100 dark:bg-gray-800" resizeMode="cover" />
+          <View className="absolute inset-0 bg-black/20 rounded-2xl items-center justify-center">
+            <Animated.View entering={ZoomIn} className="bg-emerald-500 rounded-full p-2 mb-2">
+              <Check size={24} color="white" />
+            </Animated.View>
+            <TouchableOpacity onPress={onPress} className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full flex-row items-center">
+              <RefreshCw size={14} color="white" className="mr-2" />
+              <Text className="text-white font-medium text-xs">{t('retake_photo')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <TouchableOpacity
+          onPress={onPress}
+          activeOpacity={0.7}
+          className="w-full h-48 bg-white dark:bg-[#1F2937] rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 items-center justify-center"
+        >
+          <View className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full items-center justify-center mb-3">
+            <Camera size={32} className="text-emerald-500" />
+          </View>
+          <Text className="text-gray-500 dark:text-gray-400 font-medium">{t('take_photo') || "Tap to take photo"}</Text>
+        </TouchableOpacity>
+      )}
+    </Animated.View>
+  );
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Photos du produit</Text>
-      
-      {/* --- CORRECTION 2 : Logique d'affichage des boutons --- */}
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-[#181A20] p-6">
+      <StepHeader step={3} title={t('step_3_title')} />
 
-      {/* Affiche le bouton pour la photo de l'avant */}
-      {!imageUri && (
-        <TouchableOpacity style={styles.button} onPress={() => takePhoto(setImageUri)}>
-          <Text style={styles.buttonText}>1. Prendre une photo de l'avant</Text>
-        </TouchableOpacity>
-      )}
+      <PhotoButton
+        stepNumber={1}
+        label={t('take_photo_front')}
+        uri={imageUri}
+        onPress={() => takePhoto(setImageUri)}
+      />
 
-      {/* Affiche l'image de l'avant si elle a été prise */}
       {imageUri && (
-        <View style={styles.imageContainer}>
-          <Text style={styles.imageLabel}>Photo de l'avant :</Text>
-          <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-        </View>
-      )}
-      
-      {/* Affiche le bouton pour la photo des ingrédients, seulement si la première a été prise */}
-      {imageUri && !imageIngredientsUri && (
-         <TouchableOpacity style={styles.button} onPress={() => takePhoto(setImageIngredientsUri)}>
-           <Text style={styles.buttonText}>2. Prendre une photo des ingrédients</Text>
-         </TouchableOpacity>
+        <PhotoButton
+          stepNumber={2}
+          label={t('take_photo_ingredients')}
+          uri={imageIngredientsUri}
+          onPress={() => takePhoto(setImageIngredientsUri)}
+        />
       )}
 
-      {/* Affiche l'image des ingrédients si elle a été prise */}
-      {imageIngredientsUri && (
-        <View style={styles.imageContainer}>
-          <Text style={styles.imageLabel}>Photo des ingrédients :</Text>
-          <Image source={{ uri: imageIngredientsUri }} style={styles.imagePreview} />
-        </View>
-      )}
-
-      {/* Le bouton de soumission n'apparaît que si LES DEUX photos sont prises */}
       {imageUri && imageIngredientsUri && (
-        <TouchableOpacity 
-            style={[styles.button, {backgroundColor: '#16A34A'}]} 
-            onPress={handleSubmission} 
-            disabled={loading}>
-          <Text style={styles.buttonText}>Soumettre le produit</Text>
-        </TouchableOpacity>
+        <Animated.View entering={FadeInDown.delay(300).springify()} className="mt-4 mb-10">
+          <TouchableOpacity
+            onPress={handleSubmission}
+            disabled={loading}
+            className={`py-4 rounded-xl items-center shadow-lg ${loading ? 'bg-gray-400' : 'bg-emerald-500 shadow-emerald-500/30 active:bg-emerald-600'}`}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white font-bold text-lg">{t('submit_product')}</Text>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
       )}
-
-      {loading && <ActivityIndicator style={{ marginTop: 20 }} />}
-    </View>
+    </ScrollView>
   );
 }
-
-// Styles
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 32,
-  },
-  imageContainer: {
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  imageLabel: {
-    fontSize: 16,
-    color: '#374151',
-    marginBottom: 8,
-  },
-  imagePreview: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  button: {
-    backgroundColor: '#84CC16',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    width: '100%',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
