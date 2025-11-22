@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { useTranslation } from '../i18n';
 
 type StepHeaderProps = {
@@ -17,10 +17,13 @@ export default function StepHeader({ step, title, totalSteps = 3 }: StepHeaderPr
     return (
         <View className="mb-8">
             <View className="flex-row items-center mb-6">
-                <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 rounded-full active:bg-gray-100 dark:active:bg-gray-800">
-                    <ChevronLeft size={28} className="text-gray-900 dark:text-white" />
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 items-center justify-center mr-3"
+                >
+                    <ChevronLeft size={24} color={useColorScheme() === 'dark' ? '#fff' : '#111827'} />
                 </TouchableOpacity>
-                <View className="flex-1 ml-2">
+                <View className="flex-1">
                     <Text className="text-sm font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                         {t('add_product_title')}
                     </Text>
