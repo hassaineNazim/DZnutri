@@ -1,25 +1,33 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Camera, Check, RefreshCw } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { Camera, Check, RefreshCw, X } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
+  useColorScheme
 } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import StepHeader from '../components/StepHeader';
 import { API_URL } from '../config/api';
 import { useTranslation } from '../i18n';
 
+// Example images
+const FRONT_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_dlyit9dlyit9dlyi.png');
+const BACK_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_3ypwh63ypwh63ypw.png');
+
+
 export default function AjouterProduitPhotoPage() {
   const router = useRouter();
   const { t } = useTranslation();
+  const colorScheme = useColorScheme();
   const params = useLocalSearchParams<{
     barcode: string;
     type: string;
@@ -31,7 +39,36 @@ export default function AjouterProduitPhotoPage() {
   const [imageIngredientsUri, setImageIngredientsUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const takePhoto = async (setImageToUpdate: (uri: string) => void) => {
+  // Modal state
+  const [modalVisible, setModalVisible] = useState(false);
+  const [activePhotoType, setActivePhotoType] = useState<'front' | 'ingredients' | null>(null);
+
+  // Auto-start flow: Show front instruction on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      openCameraInstruction('front');
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Auto-trigger back instruction after front photo is taken
+  useEffect(() => {
+    if (imageUri && !imageIngredientsUri) {
+      const timer = setTimeout(() => {
+        openCameraInstruction('ingredients');
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [imageUri]);
+
+  const openCameraInstruction = (type: 'front' | 'ingredients') => {
+    setActivePhotoType(type);
+    setModalVisible(true);
+  };
+
+  const handleCameraLaunch = async () => {
+    setModalVisible(false);
+
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (permissionResult.granted === false) {
       Alert.alert(t('add_product_title'), t('camera_permission_needed'));
@@ -44,7 +81,11 @@ export default function AjouterProduitPhotoPage() {
     });
 
     if (!result.canceled) {
-      setImageToUpdate(result.assets[0].uri);
+      if (activePhotoType === 'front') {
+        setImageUri(result.assets[0].uri);
+      } else {
+        setImageIngredientsUri(result.assets[0].uri);
+      }
     }
   };
 
@@ -146,40 +187,88 @@ export default function AjouterProduitPhotoPage() {
   );
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-[#181A20] p-6">
-      <StepHeader step={3} title={t('step_3_title')} />
+    <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
+      {/* Re-integrated StepHeader for consistent navigation and progress bar */}
+      <View className="px-6 pt-6">
+        <StepHeader step={3} title={t('step_3_title')} />
+      </View>
 
-      <PhotoButton
-        stepNumber={1}
-        label={t('take_photo_front')}
-        uri={imageUri}
-        onPress={() => takePhoto(setImageUri)}
-      />
+      <ScrollView className="flex-1 px-6">
+        <PhotoButton
+          stepNumber={1}
+          label={t('take_photo_front')}
+          uri={imageUri}
+          onPress={() => openCameraInstruction('front')}
+        />
 
-      {imageUri && (
         <PhotoButton
           stepNumber={2}
           label={t('take_photo_ingredients')}
           uri={imageIngredientsUri}
-          onPress={() => takePhoto(setImageIngredientsUri)}
+          onPress={() => openCameraInstruction('ingredients')}
         />
-      )}
 
-      {imageUri && imageIngredientsUri && (
-        <Animated.View entering={FadeInDown.delay(300).springify()} className="mt-4 mb-10">
-          <TouchableOpacity
-            onPress={handleSubmission}
-            disabled={loading}
-            className={`py-4 rounded-xl items-center shadow-lg ${loading ? 'bg-gray-400' : 'bg-emerald-500 shadow-emerald-500/30 active:bg-emerald-600'}`}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text className="text-white font-bold text-lg">{t('submit_product')}</Text>
-            )}
-          </TouchableOpacity>
-        </Animated.View>
-      )}
-    </ScrollView>
+        {imageUri && imageIngredientsUri && (
+          <Animated.View entering={FadeInDown.delay(300).springify()} className="mt-4 mb-10">
+            <TouchableOpacity
+              onPress={handleSubmission}
+              disabled={loading}
+              className={`py-4 rounded-xl items-center shadow-lg ${loading ? 'bg-gray-400' : 'bg-emerald-500 shadow-emerald-500/30 active:bg-emerald-600'}`}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white font-bold text-lg">{t('submit_product')}</Text>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+      </ScrollView>
+
+      {/* Instruction Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/80 justify-center items-center p-6">
+          <View className="bg-white dark:bg-[#1F2937] p-5 rounded-3xl w-full max-w-sm shadow-2xl">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-xl font-bold text-gray-900 dark:text-white">
+                {activePhotoType === 'front' ? t('take_photo_front') : t('take_photo_ingredients')}
+              </Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)} className="bg-gray-100 dark:bg-gray-800 p-2 rounded-full">
+                <X size={20} color={colorScheme === 'dark' ? '#9CA3AF' : '#6B7280'} />
+              </TouchableOpacity>
+            </View>
+
+            <View className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-2 mb-6">
+              <Image
+                source={activePhotoType === 'front' ? FRONT_EXAMPLE : BACK_EXAMPLE}
+                className="w-full h-64 rounded-xl"
+                resizeMode="contain"
+              />
+            </View>
+
+            <Text className="text-center text-gray-600 dark:text-gray-300 mb-8 px-2 leading-6">
+              {activePhotoType === 'front'
+                ? t('photo_instruction_front')
+                : t('photo_instruction_back')}
+            </Text>
+
+            <TouchableOpacity
+              onPress={handleCameraLaunch}
+              className="bg-emerald-500 py-4 rounded-2xl items-center shadow-lg shadow-emerald-500/30 active:bg-emerald-600"
+            >
+              <View className="flex-row items-center">
+                <Camera size={20} color="white" className="mr-2 pr-2 " />
+                <Text className="text-white font-bold text-lg ml-2">{t('open_camera')}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
