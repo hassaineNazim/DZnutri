@@ -144,7 +144,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # CORS configuration for frontend
 app.add_middleware( 
     CORSMiddleware,
-    allow_origins=["*"], #allow all origins only in dev mod for security
+    allow_origins=["*"], #allow all origins only in dev mod 
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
