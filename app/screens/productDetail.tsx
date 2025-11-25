@@ -1,333 +1,252 @@
-// app/ProductDetails.tsx (ou screens/ProductDetails.tsx)
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ThumbsDown, ThumbsUp, X } from 'lucide-react-native';
-import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ArrowLeft, ChevronDown, ChevronUp, Edit3, Share2, ThumbsDown, ThumbsUp } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { Dimensions, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import Animated, {
+  Extrapolation,
+  FadeInDown,
+  FadeInUp,
+  interpolate,
+  Layout,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ScoreGauge from '../components/ScoreGauge';
+import { useTranslation } from '../i18n';
 
-// On étend le type Product (doit correspondre à ce que votre API retourne)
+const { width } = Dimensions.get('window');
+const HEADER_HEIGHT = 300;
+
 type Product = {
   id: string;
   product_name?: string;
   brand?: string;
   image_url?: string;
   custom_score?: number;
-  nutriscore_grade?: string; // Utilisez nutriscore_grade pour le Nutri-Score officiel si dispo
+  nutriscore_grade?: string;
   nova_group?: number;
-  additives_tags?: string[];
   ecoscore_grade?: string;
-  detail_custom_score?: { [key: string]: string[] | { [key: string]: number } }; // Type plus précis
-  nutriments?: { [key: string]: any }; // Pour accéder aux détails des nutriments
+  detail_custom_score?: { [key: string]: any };
+  nutriments?: { [key: string]: any };
+  additives_tags?: string[];
 };
 
-// --- Fonctions Utilitaires (copiées depuis Scanner.tsx, car elles sont utiles ici aussi) ---
-const getScoreColor = (score?: number) => {
-  if (score === undefined) return '#6B7280'; // Gris
-  if (score >= 75) return '#22C55E'; // Vert
-  if (score >= 50) return '#84CC16'; // Vert-citron
-  if (score >= 25) return '#F97316'; // Orange
-  return '#EF4444'; // Rouge
+const Section = ({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <Animated.View layout={Layout.springify()} className="bg-white dark:bg-[#1F2937] rounded-2xl mb-4 overflow-hidden shadow-sm">
+      <TouchableOpacity
+        onPress={() => setIsOpen(!isOpen)}
+        className="flex-row items-center justify-between p-4"
+        activeOpacity={0.7}
+      >
+        <Text className="text-lg font-bold text-gray-900 dark:text-white">{title}</Text>
+        {isOpen ? <ChevronUp size={20} color="#9CA3AF" /> : <ChevronDown size={20} color="#9CA3AF" />}
+      </TouchableOpacity>
+      {isOpen && (
+        <Animated.View entering={FadeInDown.duration(300)} exiting={FadeInUp.duration(200)} className="px-4 pb-4">
+          {children}
+        </Animated.View>
+      )}
+    </Animated.View>
+  );
 };
 
-const getScoreDescription = (score?: number) => {
-    if (score === undefined) return 'Inconnu';
-    if (score >= 75) return 'Excellent';
-    if (score >= 50) return 'Bon';
-    if (score >= 25) return 'Médiocre';
-    return 'Mauvais';
-}
-
-const ScoreDetailItem = ({ text, isPositive, value }: { text: string; isPositive: boolean; value?: string | number }) => (
-  <View style={styles.detailItem}>
-    {isPositive ? (
-      <ThumbsUp size={20} color="#22C55E" style={styles.detailIcon} />
-    ) : (
-      <ThumbsDown size={20} color="#EF4444" style={styles.detailIcon} />
-    )}
-    <Text style={styles.detailText}>{text}</Text>
-    {value !== undefined && <Text style={styles.detailValue}>{value}</Text>}
-    {/* Optionnel: Ajouter une flèche si on veut un sous-détail */}
+const DetailItem = ({ label, value, isPositive }: { label: string; value?: string | number; isPositive?: boolean }) => (
+  <View className="flex-row items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
+    <View className="flex-row items-center flex-1 mr-4">
+      {isPositive !== undefined && (
+        <View className={`mr-3 p-1.5 rounded-full ${isPositive ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+          {isPositive ? <ThumbsUp size={14} color={isPositive ? '#22C55E' : '#EF4444'} /> : <ThumbsDown size={14} color={isPositive ? '#22C55E' : '#EF4444'} />}
+        </View>
+      )}
+      <Text className="text-gray-700 dark:text-gray-300 text-base flex-1">{label}</Text>
+    </View>
+    <Text className="text-gray-900 dark:text-white font-semibold text-base">{value}</Text>
   </View>
 );
 
-// --- Composant Principal de la Page Détail Produit ---
-export default function ProductDetails() {
+export default function ProductDetail() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { product: productJson } = useLocalSearchParams();
-  
-  // Assurez-vous que productJson est une chaîne et parsez-la
   const product: Product | null = productJson ? JSON.parse(productJson as string) : null;
+  const insets = useSafeAreaInsets();
+  const scrollY = useSharedValue(0);
 
   if (!product) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Produit non trouvé.</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>Retour</Text>
+      <View className="flex-1 justify-center items-center bg-white dark:bg-[#181A20]">
+        <Text className="text-red-500 text-lg">{t('product_unknown')}</Text>
+        <TouchableOpacity onPress={() => router.back()} className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <Text className="text-gray-900 dark:text-white">{t('cancel')}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // Fonctions d'aide pour extraire les valeurs des nutriments
-  const getNutrimentValue = (key: string) => product?.nutriments?.[key + '_100g'] ?? 'N/A';
+  const scrollHandler = useAnimatedScrollHandler(event => {
+    scrollY.value = event.contentOffset.y;
+  });
+
+  const headerStyle = useAnimatedStyle(() => {
+    return {
+      height: interpolate(scrollY.value, [-100, 0, HEADER_HEIGHT], [HEADER_HEIGHT + 100, HEADER_HEIGHT, 100], Extrapolation.CLAMP),
+      opacity: interpolate(scrollY.value, [0, HEADER_HEIGHT - 100], [1, 0]),
+    };
+  });
+
+  const imageStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(scrollY.value, [-100, 0, HEADER_HEIGHT / 2], [1, 1, 0]),
+      transform: [
+        { scale: interpolate(scrollY.value, [-100, 0], [1.2, 1], Extrapolation.CLAMP) },
+        { translateY: interpolate(scrollY.value, [-100, 0, HEADER_HEIGHT], [0, 0, 50], Extrapolation.CLAMP) }
+      ]
+    };
+  });
+
+  const getNutrimentValue = (key: string) => product?.nutriments?.[key + '_100g'] ?? t('not_available');
   const getNutrimentUnit = (key: string) => product?.nutriments?.[key + '_unit'] ?? '';
 
+  const getScoreDescription = (score?: number) => {
+    if (score === undefined) return t('unknown_product');
+    if (score >= 75) return t('excellent');
+    if (score >= 50) return t('good');
+    if (score >= 25) return t('mediocre');
+    return t('bad');
+  };
+
+  const getScoreColor = (score?: number) => {
+    if (score === undefined) return '#6B7280';
+    if (score >= 75) return '#22C55E';
+    if (score >= 50) return '#84CC16';
+    if (score >= 25) return '#F97316';
+    return '#EF4444';
+  };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* En-tête avec bouton de fermeture */}
-        <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-                <X size={24} color="#6B7280" />
-            </TouchableOpacity>
-            {/* Vous pouvez ajouter d'autres icônes ici comme "Favoris" */}
-        </View>
+    <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
+      <StatusBar barStyle="light-content" />
 
-        {/* --- Image et Nom du Produit --- */}
-        <View style={styles.productSummary}>
-          <Image
-            source={{ uri: product.image_url || 'https://via.placeholder.com/150' }}
-            style={styles.productImage}
+      {/* Fixed Header Actions */}
+      <View
+        className="absolute top-0 left-0 right-0 z-50 flex-row justify-between items-center px-4"
+        style={{ paddingTop: insets.top + 10 }}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="w-10 h-10 bg-black/30 backdrop-blur-md rounded-full items-center justify-center"
+        >
+          <ArrowLeft size={24} color="white" />
+        </TouchableOpacity>
+
+        <View className="flex-row space-x-3">
+          <TouchableOpacity className="w-10 h-10 bg-black/30 backdrop-blur-md rounded-full items-center justify-center">
+            <Share2 size={20} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity className="w-10 h-10 bg-black/30 backdrop-blur-md rounded-full items-center justify-center">
+            <Edit3 size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {/* Parallax Header Background */}
+        <Animated.View className="w-full bg-white dark:bg-[#1F2937] items-center justify-end pb-10 overflow-hidden" style={[headerStyle]}>
+          <Animated.Image
+            source={{ uri: product.image_url || 'https://via.placeholder.com/300' }}
+            className="w-64 h-64"
+            resizeMode="contain"
+            style={imageStyle}
           />
+        </Animated.View>
 
-          <View style={styles.productTextContainer}> 
-           <Text style={styles.productName} numberOfLines={2}>{product.product_name || 'Nom inconnu'}</Text>
-           <Text style={styles.productBrand}>{product.brand || 'Marque inconnue'}</Text>
-         </View>
-        </View>
+        {/* Content Body */}
+        <View className="-mt-6 rounded-t-[32px] bg-gray-50 dark:bg-[#181A20] px-5 pt-8 min-h-screen">
 
-        {/* --- Section du Score Global --- */}
-        <View style={styles.scoreSection}>
-          <View style={[styles.scoreCircle, { backgroundColor: getScoreColor(product.custom_score) }]}>
-            <Text style={styles.scoreText}>{product.custom_score ?? '?'}</Text>
-            <Text style={styles.scoreUnit}>/100</Text>
+          {/* Title & Brand */}
+          <View className="items-center mb-8">
+            <Text className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+              {product.product_name || t('no_name')}
+            </Text>
+            <Text className="text-lg text-gray-500 dark:text-gray-400">
+              {product.brand || t('brand_unknown')}
+            </Text>
           </View>
-          <Text style={[styles.scoreDescription, { color: getScoreColor(product.custom_score) }]}>
-            {getScoreDescription(product.custom_score)}
-          </Text>
-        </View>
 
-        {/* --- Section des Défauts --- */}
-        <View style={styles.detailsBlock}>
-          <Text style={styles.blockTitle}>Défauts</Text>
-          {product.detail_custom_score?.nova && (
-             <ScoreDetailItem text="Transformation" isPositive={false} value={product.nova_group} />
-          )}
-          {product.detail_custom_score?.energy && (
-            <ScoreDetailItem text="Énergie" isPositive={false} value={`${getNutrimentValue('energy-kcal')} ${getNutrimentUnit('energy-kcal')}`} />
-          )}
-          {product.detail_custom_score?.sugars && (
-            <ScoreDetailItem text="Sucres" isPositive={false} value={`${getNutrimentValue('sugars')} ${getNutrimentUnit('sugars')}`} />
-          )}
-          {product.detail_custom_score?.satfat && (
-            <ScoreDetailItem text="Graisses saturées" isPositive={false} value={`${getNutrimentValue('saturated-fat')} ${getNutrimentUnit('saturated-fat')}`} />
-          )}
-          {product.detail_custom_score?.additives && (
-            <ScoreDetailItem text="Additifs controversés" isPositive={false} value={Object.keys(product.detail_custom_score.additives as {}).length} />
-          )}
-          {/* Ajoutez d'autres défauts ici en fonction de detail_custom_score */}
-        </View>
+          {/* Score Gauge */}
+          <View className="items-center mb-10">
+            <ScoreGauge score={product.custom_score} size={160} strokeWidth={12} />
+            <Text
+              className="text-2xl font-bold mt-4"
+              style={{ color: getScoreColor(product.custom_score) }}
+            >
+              {getScoreDescription(product.custom_score)}
+            </Text>
+          </View>
 
-        {/* --- Section des Qualités --- */}
-        <View style={styles.detailsBlock}>
-          <Text style={styles.blockTitle}>Qualités</Text>
-          {product.nutriments?.fiber_100g && product.nutriments.fiber_100g > 3 && (
-            <ScoreDetailItem text="Fibres" isPositive={true} value={`${getNutrimentValue('fiber')} ${getNutrimentUnit('fiber')}`} />
-          )}
-          {product.nutriments?.proteins_100g && product.nutriments.proteins_100g > 10 && (
-            <ScoreDetailItem text="Protéines" isPositive={true} value={`${getNutrimentValue('proteins')} ${getNutrimentUnit('proteins')}`} />
-          )}
-          {/* Ajoutez d'autres qualités ici */}
-        </View>
-
-        {/* --- Informations Complémentaires (Nutri-Score, Eco-Score, etc.) --- */}
-        <View style={styles.detailsBlock}>
-            <Text style={styles.blockTitle}>Informations complémentaires</Text>
-            {product.nutriscore_grade && (
-                <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Nutri-Score officiel :</Text>
-                    <Text style={styles.infoValue}>{product.nutriscore_grade.toUpperCase()}</Text>
-                </View>
+          {/* Analysis Sections */}
+          <Section title={t('quality') || "Qualités"} defaultOpen={true}>
+            {product.nutriments?.fiber_100g > 3 && (
+              <DetailItem label="Riche en fibres" value={`${getNutrimentValue('fiber')} ${getNutrimentUnit('fiber')}`} isPositive={true} />
             )}
-            {product.nova_group && (
-                <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Groupe NOVA :</Text>
-                    <Text style={styles.infoValue}>{product.nova_group}</Text>
-                </View>
+            {product.nutriments?.proteins_100g > 10 && (
+              <DetailItem label="Excellente source de protéines" value={`${getNutrimentValue('proteins')} ${getNutrimentUnit('proteins')}`} isPositive={true} />
+            )}
+            {/* Fallback if no specific qualities detected */}
+            {(!product.nutriments?.fiber_100g || product.nutriments.fiber_100g <= 3) &&
+              (!product.nutriments?.proteins_100g || product.nutriments.proteins_100g <= 10) && (
+                <Text className="text-gray-500 dark:text-gray-400 italic">Aucune qualité spécifique détectée.</Text>
+              )}
+          </Section>
+
+          <Section title={t('defects') || "Défauts"} defaultOpen={true}>
+            {product.nova_group && product.nova_group > 3 && (
+              <DetailItem label="Produit ultra-transformé" value={`NOVA ${product.nova_group}`} isPositive={false} />
+            )}
+            {product.nutriments?.sugars_100g > 10 && (
+              <DetailItem label="Trop sucré" value={`${getNutrimentValue('sugars')} ${getNutrimentUnit('sugars')}`} isPositive={false} />
+            )}
+            {product.nutriments?.saturated_fat_100g > 5 && (
+              <DetailItem label="Graisses saturées élevées" value={`${getNutrimentValue('saturated-fat')} ${getNutrimentUnit('saturated-fat')}`} isPositive={false} />
+            )}
+            {/* Fallback */}
+            {(!product.nova_group || product.nova_group <= 3) &&
+              (!product.nutriments?.sugars_100g || product.nutriments.sugars_100g <= 10) &&
+              (!product.nutriments?.saturated_fat_100g || product.nutriments.saturated_fat_100g <= 5) && (
+                <Text className="text-gray-500 dark:text-gray-400 italic">Aucun défaut majeur détecté.</Text>
+              )}
+          </Section>
+
+          <Section title={t('nutrition_facts') || "Informations nutritionnelles"}>
+            <DetailItem label="Énergie" value={`${getNutrimentValue('energy-kcal')} kcal`} />
+            <DetailItem label="Graisses" value={`${getNutrimentValue('fat')} ${getNutrimentUnit('fat')}`} />
+            <DetailItem label="Glucides" value={`${getNutrimentValue('carbohydrates')} ${getNutrimentUnit('carbohydrates')}`} />
+            <DetailItem label="Sel" value={`${getNutrimentValue('salt')} ${getNutrimentUnit('salt')}`} />
+          </Section>
+
+          <Section title={t('additional_info') || "Informations complémentaires"}>
+            {product.nutriscore_grade && (
+              <DetailItem label="Nutri-Score" value={product.nutriscore_grade.toUpperCase()} />
             )}
             {product.ecoscore_grade && (
-                <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Eco-Score :</Text>
-                    <Text style={styles.infoValue}>{product.ecoscore_grade.toUpperCase()}</Text>
-                </View>
+              <DetailItem label="Eco-Score" value={product.ecoscore_grade.toUpperCase()} />
             )}
-        </View>
+            {product.additives_tags && (
+              <DetailItem label="Additifs" value={`${product.additives_tags.length} détectés`} />
+            )}
+          </Section>
 
-      </ScrollView>
+        </View>
+      </Animated.ScrollView>
     </View>
   );
 }
-
-// --- STYLES ---
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F8F8', // Un fond plus clair pour la page de détail
-  },
-  scrollContent: {
-    paddingBottom: 40, // Espace en bas pour le défilement
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start', // Bouton de fermeture à gauche
-    alignItems: 'center',
-    padding: 10,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  closeButton: {
-    padding: 5,
-  },
- productSummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    marginBottom: 20,
-  },
-  productImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 10,
-    marginRight: 15,
-    marginLeft: -35,
-    resizeMode: 'contain',
-  },
-  // Style pour le nouveau conteneur de texte
-  productTextContainer: {
-    flex: 1, // Prend tout l'espace restant à droite de l'image
-  },
-  productName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4, // Ajoute un petit espace sous le nom
-    marginTop: -30,
-    marginLeft: -30,
-    
-  },
-  productBrand: {
-    fontSize: 16,
-    color: '#666',
-    marginLeft: -30,
-
-  },
-  scoreSection: {
-    alignItems: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 20,
-  },
-  scoreCircle: {
-    width: 140, // Plus grand cercle
-    height: 140,
-    borderRadius: 70,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-    borderWidth: 6, // Bordure plus épaisse
-    borderColor: 'white',
-    elevation: 8, // Ombre plus prononcée
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-  },
-  scoreText: {
-    fontSize: 48, // Texte plus grand
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  scoreUnit: {
-    fontSize: 18,
-    color: 'white',
-    fontWeight: 'bold',
-    marginLeft: 4,
-    marginTop: 18,
-  },
-  scoreDescription: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginTop: 15,
-  },
-  detailsBlock: {
-    backgroundColor: 'white',
-    marginHorizontal: 15,
-    marginBottom: 20,
-    borderRadius: 10,
-    padding: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-    
-  },
-  blockTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-    paddingBottom: 10,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    paddingVertical: 5,
-  },
-  detailIcon: {
-    marginRight: 15,
-  },
-  detailText: {
-    fontSize: 16,
-    color: '#444',
-    flex: 1, // Permet au texte de prendre l'espace restant
-  },
-  detailValue: {
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '600',
-  },
-  infoRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingVertical: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: '#F0F0F0',
-  },
-  infoLabel: {
-      fontSize: 16,
-      color: '#444',
-  },
-  infoValue: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#333',
-  },
-  errorText: {
-    fontSize: 18,
-    color: 'red',
-    textAlign: 'center',
-    marginTop: 50,
-  },
-  closeButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
-  }
-});
