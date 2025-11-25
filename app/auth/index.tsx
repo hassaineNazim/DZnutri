@@ -1,19 +1,17 @@
+import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@react-native-google-signin/google-signin";
 import { useRouter } from 'expo-router';
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import React, { useEffect, useState } from 'react';
-
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
-import {
-  AccessToken,
-  LoginManager,
-  Profile,
-  Settings
-} from "react-native-fbsdk-next";
+import { ActivityIndicator, Dimensions, Text, TouchableOpacity, View } from 'react-native';
+import { AccessToken, LoginManager, Settings } from "react-native-fbsdk-next";
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { API_URL } from '../config/api';
 import { useTranslation } from '../i18n';
 import { registerForPushAndSendToServer } from '../services/PushNotif';
+
+const { width } = Dimensions.get('window');
 
 export default function Login() {
   const router = useRouter();
@@ -22,17 +20,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Initialize GoogleSignin and request tracking on component mount
     const initializeAuth = async () => {
       try {
-        console.log('[auth] Configuring GoogleSignin...');
         await GoogleSignin.configure({
           iosClientId: '899058288095-sav0ru4ncgbluoj3juvsk7bproklf21h.apps.googleusercontent.com',
           webClientId: '899058288095-137a1fct9pf5hql01n3ofqaa25dirnst.apps.googleusercontent.com',
           offlineAccess: true,
           forceCodeForRefreshToken: true,
         });
-        console.log('[auth] GoogleSignin configured successfully');
       } catch (e) {
         console.error('[auth] Failed to configure GoogleSignin:', e);
       }
@@ -55,91 +50,56 @@ export default function Login() {
     try {
       setLoading(true);
       setError(null);
-      
-    
       await GoogleSignin.hasPlayServices();
-      
-      
       const userInfo = await GoogleSignin.signIn();
-     
-      
+
       if (isSuccessResponse(userInfo)) {
-        // idToken is in user field for GoogleSignin library
         const idToken = (userInfo as any).data?.idToken;
-        console.log('[auth] Extracted idToken:', idToken);
         if (!idToken) {
-          console.error('[auth] No idToken found in userInfo');
           setError('Erreur : Token non trouvé');
           setLoading(false);
           return;
         }
-        
+
         try {
-          console.log('[auth] attempting POST to', `${API_URL}/auth/google`);
           const backendResponse = await fetch(`${API_URL}/auth/google`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id_token: idToken }),
           });
-          
-          let data;
-          try {
-            data = await backendResponse.json();
-          } catch (jsonErr) {
-            console.warn('[auth] failed to parse JSON from /auth/google', jsonErr);
-            data = null;
-          }
 
-          console.log('[auth] /auth/google status=', backendResponse.status, 'body=', data);
+          const data = await backendResponse.json();
 
           if (backendResponse.ok && data?.access_token) {
             await AsyncStorage.setItem('userToken', data.access_token);
-            console.log('[auth] Token stored, registering for push...');
             await registerForPushAndSendToServer();
-            console.log('[auth] Push registered, navigating...');
             router.replace('/(tabs)/historique');
           } else {
             setError(`Erreur du serveur : ${data?.detail || 'Authentification échouée'}`);
           }
         } catch (e) {
-          console.error('[auth] Google auth error:', e);
           setError("Erreur : Impossible de contacter le backend.");
         }
       }
     } catch (error) {
-      console.error('[auth] Full error object:', error);
-      console.error('[auth] Error type:', typeof error);
-      console.error('[auth] Error constructor:', (error as any)?.constructor?.name);
-      
       if (isErrorWithCode(error)) {
         const code = (error as any).code;
-        console.log('[auth] Error has code:', code);
         switch (code) {
           case statusCodes.SIGN_IN_CANCELLED:
-            console.log('User cancelled the login flow');
             setError('Connexion annulée');
             break;
           case statusCodes.IN_PROGRESS:
-            console.log('Sign in is in progress already');
             setError('Connexion en cours...');
             break;
           case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-            console.error('Google Play Services not available');
             setError('Google Play Services non disponibles');
             break;
-          case statusCodes.SIGN_IN_REQUIRED:
-            console.error('Sign in required');
-            setError('Connexion requise');
-            break;
           default:
-            console.log('[auth] Unknown error code:', code);
             setError(`Erreur Google: ${code}`);
         }
       } else if (error instanceof Error) {
-        console.error('[auth] Google Sign-In error message:', error.message);
         setError(error.message || 'Erreur lors de la connexion Google');
       } else {
-        console.error('[auth] Unknown error type:', JSON.stringify(error));
         setError('Erreur inconnue lors de la connexion Google');
       }
     } finally {
@@ -150,16 +110,9 @@ export default function Login() {
   const loginWithFacebook = () => {
     LoginManager.logInWithPermissions(["public_profile", "email"]).then(
       function (result) {
-        if (result.isCancelled) {
-          console.log("==> Login cancelled");
-        } else {
-          console.log(result);
+        if (!result.isCancelled) {
           AccessToken.getCurrentAccessToken().then((data) => {
-            console.log(data);
-            getUserFBData();
-            if(data?.accessToken)
-            handleFacebookResponse(data.accessToken);
-            
+            if (data?.accessToken) handleFacebookResponse(data.accessToken);
           });
         }
       },
@@ -168,83 +121,105 @@ export default function Login() {
       }
     );
   };
-  
+
   const handleFacebookResponse = async (accessToken: string) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('[auth] attempting POST to', `${API_URL}/auth/facebook`);
       const backendResponse = await fetch(`${API_URL}/auth/facebook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: accessToken }),
       });
 
-      let data;
-      try {
-        data = await backendResponse.json();
-      } catch (jsonErr) {
-        console.warn('[auth] failed to parse JSON from /auth/facebook', jsonErr);
-        data = null;
-      }
-
-      console.log('[auth] /auth/facebook status=', backendResponse.status, 'body=', data);
+      const data = await backendResponse.json();
 
       if (backendResponse.ok && data?.access_token) {
         await AsyncStorage.setItem('userToken', data.access_token);
-        console.log('[auth] Token stored, registering for push...');
         await registerForPushAndSendToServer();
-        console.log('[auth] Push registered, navigating...');
         router.replace('/(tabs)/historique');
       } else {
         setError(`Erreur du serveur : ${data?.detail || 'Authentification échouée'}`);
       }
     } catch (e) {
-      console.error('[auth] Facebook auth error:', e);
       setError("Erreur : Impossible de contacter le backend.");
     } finally {
       setLoading(false);
     }
   };
 
-  const getUserFBData = () => {
-    Profile.getCurrentProfile().then((currentProfile) => {
-      console.log(currentProfile);
-    });
-  };
-
   return (
-    <View className="flex-1 justify-center bg-white p-6">
-      <Text className="text-4xl font-bold text-gray-800 mb-4 text-center">{t('welcome')}</Text>
-      <Text className="text-lg text-gray-500 mb-12 text-center">{t('connect')}</Text>
-      
-      <TouchableOpacity
-        disabled={loading}
-        onPress={handleGoogleSignIn}
-        className="bg-cyan-500 py-4 rounded-xl flex-row justify-center items-center"
-      >
-        {loading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text className="text-white text-lg font-bold">{t('signin_google')}</Text>
+    <View className="flex-1 bg-white dark:bg-[#181A20]">
+      {/* Decorative Background Elements */}
+      <View className="absolute top-0 left-0 right-0 h-1/2 bg-green-500 rounded-b-[40px] opacity-10 dark:opacity-5" />
+      <View className="absolute -top-20 -right-20 w-64 h-64 bg-green-400 rounded-full opacity-20 blur-3xl" />
+      <View className="absolute top-40 -left-20 w-48 h-48 bg-blue-400 rounded-full opacity-20 blur-3xl" />
+
+      <View className="flex-1 justify-center px-8">
+        <Animated.View entering={FadeInUp.duration(1000).springify()} className="items-center mb-12">
+          <View className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-3xl items-center justify-center mb-6 shadow-sm">
+            <FontAwesome name="leaf" size={40} color="#22C55E" />
+          </View>
+          <Text className="text-4xl font-bold text-gray-900 dark:text-white text-center mb-2">
+            DZNutri
+          </Text>
+          <Text className="text-lg text-gray-500 dark:text-gray-400 text-center">
+            {t('connect')}
+          </Text>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(200).duration(1000).springify()} className="space-y-4">
+          <TouchableOpacity
+            disabled={loading}
+            onPress={handleGoogleSignIn}
+            className="bg-white dark:bg-[#2A2D35] py-4 px-6 rounded-2xl flex-row justify-center items-center shadow-sm border border-gray-100 dark:border-gray-700 mb-4"
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator color="#22C55E" />
+            ) : (
+              <>
+                <FontAwesome name="google" size={24} color="#DB4437" style={{ marginRight: 12 }} />
+                <Text className="text-gray-700 dark:text-white text-lg font-semibold">
+                  {t('signin_google')}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            disabled={loading}
+            onPress={loginWithFacebook}
+            className="bg-[#1877F2] py-4 px-6 rounded-2xl flex-row justify-center items-center shadow-sm"
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <FontAwesome name="facebook" size={24} color="white" style={{ marginRight: 12 }} />
+                <Text className="text-white text-lg font-semibold">
+                  {t('signin_facebook')}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
+
+        {error && (
+          <Animated.View entering={FadeInDown.delay(400)} className="mt-6 bg-red-50 dark:bg-red-900/20 p-4 rounded-xl">
+            <Text className="text-center text-red-500 dark:text-red-400 font-medium">
+              {error}
+            </Text>
+          </Animated.View>
         )}
-      </TouchableOpacity>
 
-      <View className="h-4" />
-
-      <TouchableOpacity
-        disabled={loading}
-        onPress={loginWithFacebook}
-        className="bg-blue-600 py-4 rounded-xl flex-row justify-center items-center"
-      >
-        {loading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text className="text-white text-lg font-bold">{t('signin_facebook')}</Text>
-        )}
-      </TouchableOpacity>
-
-      {error && <Text className="text-center text-red-500 mt-4">{error}</Text>}
+        <Animated.View entering={FadeInDown.delay(600)} className="mt-12">
+          <Text className="text-center text-gray-400 text-sm">
+            {t('terms_privacy')}
+          </Text>
+        </Animated.View>
+      </View>
     </View>
   );
 }

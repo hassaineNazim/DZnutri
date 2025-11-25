@@ -384,6 +384,29 @@ async def get_user_by_submission(db: AsyncSession, submission_id: int) :
     if user is None:
         raise ValueError("Soumission non trouvée")
     return user
+
+
+def is_product_suspicious(product_data: dict) -> bool:
+    """
+    Renvoie True si le produit manque d'informations critiques pour le scoring.
+    """
+    nutriments = product_data.get('nutriments', {})
+    
+    # 1. Vérifier les nutriments essentiels (s'ils sont à 0 ou inexistants)
+    # Note: On accepte 0 pour le sel/sucre, mais 0 calories c'est rare sauf pour l'eau.
+    energy = nutriments.get('energy-kcal_100g')
+    if energy is None: 
+        return True # Pas de calories = Suspect
+        
+    # 2. Vérifier les additifs
+    # Si on a une liste d'ingrédients (texte) mais AUCUN tag d'additif, c'est louche.
+    ingredients_text = product_data.get('ingredients_text', '')
+    tags = product_data.get('additives_tags', [])
+    
+    if ingredients_text and len(ingredients_text) > 50 and not tags:
+        return True # Texte long mais 0 additif détecté = Suspect (Parsing OFF échoué)
+
+    return False
 """
 
 
