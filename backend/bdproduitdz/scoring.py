@@ -318,11 +318,11 @@ async def calculate_score(db: AsyncSession, product_data: Dict[str, Any]) -> Dic
     # 3. Déterminer la "Super-Catégorie" pour le calcul nutritionnel
     category_technical = "solid" # Par défaut
     
-    if any(keyword in product_categories_list for keyword in CAT_BEVERAGES):
+    if any(keyword in full_category_text for keyword in CAT_BEVERAGES):
         category_technical = "boissons" 
-    elif any(keyword in product_categories_list for keyword in CAT_FATS):
+    elif any(keyword in full_category_text for keyword in CAT_FATS):
         category_technical = "matières grasses"
-    elif any(keyword in product_categories_list for keyword in CAT_CHEESE):
+    elif any(keyword in full_category_text for keyword in CAT_CHEESE):
         category_technical = "fromages"
     
     # 4. Lancer les calculs

@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, JSON, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text, Enum as SqlEnum, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database import Base
+import enum
+
 
 class Product(Base):
     __tablename__ = "produits"
@@ -83,6 +85,32 @@ class AdditifPending(Base):
     count = Column(Integer, default=1) 
     first_seen_at = Column(DateTime, default=func.now)
     reviewed = Column(Boolean, default=False)
+
+class ReportType(str, enum.Enum):
+    AUTO = "automatiqueReport"   # Détecté par le robot (OCR échoué, etc.)
+    USER = "userreportapp"       # L'utilisateur signale une erreur
+    SCORING = "scoringReport"    # Problème spécifique au calcul du score
+
+class Report(Base):
+    __tablename__ = "reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    
+    
+    type = Column(SqlEnum(ReportType), nullable=False)
+    barcode = Column(String, index=True, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    description = Column(Text, nullable=True)
+    # Statut du ticket (pending, resolved, ignored)
+    status = Column(String, default="pending", index=True)
+    
+    created_at = Column(DateTime, default=func.now())
+    
+    # Relations (Optionnel, pour récupérer l'objet user facilement)
+    # user = relationship("UserTable", back_populates="reports")
+
+
+
 
 
 print("--- Le fichier des modèles Produit est chargé ---")

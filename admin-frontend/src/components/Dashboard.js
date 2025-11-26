@@ -15,7 +15,7 @@ const Dashboard = () => {
   const [filter, setFilter] = useState('pending');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
-  
+
   const navigate = useNavigate();
 
   // Une seule fonction pour tout récupérer du backend
@@ -32,6 +32,7 @@ const Dashboard = () => {
         ...(pending.submissions || []),
         ...(approved.submissions || []),
         ...(rejected.submissions || []),
+
       ]);
     } catch (err) {
       setError('Failed to fetch data. Please try again.');
@@ -69,7 +70,7 @@ const Dashboard = () => {
       setActionLoading(true);
       await submissionsAPI.approveSubmission(submissionId, adminData);
       // Après une action, on rafraîchit simplement toutes les données
-      await fetchData(); 
+      await fetchData();
       setIsModalOpen(false);
       // --- AJOUTEZ CETTE LIGNE ---
       window.location.reload();
@@ -79,7 +80,7 @@ const Dashboard = () => {
       console.error('Error approving submission:', err);
     } finally {
       setActionLoading(false);
-      
+
     }
   };
 
@@ -87,7 +88,7 @@ const Dashboard = () => {
     try {
       setActionLoading(true);
       await submissionsAPI.rejectSubmission(submissionId);
-       // Après une action, on rafraîchit simplement toutes les données
+      // Après une action, on rafraîchit simplement toutes les données
       await fetchData();
     } catch (err) {
       setError('Failed to reject submission.');
