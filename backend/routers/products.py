@@ -73,30 +73,29 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
         detail_custom_score = scoringGlobal.get('details')
         print(f"Score calculé : {custom_score}")
         
-        # --- 4. NOUVEAU : SIGNALEMENT AUTOMATIQUE ---
+        # --- SIGNALEMENT AUTOMATIQUE (VERSION TABLE REPORTS) ---
         if is_product_suspicious(off_product_data):
-            print(f"--- ALERTE : Produit {barcode} incomplet. Création d'un signalement admin... ---")
+            print(f"--- ALERTE : Produit {barcode} suspect. Création Report Automatique... ---")
             
-            # On vérifie si une soumission existe déjà pour ne pas spammer
-            # (Remplacez bd_models par votre import de models correct, ex: models.Submission)
-            existing_sub = await db.execute(
-                select(bd_models.Submission).where(bd_models.Submission.barcode == barcode)
-            )
-            if not existing_sub.scalars().first():
-                suspicious_submission = bd_models.Submission(
-                    barcode=barcode,
-                    status="flagged", # Apparaîtra comme "En attente" pour l'admin
-                    productName=off_product_data.get('product_name'),
-                    brand=off_product_data.get('brands'),
-                    image_front_url=off_product_data.get('image_url'),
-                    # On sauvegarde les données brutes pour aider l'admin à corriger
-                    ocr_ingredients_text=off_product_data.get('ingredients_text'),
-                    parsed_nutriments=off_product_data.get('nutriments'),
-                    
+            # Vérifier si un report existe déjà pour éviter les doublons
+            existing_report = await db.execute(
+                select(bd_models.Report).where(
+                    bd_models.Report.barcode == barcode,
+                    bd_models.Report.type == bd_models.ReportType.AUTO
                 )
-                db.add(suspicious_submission)
+            )
+            
+            if not existing_report.scalars().first():
+                # On crée le report via le modèle directement (plus rapide ici)
+                auto_report = bd_models.Report(
+                    barcode=barcode,
+                    type=bd_models.ReportType.AUTO, # "automatiqueReport"
+                    description="Données incomplètes ou suspectes détectées lors du scan (Calories/Additifs manquants).",
+                    status="pending"
+                )
+                db.add(auto_report)
                 await db.commit()
-        # ---------------------------------------------
+        # -------------------------------------------------------
 
         # 5. On prépare les données pour les sauvegarder dans notre table 'products' 
         product_to_create = bd_schemas.ProductCreate(

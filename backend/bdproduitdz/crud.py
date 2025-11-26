@@ -390,6 +390,10 @@ def is_product_suspicious(product_data: dict) -> bool:
     """
     Renvoie True si le produit manque d'informations critiques pour le scoring.
     """
+    # --- LIGNE DE TEST (Force le signalement) ---
+    #print("!!! TEST : Signalement forcé pour ce produit !!!")
+    #return True 
+    # --------------------------------------------
     nutriments = product_data.get('nutriments', {})
     
     # 1. Vérifier les nutriments essentiels (s'ils sont à 0 ou inexistants)
@@ -407,6 +411,33 @@ def is_product_suspicious(product_data: dict) -> bool:
         return True # Texte long mais 0 additif détecté = Suspect (Parsing OFF échoué)
 
     return False
+
+
+async def create_report(db: AsyncSession, report: schemas.ReportCreate, user_id: int = None):
+    """Crée un nouveau signalement."""
+    db_report = models.Report(
+        barcode=report.barcode,
+        type=report.type,
+        description=report.description,
+        user_id=user_id, # Peut être None si c'est automatique
+        status="pending"
+    )
+    db.add(db_report)
+    await db.commit()
+    await db.refresh(db_report)
+    return db_report
+
+async def get_pending_reports(db: AsyncSession):
+    """Récupère les signalements en attente pour l'admin."""
+    result = await db.execute(
+        select(models.Report)
+        .where(models.Report.status == "pending")
+        .order_by(models.Report.created_at.desc())
+    )
+    return result.scalars().all()
+
+
+    
 """
 
 
@@ -428,3 +459,38 @@ async def get_penalties_for_additives(db: AsyncSession, additive_codes: list[str
 
 
 
+
+async def update_product(db: AsyncSession, barcode: str, product_update: schemas.ProductUpdate):
+    """
+    Met à jour un produit existant et recalcule son score.
+    """
+    # 1. Récupérer le produit existant
+    result = await db.execute(select(models.Product).where(models.Product.barcode == barcode))
+    db_product = result.scalars().first()
+    
+    if not db_product:
+        return None
+
+    # 2. Mettre à jour les champs du produit
+    update_data = product_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_product, key, value)
+
+    # 3. Recalculer le score avec les nouvelles données
+    # On reconstruit un dictionnaire complet pour le scoring
+    data_for_scoring = product_update.model_dump()
+    
+    print(f"--- Recalcul du score pour {barcode} ---")
+    score_result = await scoring.calculate_score(db, data_for_scoring)
+    print(f"Nouveau score : {score_result.get('score')}")
+    
+    # 4. Mettre à jour le score dans le produit
+    db_product.custom_score = score_result.get('score')
+    db_product.detail_custom_score = score_result.get('details')
+
+    # 5. Sauvegarder
+    db.add(db_product)
+    await db.commit()
+    await db.refresh(db_product)
+    
+    return db_product
