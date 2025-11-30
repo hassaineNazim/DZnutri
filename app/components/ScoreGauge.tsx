@@ -9,14 +9,12 @@ type ScoreGaugeProps = {
     score?: number;
     size?: number;
     strokeWidth?: number;
-    showText?: boolean;
 };
 
 export default function ScoreGauge({
     score = 0,
-    size = 120,
-    strokeWidth = 10,
-    showText = true
+    size = 80,
+    strokeWidth = 8,
 }: ScoreGaugeProps) {
     const center = size / 2;
     const radius = center - strokeWidth / 2;
@@ -35,32 +33,32 @@ export default function ScoreGauge({
     });
 
     const getScoreColor = (s: number) => {
-        if (s >= 75) return '#22C55E'; // Green-500
-        if (s >= 50) return '#84CC16'; // Lime-500
-        if (s >= 25) return '#F97316'; // Orange-500
-        return '#EF4444'; // Red-500
+        if (s >= 75) return { main: '#22C55E', bg: '#DCFCE7' }; // Green-500, Green-100
+        if (s >= 50) return { main: '#84CC16', bg: '#ECFCCB' }; // Lime-500, Lime-100
+        if (s >= 25) return { main: '#F97316', bg: '#FFEDD5' }; // Orange-500, Orange-100
+        return { main: '#EF4444', bg: '#FEE2E2' }; // Red-500, Red-100
     };
 
-    const color = getScoreColor(score);
+    const colors = getScoreColor(score);
 
     return (
         <View className="items-center justify-center" style={{ width: size, height: size }}>
             <Svg width={size} height={size}>
-                {/* Background Circle */}
+                {/* Background Circle (Filled) */}
                 <Circle
                     cx={center}
                     cy={center}
                     r={radius}
-                    stroke="#E5E7EB" // Gray-200
+                    stroke={colors.bg}
                     strokeWidth={strokeWidth}
-                    fill="transparent"
+                    fill={colors.bg} // Fill with light color
                 />
                 {/* Progress Circle */}
                 <AnimatedCircle
                     cx={center}
                     cy={center}
                     r={radius}
-                    stroke={color}
+                    stroke={colors.main}
                     strokeWidth={strokeWidth}
                     fill="transparent"
                     strokeDasharray={circumference}
@@ -70,22 +68,17 @@ export default function ScoreGauge({
                     origin={`${center}, ${center}`}
                 />
             </Svg>
-            {showText && (
-                <View className="absolute items-center justify-center">
-                    <Text
-                        className="font-bold text-gray-900 dark:text-white"
-                        style={{ fontSize: size * 0.35 }}
-                    >
-                        {score}
-                    </Text>
-                    <Text
-                        className="text-gray-500 dark:text-gray-400 font-medium"
-                        style={{ fontSize: size * 0.15 }}
-                    >
-                        /100
-                    </Text>
-                </View>
-            )}
+            <View className="absolute items-center justify-center">
+                <Text
+                    className="font-bold"
+                    style={{
+                        fontSize: size * 0.4,
+                        color: colors.main
+                    }}
+                >
+                    {score}
+                </Text>
+            </View>
         </View>
     );
 }
