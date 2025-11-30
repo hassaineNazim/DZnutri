@@ -2,14 +2,21 @@ import axios from 'axios';
 import { Activity, RefreshCw, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { authAPI } from '../api/auth';
+import EditProductModal from './EditProductModal';
 import ReportCard from './ReportCard';
 
 const UserReports = () => {
     const [allReports, setAllReports] = useState([]); // Store all fetched reports
     const [displayedReports, setDisplayedReports] = useState([]); // Store filtered reports
+    const [products, setProducts] = useState({}); // Cache for product data: { barcode: productData }
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('user'); // 'user' or 'scoring'
+
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [modalLoading, setModalLoading] = useState(false);
 
     useEffect(() => {
         fetchReports();
@@ -33,6 +40,23 @@ const UserReports = () => {
             // Store all reports initially
             console.log("All fetched reports:", response.data);
             setAllReports(response.data);
+
+            // Fetch product details for each report
+            const productData = {};
+            await Promise.all(response.data.map(async (report) => {
+                if (report.barcode && !productData[report.barcode]) {
+                    try {
+                        const prodResponse = await axios.get(`/api/product/${report.barcode}`);
+                        if (prodResponse.data.product) {
+                            productData[report.barcode] = prodResponse.data.product;
+                        }
+                    } catch (e) {
+                        console.warn(`Failed to fetch product ${report.barcode}`, e);
+                    }
+                }
+            }));
+            setProducts(productData);
+
         } catch (err) {
             console.error("Error fetching reports:", err);
             setError("Impossible de charger les signalements.");
@@ -42,11 +66,40 @@ const UserReports = () => {
     };
 
     const handleResolve = (report) => {
-        alert(`Traitement du signalement ${report.id} (Logique à implémenter)`);
+        const product = products[report.barcode];
+        if (product) {
+            setSelectedProduct(product);
+            setIsModalOpen(true);
+        } else {
+            alert("Impossible de trouver les détails du produit pour ce signalement.");
+        }
     };
 
     const handleIgnore = (report) => {
         alert(`Signalement ${report.id} ignoré (Logique à implémenter)`);
+    };
+
+    const handleSaveProduct = async (updatedData) => {
+        if (!selectedProduct) return;
+
+        try {
+            setModalLoading(true);
+            const token = authAPI.getToken();
+            await axios.put(`/api/admin/product/${selectedProduct.barcode}`, updatedData, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // Refresh data
+            await fetchReports();
+            setIsModalOpen(false);
+            alert("Produit mis à jour et rescoré avec succès !");
+
+        } catch (err) {
+            console.error("Error updating product:", err);
+            alert("Erreur lors de la mise à jour du produit.");
+        } finally {
+            setModalLoading(false);
+        }
     };
 
     if (loading) return (
@@ -118,9 +171,19 @@ const UserReports = () => {
                             report={report}
                             onResolve={handleResolve}
                             onIgnore={handleIgnore}
+                            image={products[report.barcode]?.image_url}
                         />
                     ))}
                 </div>
+            )}
+
+            {isModalOpen && (
+                <EditProductModal
+                    product={selectedProduct}
+                    onClose={() => setIsModalOpen(false)}
+                    onSave={handleSaveProduct}
+                    loading={modalLoading}
+                />
             )}
         </div>
     );
