@@ -19,10 +19,10 @@ const getApiUrl = () => {
         return `http://${host}:8000`;
     }
 
-   
+
 
     // Fallback: previously configured local IP (update if your machine IP differs)
-    return 'http://192.168.1.71:8000';
+    return 'http://172.20.10.2:8000';
 };
 
 export const API_URL = getApiUrl();

@@ -3,15 +3,15 @@ import { useState } from 'react'; // "React" doit être importé
 
 const SubmissionCard = ({ submission, onApprove, onReject, loading }) => {
   const [showDetails, setShowDetails] = useState(false);
-   const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [fullscreenImage, setFullscreenImage] = useState(null);
 
-  const getImageUrl = (path) => {   
+  const getImageUrl = (path) => {
     if (path.startsWith('http')) {
-    return path;
-  } else {
-    return `Error: ${path} is not a valid URL.`;
-  } 
-};
+      return path;
+    } else {
+      return `Error: ${path} is not a valid URL.`;
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200">
@@ -49,28 +49,28 @@ const SubmissionCard = ({ submission, onApprove, onReject, loading }) => {
               />
             </div>
             <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    Image Fournie
-  </label>
-  
-  {submission.image_ingredients_url ? (
-    // On ajoute les classes flex au conteneur de l'image
-    <div className="w-full h-48 flex justify-center items-center bg-gray-50 rounded-lg border border-gray-200">
-      <button onClick={() => setFullscreenImage(getImageUrl(submission.image_ingredients_url))}> 
-        <img
-          src={getImageUrl(submission.image_ingredients_url)}
-          alt="Product Ingredients"
-          // L'image prendra la hauteur max et sera contenue
-          className="max-h-48 max-w-48 object-contain rounded-lg"
-        />
-      </button>
-    </div>
-  ) : (
-    <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-lg border border-gray-200">
-      <p className="text-sm text-gray-500">Pas d'image</p>
-    </div>
-  )}
-</div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Image Fournie
+              </label>
+
+              {submission.image_ingredients_url ? (
+                // On ajoute les classes flex au conteneur de l'image
+                <div className="w-full h-48 flex justify-center items-center bg-gray-50 rounded-lg border border-gray-200">
+                  <button onClick={() => setFullscreenImage(getImageUrl(submission.image_ingredients_url))}>
+                    <img
+                      src={getImageUrl(submission.image_ingredients_url)}
+                      alt="Product Ingredients"
+                      // L'image prendra la hauteur max et sera contenue
+                      className="max-h-48 max-w-48 object-contain rounded-lg"
+                    />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-500">Pas d'image</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -87,20 +87,20 @@ const SubmissionCard = ({ submission, onApprove, onReject, loading }) => {
 
         {submission.status === 'pending' && (
           <div className="flex space-x-2">
-            <button 
-              
+            <button
+
               // On passe l'objet submission entier à la fonction onApprove
-              onClick={() => onApprove(submission)} 
-             
-              disabled={loading} 
+              onClick={() => onApprove(submission)}
+
+              disabled={loading}
               className="flex items-center justify-center space-x-2 bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 disabled:opacity-50"
             >
               <Check className="h-4 w-4" />
               <span className="text-sm font-semibold">Approve</span>
             </button>
-            <button 
-              onClick={() => onReject(submission.id)} 
-              disabled={loading} 
+            <button
+              onClick={() => onReject(submission.id)}
+              disabled={loading}
               className="flex items-center justify-center space-x-2 bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 disabled:opacity-50"
             >
               <X className="h-4 w-4" />
@@ -110,7 +110,7 @@ const SubmissionCard = ({ submission, onApprove, onReject, loading }) => {
         )}
       </div>
       {fullscreenImage && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 flex justify-center items-center z-50"
           onClick={() => setFullscreenImage(null)} // Ferme le modal au clic sur le fond
         >
