@@ -101,3 +101,20 @@ async def get_admin_profile(
     Endpoint sécurisé qui retourne le profil de l'admin actuellement connecté.
     """
     return current_user
+
+@router.put("/api/admin/product/{barcode}")
+async def update_product_admin(
+    barcode: str, 
+    product_update: bd_schemas.ProductUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_admin: auth_models.UserTable = Depends(auth_security.get_current_admin)
+):
+    """
+    Met à jour un produit (Admin seulement) et recalcule le score.
+    """
+    updated_product = await bd_crud.update_product(db, barcode, product_update)
+    
+    if not updated_product:
+        raise HTTPException(status_code=404, detail="Produit non trouvé")
+        
+    return updated_product

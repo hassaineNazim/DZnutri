@@ -13,11 +13,11 @@ from bdproduitdz import crud as bd_crud
 from bdproduitdz import schemas as bd_schemas
 from bdproduitdz import ocr as bd_ocr
 from bdproduitdz import parser as bd_parser
-from bdproduitdz import additives_parser as bd_additives
+from bdproduitdz import additives_parser as bd_additives 
 
 router = APIRouter(tags=["Submissions"])
 
-@router.post("/api/submission", response_model=bd_schemas.Submission)
+@router.post("/api/submission", response_model=bd_schemas.Submission) 
 async def create_product_submission(
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_user),

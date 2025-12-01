@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+from enum import Enum
 
 class ProductBase(BaseModel):
     barcode: str
@@ -30,6 +31,9 @@ class SubmissionBase(BaseModel):
 
 class ProductCreate(ProductBase):
     pass #
+
+class ProductUpdate(ProductBase):
+    pass
 class Product(ProductBase):
     
     id: int
@@ -63,4 +67,27 @@ class AdminProductApproval(BaseModel):
     nutriscore_grade: Optional[str] = None
     nova_group: Optional[int] = None
     ecoscore_grade: Optional[str] = None
+
+
+class ReportTypeEnum(str, Enum):
+    AUTO = "automatiqueReport"
+    USER = "userreportapp"
+    SCORING = "scoringReport"
+
+class ReportCreate(BaseModel):
+    barcode: str
+    type: ReportTypeEnum
+    description: Optional[str] = None
+
+class ReportResponse(BaseModel):
+    id: int
+    barcode: Optional[str] = None
+    type: ReportTypeEnum
+    description: Optional[str] = None
+    status: str
+    created_at: Optional[datetime] = None
+    user_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
 
