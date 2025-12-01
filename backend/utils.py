@@ -8,6 +8,12 @@ from exponent_server_sdk import (
     PushServerError,
     PushTicketError,
 )
+import random
+import string
+
+def generate_reset_code(length=6):
+    return ''.join(random.choices(string.digits, k=length))
+
 
 # Helper to send Expo push notifications using exponent_server_sdk in a thread
 async def send_expo_push(db: AsyncSession, user_id: int, to_token: str, title: str, body: str, data: dict | None = None):

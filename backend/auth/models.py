@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from database import Base
 from sqlalchemy.orm import relationship
 
@@ -14,7 +14,9 @@ class UserTable(Base):
 
     hashed_password = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)
-    userPushToken = Column(String, nullable=True)  
+    userPushToken = Column(String, nullable=True)
+    reset_code = Column(String, nullable=True)
+    reset_code_expires_at = Column(DateTime, nullable=True)  
     products = relationship("Product", back_populates="user")
     submissions = relationship("Submission", back_populates="submitted_by")
 

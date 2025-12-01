@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
-import { Alert, I18nManager } from 'react-native';
+import { I18nManager } from 'react-native';
 // optional expo updates reload
 let Updates: any = null;
 try {
@@ -103,6 +103,22 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     photo_instruction_front: "Prenez une photo claire de la face avant du produit. Assurez-vous que le nom et la marque sont lisibles.",
     photo_instruction_back: "Prenez une photo claire de l'arrière du produit. Le tableau nutritionnel et la liste des ingrédients doivent être lisibles.",
     open_camera: "Ouvrir la caméra",
+    take_photo: "Prendre la photo",
+    settings_description: "Personnalisez votre expérience",
+    create_account: "Créer un compte",
+    signin: "Se connecter",
+    signin_email: "Se connecter avec email",
+    forgot_password: "Mot de passe oublié",
+    have_code: "J'ai un code",
+    enter_email_reset: "Entrez votre email pour réinitialiser votre mot de passe",
+    send_link: "Envoyer le lien",
+    welcome_back: "Bienvenue de retour",
+    join_community: "Rejoignez la communauté",
+    confirm_password: "Confirmer le mot de passe",
+
+
+
+
   },
   en: {
     welcome: 'Welcome',
@@ -190,9 +206,21 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     success_title: "Success!",
     success_message: "Product submitted for validation. Thank you!",
     retake_photo: "Retake photo",
+    take_photo: "Take photo",
     photo_instruction_front: "Take a clear photo of the front of the product. Make sure the name and brand are readable.",
     photo_instruction_back: "Take a clear photo of the back of the product. The nutrition table and ingredients list must be readable.",
     open_camera: "Open Camera",
+    settings_description: "Customize your experience",
+    create_account: "Create Account",
+    signin: "Sign In",
+    signin_email: "Sign In with Email",
+    forgot_password: "Forgot Password",
+    have_code: "I have a code",
+    enter_email_reset: "Enter your email to reset your password",
+    send_link: "Send Link",
+    confirm_password: 'Confirm Password'
+
+
   },
   ar: {
     welcome: 'مرحبا',
@@ -283,6 +311,21 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     photo_instruction_front: "التقط صورة واضحة للجزء الأمامي من المنتج. تأكد من أن الاسم والعلامة التجارية مقروءان.",
     photo_instruction_back: "التقط صورة واضحة للجزء الخلفي من المنتج. يجب أن يكون الجدول الغذائي وقائمة المكونات مقروءة.",
     open_camera: "فتح الكاميرا",
+    take_photo: "التقط الصورة",
+    settings_description: "تجربتك الخاصة",
+    welcome_back: "مرحبا بك مجددًا",
+    signin: "تسجيل الدخول",
+    create_account: "إنشاء حساب",
+    signin_email: "تسجيل الدخول عبر البريد الإلكتروني",
+    forgot_password: "نسيت كلمة المرور",
+    have_code: "أملك رمز",
+    enter_email_reset: "أدخل بريدك الإلكتروني لاستعادة كلمة المرور",
+    send_link: "إرسال رابط",
+    confirm_password: "تأكيد كلمة المرور",
+
+
+
+
   }
 };
 
@@ -402,7 +445,7 @@ export function useTranslation() {
     return () => { mounted = false; unsubscribe(); };
   }, []);
 
-  const setLanguage = async (l: SupportedLang) => {
+  const setLanguage = async (l: SupportedLang): Promise<{ needsRestart: boolean }> => {
     const previous = lang;
     await setStoredLang(l);
     currentLang = l;
@@ -410,54 +453,64 @@ export function useTranslation() {
     // notify other mounted hooks/components
     if (__DEV__) console.log('[i18n] setLanguage ->', l);
     notifyListeners(l);
+
     // Handle RTL flipping when switching to/from Arabic
     const shouldBeRTL = l === 'ar';
+    const needsRestart = I18nManager.isRTL !== shouldBeRTL;
+
     try {
-      if (I18nManager.isRTL !== shouldBeRTL) {
+      if (needsRestart) {
         I18nManager.forceRTL(shouldBeRTL);
       }
 
       // Always try to reload the app programmatically (Expo Updates) to apply language + layout changes
       if (Updates && typeof Updates.reloadAsync === 'function') {
         await Updates.reloadAsync();
-      } else {
-        Alert.alert(
-          translations[l]?.language_changed || 'Language changed',
-          'Please restart the app to apply the new language and layout direction.'
-        );
+        return { needsRestart: false }; // Reload happened/is happening
       }
+
+      // Fallback for Dev Client / Expo Go if Updates is not available
+      // We avoid DevSettings.reload() because it can feel like a crash or exit
+      // Instead we return { needsRestart: true } and let the UI show the manual restart modal
+
+      return { needsRestart };
     } catch (e) {
-      // if any failure, just notify the user to restart
-      Alert.alert('Restart required', 'Please restart the app to apply language changes.');
+      return { needsRestart: true };
     }
   };
 
-  const setFollowSystem = async (val: boolean) => {
+  const setFollowSystem = async (val: boolean): Promise<{ needsRestart: boolean }> => {
     await setStoredFollow(val);
     followSystem = val;
+    let needsRestart = false;
+
     if (val) {
       const sys = detectSystemLang();
       await setStoredLang(sys);
       currentLang = sys;
       setLang(sys);
       notifyListeners(sys);
-    }
-    // After changing follow-system state we should ensure layout/direction is correct and reload app
-    try {
-      const shouldBeRTL = currentLang === 'ar';
+
+      const shouldBeRTL = sys === 'ar';
       if (I18nManager.isRTL !== shouldBeRTL) {
         I18nManager.forceRTL(shouldBeRTL);
+        needsRestart = true;
       }
+    }
+
+    // After changing follow-system state we should ensure layout/direction is correct and reload app
+    try {
       if (Updates && typeof Updates.reloadAsync === 'function') {
         await Updates.reloadAsync();
-      } else {
-        Alert.alert(
-          translations[currentLang]?.language_changed || 'Language changed',
-          'Please restart the app to apply the new language and layout direction.'
-        );
+        return { needsRestart: false };
       }
+
+      // We avoid DevSettings.reload() because it can feel like a crash or exit
+      // Instead we return { needsRestart: true } and let the UI show the manual restart modal
+
+      return { needsRestart };
     } catch (e) {
-      Alert.alert('Restart required', 'Please restart the app to apply language changes.');
+      return { needsRestart: true };
     }
   };
 

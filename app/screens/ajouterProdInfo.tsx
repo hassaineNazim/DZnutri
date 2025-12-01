@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import StepHeader from '../components/StepHeader';
 import { useTranslation } from '../i18n';
@@ -13,11 +13,28 @@ export default function AjouterProduitInfoPage() {
   const [productName, setProductName] = useState('');
   const [brand, setBrand] = useState('');
 
+  // Error states
+  const [nameError, setNameError] = useState('');
+  const [brandError, setBrandError] = useState('');
+
   const handleNext = () => {
-    if (!productName || !brand) {
-      Alert.alert(t('add_product_title'), t('fill_all_fields'));
-      return;
+    let isValid = true;
+
+    if (!productName.trim()) {
+      setNameError(t('fill_all_fields')); // Or a more specific message like "Name is required"
+      isValid = false;
+    } else {
+      setNameError('');
     }
+
+    if (!brand.trim()) {
+      setBrandError(t('fill_all_fields')); // Or a more specific message like "Brand is required"
+      isValid = false;
+    } else {
+      setBrandError('');
+    }
+
+    if (!isValid) return;
 
     router.push({
       pathname: './ajouterProdPhoto',
@@ -48,24 +65,32 @@ export default function AjouterProduitInfoPage() {
           <View className="mb-5">
             <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ml-1">{t('product_name')}</Text>
             <TextInput
-              className="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-emerald-500 dark:focus:border-emerald-500"
+              className={`bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 rounded-xl border ${nameError ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'} focus:border-emerald-500 dark:focus:border-emerald-500`}
               placeholder={t('product_name_placeholder')}
               placeholderTextColor="#9CA3AF"
               value={productName}
-              onChangeText={setProductName}
+              onChangeText={(text) => {
+                setProductName(text);
+                if (text.trim()) setNameError('');
+              }}
             />
+            {nameError ? <Text className="text-red-500 text-xs mt-1 ml-1">{nameError}</Text> : null}
           </View>
 
           {/* Brand */}
           <View className="mb-8">
             <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ml-1">{t('brand')}</Text>
             <TextInput
-              className="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-emerald-500 dark:focus:border-emerald-500"
+              className={`bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 rounded-xl border ${brandError ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'} focus:border-emerald-500 dark:focus:border-emerald-500`}
               placeholder={t('brand_placeholder')}
               placeholderTextColor="#9CA3AF"
               value={brand}
-              onChangeText={setBrand}
+              onChangeText={(text) => {
+                setBrand(text);
+                if (text.trim()) setBrandError('');
+              }}
             />
+            {brandError ? <Text className="text-red-500 text-xs mt-1 ml-1">{brandError}</Text> : null}
           </View>
 
           {/* Next Button */}

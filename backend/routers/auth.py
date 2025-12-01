@@ -12,7 +12,13 @@ from auth import schemas as auth_schemas
 from auth import security as auth_security
 from auth import crud as auth_crud
 from auth import jwt as auth_jwt
+from auth.email import send_password_reset_email
+from auth import hashing as auth_hashing
+from utils import generate_reset_code
+from datetime import datetime, timedelta
+
 from bdproduitdz import crud as bd_crud
+
 
 router = APIRouter(tags=["Authentication"])
 
@@ -101,12 +107,86 @@ async def login_admin(
         raise HTTPException(status_code=403, detail="Accès refusé ou identifiants incorrects")
     
     # On vérifie le mot de passe
-    if not auth_security.verify_password(form_data.password, user_in_db.hashed_password):
+    if not auth_hashing.verify_password(form_data.password, user_in_db.hashed_password):
         raise HTTPException(status_code=401, detail="Identifiants incorrects")
+
 
     # Si tout est bon, on génère un token
     access_token = auth_jwt.create_access_token(data={"sub": user_in_db.username})
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/auth/register")
+async def register(user: auth_schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+    db_user = await auth_crud.get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    
+    db_user_by_name = await auth_crud.get_user_by_username(db, username=user.username)
+    if db_user_by_name:
+        raise HTTPException(status_code=400, detail="Nom d'utilisateur déjà utilisé")
+        
+    new_user = await auth_crud.create_user(db, user.dict())
+    
+    access_token = auth_jwt.create_access_token(data={"sub": new_user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/auth/login")
+async def login(user: auth_schemas.UserLogin, db: AsyncSession = Depends(get_db)):
+    db_user = await auth_crud.get_user_by_email(db, email=user.email)
+    if not db_user or not db_user.hashed_password:
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+        
+    if not auth_hashing.verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+
+        
+    access_token = auth_jwt.create_access_token(data={"sub": db_user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/auth/forgot-password")
+async def forgot_password(payload: auth_schemas.ForgotPassword, db: AsyncSession = Depends(get_db)):
+    user = await auth_crud.get_user_by_email(db, email=payload.email)
+    if not user:
+        return {"message": "Si cet email existe, un code de réinitialisation a été envoyé."}
+    
+    # Générer un code à 6 chiffres
+    reset_code = generate_reset_code()
+    user.reset_code = reset_code
+    user.reset_code_expires_at = datetime.utcnow() + timedelta(minutes=15)
+    db.add(user)
+    await db.commit()
+    
+    await send_password_reset_email(user.email, reset_code)
+    return {"message": "Si cet email existe, un code de réinitialisation a été envoyé."}
+
+@router.post("/auth/reset-password")
+async def reset_password(payload: auth_schemas.ResetPassword, db: AsyncSession = Depends(get_db)):
+    try:
+       
+        user = await auth_crud.get_user_by_email(db, email=payload.email)
+        if not user:
+            raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+
+
+        if not user.reset_code or user.reset_code != payload.token:
+            raise HTTPException(status_code=400, detail="Code invalide")
+            
+        if not user.reset_code_expires_at or user.reset_code_expires_at < datetime.utcnow():
+            raise HTTPException(status_code=400, detail="Code expiré")
+            
+    
+        user.hashed_password = auth_hashing.hash_password(payload.new_password)
+        user.reset_code = None # Invalider le code
+        user.reset_code_expires_at = None
+        db.add(user)
+
+        await db.commit()
+        
+        return {"message": "Mot de passe réinitialisé avec succès"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erreur lors de la réinitialisation: {str(e)}")
+
 
 @router.post("/api/me/push-token")
 async def push_token(
