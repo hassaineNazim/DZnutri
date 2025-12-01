@@ -2,6 +2,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from . import models
+from .hashing import hash_password
 
 async def get_user_by_email(db: AsyncSession, email: str):
     """Récupère un utilisateur par son email."""
@@ -43,3 +44,16 @@ async def get_user_by_id(db: AsyncSession, user_id: int):
     """Récupère un utilisateur par son ID."""
     result = await db.execute(select(models.UserTable).where(models.UserTable.id == user_id))
     return result.scalars().first()
+
+async def create_user(db: AsyncSession, user: dict):
+    """Crée un nouvel utilisateur avec email et mot de passe."""
+    hashed_pwd = hash_password(user['password'])
+    db_user = models.UserTable(
+        email=user['email'],
+        username=user['username'],
+        hashed_password=hashed_pwd
+    )
+    db.add(db_user)
+    await db.commit()
+    await db.refresh(db_user)
+    return db_user

@@ -4,7 +4,7 @@ import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@
 import { useRouter } from 'expo-router';
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, Image, Text, TouchableOpacity, View } from 'react-native';
 import { AccessToken, LoginManager, Settings } from "react-native-fbsdk-next";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { API_URL } from '../config/api';
@@ -158,10 +158,11 @@ export default function Login() {
       <View className="flex-1 justify-center px-8">
         <Animated.View entering={FadeInUp.duration(1000).springify()} className="items-center mb-12">
           <View className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-3xl items-center justify-center mb-6 shadow-sm">
-            <FontAwesome name="leaf" size={40} color="#22C55E" />
+            <Image className='w-full h-full' source={require('../../assets/images/bet_default_logo_V2.png')} />
           </View>
+
           <Text className="text-4xl font-bold text-gray-900 dark:text-white text-center mb-2">
-            DZNutri
+            Remo Scan
           </Text>
           <Text className="text-lg text-gray-500 dark:text-gray-400 text-center">
             {t('connect')}
@@ -203,6 +204,29 @@ export default function Login() {
                 </Text>
               </>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            disabled={loading}
+            onPress={() => router.push('/auth/login-email')}
+            className="bg-gray-100 dark:bg-gray-800 py-4 px-6 rounded-2xl flex-row justify-center items-center shadow-sm border border-gray-200 dark:border-gray-700 mt-4"
+            activeOpacity={0.8}
+          >
+            <FontAwesome name="envelope" size={20} color="#6B7280" style={{ marginRight: 12 }} />
+            <Text className="text-gray-700 dark:text-white text-lg font-semibold">
+              {t('signin_email') || "Se connecter avec Email"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            disabled={loading}
+            onPress={() => router.push('/auth/register')}
+            className="mt-4 py-2"
+            activeOpacity={0.8}
+          >
+            <Text className="text-center text-green-600 dark:text-green-400 font-semibold text-base">
+              {t('create_account') || "Créer un compte"}
+            </Text>
           </TouchableOpacity>
         </Animated.View>
 

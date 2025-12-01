@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, Check, RefreshCw, X } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -43,23 +43,7 @@ export default function AjouterProduitPhotoPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [activePhotoType, setActivePhotoType] = useState<'front' | 'ingredients' | null>(null);
 
-  // Auto-start flow: Show front instruction on mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      openCameraInstruction('front');
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Auto-trigger back instruction after front photo is taken
-  useEffect(() => {
-    if (imageUri && !imageIngredientsUri) {
-      const timer = setTimeout(() => {
-        openCameraInstruction('ingredients');
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [imageUri]);
+  // Auto-start flow removed as per user request
 
   const openCameraInstruction = (type: 'front' | 'ingredients') => {
     setActivePhotoType(type);
@@ -159,9 +143,9 @@ export default function AjouterProduitPhotoPage() {
       </Text>
 
       {uri ? (
-        <View className="relative">
-          <Image source={{ uri }} className="w-full h-64 rounded-2xl bg-gray-100 dark:bg-gray-800" resizeMode="cover" />
-          <View className="absolute inset-0 bg-black/20 rounded-2xl items-center justify-center">
+        <View className="relative w-full h-64">
+          <Image source={{ uri }} className="w-full h-full rounded-2xl bg-gray-100 dark:bg-gray-800" resizeMode="cover" />
+          <View className="absolute top-0 left-0 w-full h-full bg-black/40 rounded-2xl items-center justify-center">
             <Animated.View entering={ZoomIn} className="bg-emerald-500 rounded-full p-2 mb-2">
               <Check size={24} color="white" />
             </Animated.View>
@@ -178,7 +162,7 @@ export default function AjouterProduitPhotoPage() {
           className="w-full h-48 bg-white dark:bg-[#1F2937] rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 items-center justify-center"
         >
           <View className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full items-center justify-center mb-3">
-            <Camera size={32} className="text-emerald-500" />
+            <Camera size={32} color={colorScheme === 'dark' ? '#9CA3AF' : '#6B7280'} />
           </View>
           <Text className="text-gray-500 dark:text-gray-400 font-medium">{t('take_photo') || "Tap to take photo"}</Text>
         </TouchableOpacity>

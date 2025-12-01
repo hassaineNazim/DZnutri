@@ -2,9 +2,9 @@ import { useRouter } from 'expo-router';
 import { ChevronRight, Info, Languages, Palette, User } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import React, { useState } from 'react';
-import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
-import Dropdown from '../../components/Dropdown';
+import LanguageSelector from '../../components/LanguageSelector';
 import { SupportedLang, useTranslation } from '../../i18n';
 
 const Section = ({ title, children, delay = 0 }: { title: string, children: React.ReactNode, delay?: number }) => (
@@ -47,20 +47,61 @@ const ListItem = ({ icon, label, value, onPress, children, isLast = false }: { i
 
 export default function SettingsPage() {
   const languageData = [
-    { value: 'fr', label: 'Français' },
-    { value: 'en', label: 'English' },
-    { value: 'ar', label: 'العربية' },
-    { value: 'fs', label: 'Système' }
+    { value: 'fr', label: 'Français', icon: '🇫🇷' },
+    { value: 'en', label: 'English', icon: '🇬🇧' },
+    { value: 'ar', label: 'العربية', icon: '🇩🇿' },
+    { value: 'fs', label: 'Système', icon: '📱' }
   ];
 
-  const { lang, setLanguage, t, setFollowSystem } = useTranslation();
+  const { lang, setLanguage, t, setFollowSystem, follow } = useTranslation();
   const router = useRouter();
   const { colorScheme, setColorScheme } = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
-  const [currentLanguage, setCurrentLanguage] = useState('');
+
+  const [selectorVisible, setSelectorVisible] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
 
   const toggleTheme = () => {
     setColorScheme(isDarkMode ? 'light' : 'dark');
+  };
+
+  const handleLanguageSelect = async (value: string) => {
+    setSelectorVisible(false);
+
+    // Show restarting modal immediately to give feedback
+    // We might want to delay this slightly if the transition is too abrupt, 
+    // but usually immediate feedback is better.
+
+    let result;
+    if (value === 'fs') {
+      if (follow) return; // Already following system
+      setIsRestarting(true);
+      result = await setFollowSystem(true);
+    } else {
+      if (lang === value && !follow) return; // Already selected
+      setIsRestarting(true);
+      await setFollowSystem(false); // Disable follow system first
+      result = await setLanguage(value as SupportedLang);
+    }
+
+    // If reload didn't happen automatically (e.g. in dev client without updates), 
+    // we keep the modal open or show a manual restart prompt.
+    // But since our i18n logic returns { needsRestart: boolean }, we can handle it.
+
+    if (result.needsRestart) {
+      // Keep the modal open, maybe change text to "Please restart app"
+      // For now, we just keep the spinner which implies "working on it"
+      // In a real app, you might want a button "Restart Now" if programmatic restart fails.
+      setTimeout(() => setIsRestarting(false), 3000); // Fallback timeout
+    } else {
+      setIsRestarting(false);
+    }
+  };
+
+  const getCurrentLabel = () => {
+    if (follow) return 'Système';
+    const found = languageData.find(l => l.value === lang);
+    return found ? found.label : lang;
   };
 
   const IconContainer = ({ children, color = "bg-gray-100 dark:bg-gray-700" }: { children?: React.ReactNode, color?: string }) => (
@@ -81,7 +122,7 @@ export default function SettingsPage() {
           {t('reglage') || "Réglages"}
         </Text>
         <Text className="text-base text-gray-500 dark:text-gray-400 mt-1">
-          Personnalisez votre expérience
+          {t('settings_description') || "Personnalisez votre expérience"}
         </Text>
       </View>
 
@@ -103,23 +144,9 @@ export default function SettingsPage() {
             </IconContainer>
           }
           label={t('settings_language')}
-        >
-          <View className="w-32">
-            <Dropdown
-              data={languageData}
-              onChange={(item) => {
-                if (item.value == 'fs') {
-                  setFollowSystem(true);
-                } else {
-                  setFollowSystem(false);
-                  setLanguage(item.value as SupportedLang);
-                  setCurrentLanguage(item.label);
-                }
-              }}
-              placeholder={lang === 'fr' ? 'Français' : lang === 'en' ? 'English' : lang === 'ar' ? 'العربية' : 'Langue'}
-            />
-          </View>
-        </ListItem>
+          value={getCurrentLabel()}
+          onPress={() => setSelectorVisible(true)}
+        />
 
         <ListItem
           icon={
@@ -151,6 +178,47 @@ export default function SettingsPage() {
           isLast={true}
         />
       </Section>
+
+      <LanguageSelector
+        visible={selectorVisible}
+        onClose={() => setSelectorVisible(false)}
+        onSelect={handleLanguageSelect}
+        currentLanguage={follow ? 'fs' : lang}
+        languages={languageData}
+      />
+
+      {/* Restarting Modal */}
+      <Modal
+        transparent
+        visible={isRestarting}
+        animationType="fade"
+      >
+        <View className="flex-1 bg-black/80 items-center justify-center">
+          <View className="bg-white dark:bg-[#1F2937] p-8 rounded-3xl items-center shadow-2xl">
+            <ActivityIndicator size="large" color="#10B981" className="mb-6" />
+            <Text className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              {lang === 'ar' ? 'جاري تغيير اللغة...' : 'Changing language...'}
+            </Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-center mb-6">
+              {lang === 'ar'
+                ? 'جاري إعادة التشغيل... إذا لم يحدث شيء، يرجى إعادة تشغيل التطبيق يدوياً لتطبيق التغييرات.'
+                : 'Restarting... If nothing happens, please restart the app manually to apply changes.'}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                setIsRestarting(false);
+              }}
+              className="bg-gray-200 dark:bg-gray-700 px-6 py-3 rounded-xl"
+            >
+              <Text className="font-bold text-gray-900 dark:text-white">
+                {lang === 'ar' ? 'إغلاق النافذة' : 'Close Window'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </ScrollView>
   );
 }
