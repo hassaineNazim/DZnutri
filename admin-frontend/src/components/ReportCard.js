@@ -100,14 +100,16 @@ const ReportCard = ({ report, onResolve, onIgnore, loading, image, hideDetails }
 
                 {report.status === 'pending' && (
                     <div className="flex space-x-2">
-                        <button
-                            onClick={() => onResolve(report)}
-                            disabled={loading}
-                            className="flex items-center justify-center space-x-2 bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 disabled:opacity-50"
-                        >
-                            <Check className="h-4 w-4" />
-                            <span className="text-sm font-semibold">Traiter</span>
-                        </button>
+                        {report.type !== 'userreportapp' && report.type !== 'USER' && (
+                            <button
+                                onClick={() => onResolve(report)}
+                                disabled={loading}
+                                className="flex items-center justify-center space-x-2 bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 disabled:opacity-50"
+                            >
+                                <Check className="h-4 w-4" />
+                                <span className="text-sm font-semibold">Traiter</span>
+                            </button>
+                        )}
                         <button
                             onClick={() => onIgnore(report)}
                             disabled={loading}
