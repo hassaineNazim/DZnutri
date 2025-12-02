@@ -81,3 +81,41 @@ async def send_expo_push(db: AsyncSession, user_id: int, to_token: str, title: s
     except Exception as e:
         print(f"--- send_expo_push: ERREUR CRITIQUE INATTENDUE: {e}", flush=True)
         return False
+
+def calculate_daily_goals(weight: float, height: float, age: int, gender: str, activity_level: str):
+    """
+    Calculate daily calories (TDEE) and protein needs using Mifflin-St Jeor Equation.
+    """
+    if not all([weight, height, age, gender, activity_level]):
+        return None, None
+
+    # 1. BMR Calculation
+    bmr = (10 * weight) + (6.25 * height) - (5 * age)
+    if gender.lower() == 'male':
+        bmr += 5
+    else:
+        bmr -= 161
+
+    # 2. Activity Multiplier
+    multipliers = {
+        'sedentary': 1.2,
+        'light': 1.375,
+        'moderate': 1.55,
+        'active': 1.725,
+        'very_active': 1.9
+    }
+    multiplier = multipliers.get(activity_level.lower(), 1.2)
+    tdee = int(bmr * multiplier)
+
+    # 3. Protein Calculation (g/kg body weight)
+    protein_multipliers = {
+        'sedentary': 1.0,
+        'light': 1.2,
+        'moderate': 1.4,
+        'active': 1.6,
+        'very_active': 1.8
+    }
+    protein_mult = protein_multipliers.get(activity_level.lower(), 1.0)
+    daily_protein = int(weight * protein_mult)
+
+    return tdee, daily_protein

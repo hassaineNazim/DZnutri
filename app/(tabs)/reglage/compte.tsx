@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
-import { ChevronLeft, ChevronRight, Key, LogOut, Mail, User as UserIcon } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Heart, Key, LogOut, Mail, User as UserIcon } from 'lucide-react-native';
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from "react-native";
 import { api } from "../../services/axios";
@@ -160,6 +160,21 @@ export default function ComptePage() {
             icon={<Mail size={20} color="#22C55E" />}
             label="Email"
             value={user?.email}
+            isLast={true}
+          />
+        </View>
+
+        <Text className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 ml-2 uppercase tracking-wider">
+          Santé & Préférences
+        </Text>
+
+        <View className="rounded-2xl overflow-hidden bg-white dark:bg-[#1F222A] shadow-sm mb-6">
+          <ListItem
+            icon={<Heart size={20} color="#EF4444" />}
+            label="Profil Santé"
+            value="Allergies, Régime..."
+            onPress={() => router.push('/(tabs)/reglage/profile-sante')}
+            showArrow={true}
             isLast={true}
           />
         </View>
