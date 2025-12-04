@@ -35,7 +35,7 @@ export default function ScoreGauge({
     const getScoreColor = (s: number) => {
         if (s >= 75) return { main: '#22C55E', bg: '#DCFCE7' }; // Green-500, Green-100
         if (s >= 50) return { main: '#84CC16', bg: '#ECFCCB' }; // Lime-500, Lime-100
-        if (s >= 25) return { main: '#F97316', bg: '#FFEDD5' }; // Orange-500, Orange-100
+        if (s >= 25) return { main: '#f95616ff', bg: '#FFEDD5' }; // Orange-500, Orange-100
         return { main: '#EF4444', bg: '#FEE2E2' }; // Red-500, Red-100
     };
 

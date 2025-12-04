@@ -3,6 +3,13 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 from enum import Enum
 
+# --- ENUMS ---
+class ReportTypeEnum(str, Enum):
+    AUTO = "automatiqueReport"
+    USER = "userreportapp"
+    SCORING = "scoringReport"
+
+# --- PRODUCTS SCHEMAS ---
 class ProductBase(BaseModel):
     barcode: str
     product_name: str
@@ -18,45 +25,56 @@ class ProductBase(BaseModel):
     custom_score: Optional[int] = None
     detail_custom_score: Optional[Dict[str, Any]] = None
 
-class SubmissionBase(BaseModel):
-    barcode: str
-    image_front_url: str
-    brand: str
-    productName : str 
-    image_ingredients_url: Optional[str] = None
-    typeProduct: str
-    ocr_ingredients_text: Optional[str] = None
-    parsed_nutriments: Optional[Dict[str, Any]]
-    found_additives: Optional[List[Dict[str, Any]]] = []
-
 class ProductCreate(ProductBase):
-    pass #
+    pass
 
 class ProductUpdate(ProductBase):
     pass
+
 class Product(ProductBase):
-    
     id: int
     is_verified: bool
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+# --- SUBMISSIONS SCHEMAS ---
+class SubmissionBase(BaseModel):
+    barcode: str
+    productName: Optional[str] = None
+    brand: Optional[str] = None
+    typeProduct: Optional[str] = None
+    typeSpecifique: Optional[str] = None
+    
+    # Images
+    image_front_url: Optional[str] = None
+    image_ingredients_url: Optional[str] = None
+    image_nutrition_url: Optional[str] = None # La 3ème image
+    
+    # Données techniques
+    ocr_ingredients_text: Optional[str] = None
+    ocr_nutrition_text: Optional[str] = None
+    parsed_nutriments: Optional[Dict[str, Any]] = None
+    found_additives: Optional[List[Dict[str, Any]]] = []
+    
+    # Meta
+    
+    status: Optional[str] = "pending"
 
 class SubmissionCreate(SubmissionBase):
+    """Utilisé pour créer une soumission"""
     pass
 
-
-class Submission(SubmissionBase):
+class SubmissionResponse(SubmissionBase):
+    """Utilisé pour la réponse de l'API (contient l'ID et les dates)"""
     id: int
-    status: str
     submitted_at: datetime
     submitted_by_user_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-
+# --- ADMIN SCHEMAS ---
 class AdminProductApproval(BaseModel):
     product_name: str
     brand: str
@@ -68,12 +86,7 @@ class AdminProductApproval(BaseModel):
     nova_group: Optional[int] = None
     ecoscore_grade: Optional[str] = None
 
-
-class ReportTypeEnum(str, Enum):
-    AUTO = "automatiqueReport"
-    USER = "userreportapp"
-    SCORING = "scoringReport"
-
+# --- REPORTS SCHEMAS ---
 class ReportCreate(BaseModel):
     barcode: str
     type: ReportTypeEnum
@@ -88,8 +101,7 @@ class ReportResponse(BaseModel):
     status: str
     created_at: Optional[datetime] = None
     user_id: Optional[int] = None
-    image_url: Optional[str] = None
-
+    image_url: Optional[str] = None # Important pour l'affichage front
+    
     class Config:
         from_attributes = True
-
