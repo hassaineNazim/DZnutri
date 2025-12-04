@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 # --- Le reste du fichier est le même que la version synchrone ---
 from database import Base
 from auth import models as auth_models
+from auth.profile_models import UserProfile  # Import UserProfile so Alembic tracks it
 # --- AJOUTEZ CETTE LIGNE ---
 # Cela force Alembic à lire le fichier et à découvrir la classe Report
 from bdproduitdz.models import  Submission, Product, Additif, Report
