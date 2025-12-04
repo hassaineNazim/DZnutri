@@ -1,13 +1,24 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, ChevronRight, Heart, MoreVertical, Star, ThumbsUp, PenTool as Tool } from 'lucide-react-native';
+import { ArrowLeft, ChevronDown, ChevronUp, Edit3, Share2, ThumbsDown, ThumbsUp } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Dimensions, Image, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import Animated, {
+  Extrapolation,
+  FadeInDown,
+  FadeInUp,
+  interpolate,
+  Layout,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ReportModal from '../components/ReportModal';
 import ScoreGauge from '../components/ScoreGauge';
 import { useTranslation } from '../i18n';
 
 const { width } = Dimensions.get('window');
+const HEADER_HEIGHT = 300;
 
 type Product = {
   id: string;
@@ -25,21 +36,7 @@ type Product = {
   ingredients_text?: string;
 };
 
-// Helper to get nutrient status (color, icon)
-const getNutrientStatus = (level: string) => {
-  switch (level) {
-    case 'low':
-      return { color: '#22C55E', icon: 'check', text: 'Faible teneur' }; // Green
-    case 'moderate':
-      return { color: '#F97316', icon: 'minus', text: 'Teneur modérée' }; // Orange
-    case 'high':
-      return { color: '#EF4444', icon: 'up', text: 'Forte teneur' }; // Red
-    default:
-      return { color: '#6B7280', icon: 'help', text: 'Inconnu' }; // Gray
-  }
-};
-
-// Helper for Nutri-Score badge
+// Helper Nutri-Score (inchangé)
 const NutriScoreBadge = ({ grade }: { grade?: string }) => {
   if (!grade) return null;
   const grades = ['a', 'b', 'c', 'd', 'e'];
@@ -49,12 +46,12 @@ const NutriScoreBadge = ({ grade }: { grade?: string }) => {
         <View
           key={g}
           className={`w-6 h-6 items-center justify-center rounded-sm mx-[1px] ${grade.toLowerCase() === g
-              ? g === 'a' ? 'bg-[#038141]'
-                : g === 'b' ? 'bg-[#85BB2F]'
-                  : g === 'c' ? 'bg-[#FECB02]'
-                    : g === 'd' ? 'bg-[#EE8100]'
-                      : 'bg-[#E63E11]'
-              : 'bg-transparent'
+            ? g === 'a' ? 'bg-[#038141]'
+              : g === 'b' ? 'bg-[#85BB2F]'
+                : g === 'c' ? 'bg-[#FECB02]'
+                  : g === 'd' ? 'bg-[#EE8100]'
+                    : 'bg-[#E63E11]'
+            : 'bg-transparent'
             }`}
         >
           <Text className={`font-bold uppercase ${grade.toLowerCase() === g ? 'text-white' : 'text-gray-400'}`}>
@@ -66,6 +63,7 @@ const NutriScoreBadge = ({ grade }: { grade?: string }) => {
   );
 };
 
+// Helper Nova (inchangé)
 const NovaBadge = ({ group }: { group?: number }) => {
   if (!group) return null;
   const color = group === 1 ? '#22C55E' : group === 2 ? '#85BB2F' : group === 3 ? '#FECB02' : '#EF4444';
@@ -79,225 +77,61 @@ const NovaBadge = ({ group }: { group?: number }) => {
   );
 };
 
-
-export default function ProductDetail() {
-  const router = useRouter();
-  const { t } = useTranslation();
-  const { product: productJson } = useLocalSearchParams();
-  const product: Product | null = productJson ? JSON.parse(productJson as string) : null;
-  const insets = useSafeAreaInsets();
-  const [reportModalVisible, setReportModalVisible] = useState(false);
-
-  if (!product) {
-    return (
-      <View className="flex-1 justify-center items-center bg-white">
-        <Text className="text-red-500 text-lg">{t('product_unknown')}</Text>
-        <TouchableOpacity onPress={() => router.back()} className="mt-4 p-3 bg-gray-100 rounded-lg">
-          <Text className="text-gray-900">{t('cancel')}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  const getNutrimentValue = (key: string) => product?.nutriments?.[key + '_100g'] ?? 0;
-  const getNutrimentUnit = (key: string) => product?.nutriments?.[key + '_unit'] ?? '';
-
-  // Determine nutrient levels (simplified logic - ideally use API provided levels)
-  // This is a placeholder logic. In a real app, you'd check product.nutrient_levels
-  const getLevel = (key: string, value: number) => {
-    // Basic thresholds (example)
-    if (key === 'fat') return value > 20 ? 'high' : value > 3 ? 'moderate' : 'low';
-    if (key === 'saturated-fat') return value > 5 ? 'high' : value > 1.5 ? 'moderate' : 'low';
-    if (key === 'sugars') return value > 12.5 ? 'high' : value > 5 ? 'moderate' : 'low';
-    if (key === 'salt') return value > 1.5 ? 'high' : value > 0.3 ? 'moderate' : 'low';
-    return 'moderate';
-  };
+const Section = ({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <View className="flex-1 bg-white">
-      <StatusBar barStyle="dark-content" />
-
-      {/* Header */}
-      <View
-        className="flex-row justify-between items-center px-4 pb-2 bg-white z-10"
-        style={{ paddingTop: insets.top }}
+    <Animated.View layout={Layout.springify()} className="bg-white dark:bg-[#1F2937] rounded-2xl mb-4 overflow-hidden shadow-sm">
+      <TouchableOpacity
+        onPress={() => setIsOpen(!isOpen)}
+        className="flex-row items-center justify-between p-4"
+        activeOpacity={0.7}
       >
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={28} color="black" />
-        </TouchableOpacity>
-        <View className="flex-row gap-4">
-          <TouchableOpacity>
-            <Star size={28} color="black" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setReportModalVisible(true)}>
-            <MoreVertical size={28} color="black" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-
-        {/* Top Section: Image & Basic Info */}
-        <View className="flex-row px-4 py-4">
-          {/* Image */}
-          <View className="w-1/3 mr-4">
-            <Image
-              source={{ uri: product.image_url || 'https://via.placeholder.com/150' }}
-              className="w-full h-40"
-              resizeMode="contain"
-            />
-          </View>
-
-          {/* Info */}
-          <View className="flex-1 justify-between">
-            <View>
-              <Text className="text-2xl font-bold text-gray-900" numberOfLines={2}>
-                {product.product_name || t('no_name')}
-              </Text>
-              <Text className="text-gray-500 text-base">
-                {product.brand || t('brand_unknown')}
-              </Text>
-            </View>
-
-            <View className="flex-row items-center mt-2">
-              <View>
-                <Text className="text-gray-400 text-xs mb-1">Nutri-score</Text>
-                <NutriScoreBadge grade={product.nutriscore_grade} />
-              </View>
-              <NovaBadge group={product.nova_group} />
-            </View>
-          </View>
-
-          {/* Score Gauge */}
-          <View className="justify-center ml-2">
-            <ScoreGauge score={product.custom_score} size={80} strokeWidth={8} />
-          </View>
-        </View>
-
-        {/* Additives Section */}
-        <View className="mx-4 mt-4 border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
-          <View className="flex-row items-center mb-3">
-            <View className="bg-orange-100 p-1.5 rounded-full mr-2">
-              <Tool size={16} color="#F97316" />
-            </View>
-            <Text className="text-lg font-bold text-gray-900">Additifs</Text>
-          </View>
-
-          {product.additives_tags && product.additives_tags.length > 0 ? (
-            product.additives_tags.map((tag, index) => (
-              <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                <View className="flex-row items-center">
-                  <View className="w-3 h-3 rounded-full bg-yellow-400 mr-2" />
-                  <Text className="text-gray-700 font-medium">{tag.replace('en:', '').toUpperCase()}</Text>
-                </View>
-                {/* Placeholder for additive risk/function if available */}
-                <View className="flex-row items-center">
-                  <Text className="text-gray-500 text-sm mr-1">Détails</Text>
-                  <ChevronRight size={16} color="#9CA3AF" />
-                </View>
-              </View>
-            ))
-          ) : (
-            <Text className="text-gray-500 italic">Aucun additif détecté.</Text>
-          )}
-        </View>
-
-        {/* Nutrition Facts Section */}
-        <View className="mx-4 mt-6 border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
-          <View className="flex-row items-center mb-4">
-            <View className="bg-red-100 p-1.5 rounded-full mr-2">
-              <Heart size={16} color="#EF4444" />
-            </View>
-            <View>
-              <Text className="text-lg font-bold text-gray-900">Informations</Text>
-              <Text className="text-lg font-bold text-gray-900">nutritionnelles</Text>
-            </View>
-            <View className="ml-auto bg-orange-100 px-3 py-1 rounded-full">
-              <Text className="text-orange-600 font-bold">Score : {product.custom_score}</Text>
-            </View>
-          </View>
-
-          <View className="flex-row flex-wrap justify-between">
-            {/* Energy */}
-            <NutritionCard
-              label="Energie"
-              value={`${Math.round(getNutrimentValue('energy-kcal'))} Kcal`}
-              status="high" // Example
-              subtext="Forte teneur en calories"
-            />
-            {/* Proteins */}
-            <NutritionCard
-              label="Protéines"
-              value={`${getNutrimentValue('proteins')} g`}
-              status="high" // Example (using red for low protein might be counter intuitive depending on context, sticking to design)
-              subtext="Faible teneur en protéines"
-            />
-            {/* Glucides - No status in screenshot */}
-            <NutritionCard
-              label="Glucides"
-              value={`${getNutrimentValue('carbohydrates')} g`}
-              simple
-            />
-            {/* Sugar */}
-            <NutritionCard
-              label="Sucre"
-              value={`${getNutrimentValue('sugars')} g`}
-              status="low"
-              subtext="Teneur en sucre saines"
-            />
-            {/* Fat */}
-            <NutritionCard
-              label="Fat"
-              value={`${getNutrimentValue('fat')} g`}
-              status="high"
-              subtext="Forte teneur en gras"
-            />
-            {/* Saturated Fat */}
-            <NutritionCard
-              label="Gras saturés"
-              value={`${getNutrimentValue('saturated-fat')} g`}
-              status="high"
-              subtext="Forte teneur en gras saturés"
-            />
-          </View>
-
-          {/* Bottom List Items */}
-          <View className="mt-4 pt-2">
-            <ListItem label="Fibre" value={`${getNutrimentValue('fiber')} g`} status="high" />
-            <ListItem label="Sel" value={`${getNutrimentValue('salt')} g`} status="high" />
-            <ListItem label="Calcium" value={`${(getNutrimentValue('calcium') * 1000).toFixed(1)} mg`} />
-            <ListItem label="Additifs" value={`${product.additives_tags?.length || 0} trouvés`} />
-          </View>
-
-        </View>
-
-      </ScrollView>
-
-      <ReportModal
-        visible={reportModalVisible}
-        onClose={() => setReportModalVisible(false)}
-        barcode={product.barcode}
-      />
-    </View>
+        <Text className="text-lg font-bold text-gray-900 dark:text-white">{title}</Text>
+        {isOpen ? <ChevronUp size={20} color="#9CA3AF" /> : <ChevronDown size={20} color="#9CA3AF" />}
+      </TouchableOpacity>
+      {isOpen && (
+        <Animated.View entering={FadeInDown.duration(300)} exiting={FadeInUp.duration(200)} className="px-4 pb-4">
+          {children}
+        </Animated.View>
+      )}
+    </Animated.View>
   );
-}
+};
+
+const DetailItem = ({ label, value, isPositive }: { label: string; value?: string | number; isPositive?: boolean }) => (
+  <View className="flex-row items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
+    <View className="flex-row items-center flex-1 mr-4">
+      {isPositive !== undefined && (
+        <View className={`mr-3 p-1.5 rounded-full ${isPositive ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+          {isPositive ? <ThumbsUp size={14} color={isPositive ? '#22C55E' : '#EF4444'} /> : <ThumbsDown size={14} color={isPositive ? '#22C55E' : '#EF4444'} />}
+        </View>
+      )}
+      <Text className="text-gray-700 dark:text-gray-300 text-base flex-1">{label}</Text>
+    </View>
+    <Text className="text-gray-900 dark:text-white font-semibold text-base">{value}</Text>
+  </View>
+);
+
+// --- COMPOSANTS INTERNES CORRIGÉS ---
 
 const NutritionCard = ({ label, value, status, subtext, simple }: { label: string, value: string, status?: 'high' | 'moderate' | 'low', subtext?: string, simple?: boolean }) => {
-  const { color, icon } = status ? getNutrientStatus(status) : { color: '#374151', icon: '' };
-
   return (
     <View className="w-[48%] bg-gray-100 rounded-xl p-3 mb-3">
       <View className="flex-row justify-between items-start">
         <Text className="text-gray-500 text-base mb-1">{label}</Text>
         {!simple && status && (
           <View className={`w-5 h-5 rounded-full items-center justify-center`} style={{ backgroundColor: status === 'low' ? '#22C55E' : '#EF4444' }}>
-            {status === 'low' ? <ThumbsUp size={12} color="white" /> : <ChevronDown size={14} color="white" className={status === 'high' ? 'rotate-180' : ''} />}
-            {/* Note: Icon logic simplified for demo */}
+            {status === 'low' ? (
+              <ThumbsUp size={12} color="white" />
+            ) : (
+              // CORRECTION : On gère la rotation avec style, pas className
+              <View style={{ transform: [{ rotate: status === 'high' ? '180deg' : '0deg' }] }}>
+                <ChevronDown size={14} color="white" />
+              </View>
+            )}
           </View>
         )}
-        {status === 'low' && !simple && <View className="w-4 h-4 bg-green-500 rounded-full items-center justify-center"><Text className="text-white text-[10px]">✓</Text></View>}
-        {status === 'high' && !simple && <View className="w-4 h-4 bg-red-500 rounded-full items-center justify-center"><View className="border-b-4 border-l-4 border-r-4 border-transparent border-b-white transform rotate-180 translate-y-0.5" /></View>}
-        {/* Using simple shapes or icons */}
       </View>
       <Text className="text-gray-900 font-bold text-lg">{value}</Text>
       {subtext && (
@@ -314,8 +148,244 @@ const ListItem = ({ label, value, status }: { label: string, value: string, stat
     <Text className="text-gray-900 font-bold text-base">{label}</Text>
     <View className="flex-row items-center">
       <Text className="text-gray-900 font-bold text-base mr-2">{value}</Text>
-      {status === 'high' && <View className="w-5 h-5 bg-red-500 rounded-full items-center justify-center"><ChevronDown size={14} color="white" className="rotate-180" /></View>}
-      {status === 'low' && <View className="w-5 h-5 bg-green-500 rounded-full items-center justify-center"><ChevronDown size={14} color="white" /></View>}
+      {status === 'high' && (
+        <View className="w-5 h-5 bg-red-500 rounded-full items-center justify-center">
+          <View style={{ transform: [{ rotate: '180deg' }] }}>
+            <ChevronDown size={14} color="white" />
+          </View>
+        </View>
+      )}
+      {status === 'low' && (
+        <View className="w-5 h-5 bg-green-500 rounded-full items-center justify-center">
+          <ChevronDown size={14} color="white" />
+        </View>
+      )}
     </View>
   </View>
 );
+
+// --- COMPOSANT PRINCIPAL ---
+
+export default function ProductDetail() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const { product: productJson } = useLocalSearchParams();
+  const product: Product | null = productJson ? JSON.parse(productJson as string) : null;
+  const insets = useSafeAreaInsets();
+  const scrollY = useSharedValue(0);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+
+  if (!product) {
+    return (
+      <View className="flex-1 justify-center items-center bg-white dark:bg-[#181A20]">
+        <Text className="text-red-500 text-lg">{t('product_unknown')}</Text>
+        <TouchableOpacity onPress={() => router.back()} className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <Text className="text-gray-900 dark:text-white">{t('cancel')}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const scrollHandler = useAnimatedScrollHandler(event => {
+    scrollY.value = event.contentOffset.y;
+  });
+
+  const headerStyle = useAnimatedStyle(() => {
+    return {
+      height: interpolate(scrollY.value, [-100, 0, HEADER_HEIGHT], [HEADER_HEIGHT + 100, HEADER_HEIGHT, 100], Extrapolation.CLAMP),
+      opacity: interpolate(scrollY.value, [0, HEADER_HEIGHT - 100], [1, 0]),
+    };
+  });
+
+  const imageStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(scrollY.value, [-100, 0, HEADER_HEIGHT / 2], [1, 1, 0]),
+      transform: [
+        { scale: interpolate(scrollY.value, [-100, 0], [1.2, 1], Extrapolation.CLAMP) },
+        { translateY: interpolate(scrollY.value, [-100, 0, HEADER_HEIGHT], [0, 0, 50], Extrapolation.CLAMP) }
+      ]
+    };
+  });
+
+  const getNutrimentValue = (key: string) => product?.nutriments?.[key + '_100g'] ?? t('not_available');
+  const getNutrimentUnit = (key: string) => product?.nutriments?.[key + '_unit'] ?? '';
+
+  const getScoreDescription = (score?: number) => {
+    if (score === undefined) return t('unknown_product');
+    if (score >= 75) return t('excellent');
+    if (score >= 50) return t('good');
+    if (score >= 25) return t('mediocre');
+    return t('bad');
+  };
+
+  const getScoreColor = (score?: number) => {
+    if (score === undefined) return '#6B7280';
+    if (score >= 75) return '#22C55E';
+    if (score >= 50) return '#84CC16';
+    if (score >= 25) return '#F97316';
+    return '#EF4444';
+  };
+
+  return (
+    <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
+      <StatusBar barStyle="light-content" />
+
+      {/* Fixed Header Actions */}
+      <View
+        className="absolute top-0 left-0 right-0 z-50 flex-row justify-between items-center px-4"
+        style={{ paddingTop: insets.top + 10 }}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="w-10 h-10 bg-black/30 backdrop-blur-md rounded-full items-center justify-center"
+        >
+          <ArrowLeft size={24} color="white" />
+        </TouchableOpacity>
+
+        <View className="flex-row space-x-3">
+          <TouchableOpacity className="w-10 h-10 bg-black/30 backdrop-blur-md rounded-full items-center justify-center">
+            <Share2 size={20} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setReportModalVisible(true)}
+            className="w-10 h-10 bg-black/30 backdrop-blur-md rounded-full items-center justify-center"
+          >
+            <Edit3 size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {/* Parallax Header Background */}
+        <Animated.View className="w-full bg-white dark:bg-[#1F2937] items-center justify-end pb-10 overflow-hidden" style={[headerStyle]}>
+          <Animated.Image
+            source={{ uri: product.image_url || 'https://via.placeholder.com/300' }}
+            className="w-64 h-64"
+            resizeMode="contain"
+            style={imageStyle}
+          />
+        </Animated.View>
+
+        {/* Content Body */}
+        <View className="-mt-6 rounded-t-[32px] bg-gray-50 dark:bg-[#181A20] px-5 pt-8 min-h-screen">
+
+          {/* Title & Brand */}
+          <View className="items-center mb-8">
+            <Text className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+              {product.product_name || t('no_name')}
+            </Text>
+            <Text className="text-lg text-gray-500 dark:text-gray-400">
+              {product.brand || t('brand_unknown')}
+            </Text>
+          </View>
+
+          {/* Score Gauge */}
+          <View className="items-center mb-10">
+            <ScoreGauge score={product.custom_score} size={160} strokeWidth={12} />
+            <Text
+              className="text-2xl font-bold mt-4"
+              style={{ color: getScoreColor(product.custom_score) }}
+            >
+              {getScoreDescription(product.custom_score)}
+            </Text>
+          </View>
+
+          {/* Analysis Sections */}
+          <Section title={t('quality') || "Qualités"} defaultOpen={true}>
+            {product.nutriments?.fiber_100g > 3 && (
+              <DetailItem label="Riche en fibres" value={`${getNutrimentValue('fiber')} ${getNutrimentUnit('fiber')}`} isPositive={true} />
+            )}
+            {product.nutriments?.proteins_100g > 10 && (
+              <DetailItem label="Excellente source de protéines" value={`${getNutrimentValue('proteins')} ${getNutrimentUnit('proteins')}`} isPositive={true} />
+            )}
+            {/* Fallback */}
+            {(!product.nutriments?.fiber_100g || product.nutriments.fiber_100g <= 3) &&
+              (!product.nutriments?.proteins_100g || product.nutriments.proteins_100g <= 10) && (
+                <Text className="text-gray-500 dark:text-gray-400 italic">Aucune qualité spécifique détectée.</Text>
+              )}
+          </Section>
+
+          <Section title={t('defects') || "Défauts"} defaultOpen={true}>
+            {product.nova_group && product.nova_group > 3 && (
+              <DetailItem label="Produit ultra-transformé" value={`NOVA ${product.nova_group}`} isPositive={false} />
+            )}
+            {product.nutriments?.sugars_100g > 10 && (
+              <DetailItem label="Trop sucré" value={`${getNutrimentValue('sugars')} ${getNutrimentUnit('sugars')}`} isPositive={false} />
+            )}
+            {product.nutriments?.saturated_fat_100g > 5 && (
+              <DetailItem label="Graisses saturées élevées" value={`${getNutrimentValue('saturated-fat')} ${getNutrimentUnit('saturated-fat')}`} isPositive={false} />
+            )}
+            {/* Fallback */}
+            {(!product.nova_group || product.nova_group <= 3) &&
+              (!product.nutriments?.sugars_100g || product.nutriments.sugars_100g <= 10) &&
+              (!product.nutriments?.saturated_fat_100g || product.nutriments.saturated_fat_100g <= 5) && (
+                <Text className="text-gray-500 dark:text-gray-400 italic">Aucun défaut majeur détecté.</Text>
+              )}
+          </Section>
+
+          <Section title={t('nutrition_facts') || "Informations nutritionnelles"}>
+            <View className="flex-row flex-wrap justify-between">
+              {/* Energy */}
+              <NutritionCard
+                label="Energie"
+                value={`${Math.round(Number(getNutrimentValue('energy-kcal')))} Kcal`}
+                status="high"
+                subtext="Forte teneur"
+              />
+              {/* Fat */}
+              <NutritionCard
+                label="Gras"
+                value={`${getNutrimentValue('fat')} g`}
+                status="high"
+                subtext="Forte teneur"
+              />
+              {/* Saturated Fat */}
+              <NutritionCard
+                label="Gras saturés"
+                value={`${getNutrimentValue('saturated-fat')} g`}
+                status="high"
+                subtext="Forte teneur"
+              />
+              {/* Sugar */}
+              <NutritionCard
+                label="Sucre"
+                value={`${getNutrimentValue('sugars')} g`}
+                status="low"
+                subtext="Teneur saine"
+              />
+            </View>
+
+            <View className="mt-4 pt-2">
+              <ListItem label="Protéines" value={`${getNutrimentValue('proteins')} g`} />
+              <ListItem label="Fibres" value={`${getNutrimentValue('fiber')} g`} status="high" />
+              <ListItem label="Sel" value={`${getNutrimentValue('salt')} g`} status="high" />
+              <ListItem label="Calcium" value={`${(Number(getNutrimentValue('calcium')) * 1000).toFixed(1)} mg`} />
+            </View>
+          </Section>
+
+          <Section title={t('additional_info') || "Informations complémentaires"}>
+            {product.nutriscore_grade && (
+              <DetailItem label="Nutri-Score" value={product.nutriscore_grade.toUpperCase()} />
+            )}
+            {product.ecoscore_grade && (
+              <DetailItem label="Eco-Score" value={product.ecoscore_grade.toUpperCase()} />
+            )}
+            {product.additives_tags && (
+              <DetailItem label="Additifs" value={`${product.additives_tags.length} détectés`} />
+            )}
+          </Section>
+
+        </View>
+      </Animated.ScrollView>
+      <ReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        barcode={product.barcode || product.id} // Fallback ID si barcode manquant
+      />
+    </View>
+  );
+}

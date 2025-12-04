@@ -419,6 +419,7 @@ async def create_report(db: AsyncSession, report: schemas.ReportCreate, user_id:
         barcode=report.barcode,
         type=report.type,
         description=report.description,
+        image_url=report.image_url,
         user_id=user_id, # Peut être None si c'est automatique
         status="pending"
     )
@@ -494,3 +495,5 @@ async def update_product(db: AsyncSession, barcode: str, product_update: schemas
     await db.refresh(db_product)
     
     return db_product
+
+

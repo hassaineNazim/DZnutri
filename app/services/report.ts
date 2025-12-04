@@ -1,15 +1,23 @@
 import { api } from './axios';
 
-export const reportProduct = async (barcode: string, description: string) => {
+export const reportProduct = async (
+
+    barcode: string,
+    description: string,
+    type: string = 'scoringReport',
+    imageUrl: string | null = null
+) => {
+    console.log("ENVOI AU BACKEND :", { barcode, type, description, imageUrl });
     try {
         const response = await api.post('/api/reports', {
             barcode: barcode,
-            type: 'scoringReport', // L'enum que nous avons défini dans le backend
-            description: description
+            type: type,
+            description: description,
+            image_url: imageUrl
         });
         return response.data;
     } catch (error) {
-        console.error("Erreur lors du signalement :", error);
+        console.error("Erreur report:", error);
         throw error;
     }
 };
