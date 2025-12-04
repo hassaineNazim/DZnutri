@@ -78,6 +78,7 @@ class ReportCreate(BaseModel):
     barcode: str
     type: ReportTypeEnum
     description: Optional[str] = None
+    image_url: Optional[str] = None
 
 class ReportResponse(BaseModel):
     id: int
@@ -87,6 +88,7 @@ class ReportResponse(BaseModel):
     status: str
     created_at: Optional[datetime] = None
     user_id: Optional[int] = None
+    image_url: Optional[str] = None
 
     class Config:
         from_attributes = True

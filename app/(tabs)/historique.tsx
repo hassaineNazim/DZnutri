@@ -1,9 +1,9 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { CheckSquare, Trash2, X } from 'lucide-react-native';
+import { CheckSquare, HelpCircle, MoreVertical, Trash2, User, X } from 'lucide-react-native'; // Ajout des icônes pour le menu
 import { useColorScheme } from 'nativewind';
-import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Modal, Pressable, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
 import ListItem from '../components/ListItem';
@@ -30,6 +30,20 @@ export default function HistoriquePage() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+
+  // --- NOUVEAUX ÉTATS POUR LE MENU ---
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const handleReportProblem = () => {
+    setMenuVisible(false);
+    router.push('../screens/reportUser');
+  };
+
+  const handleAccount = () => {
+    setMenuVisible(false);
+    router.push('/reglage/compte');
+  };
+  // -----------------------------------
 
   useFocusEffect(
     useCallback(() => {
@@ -114,14 +128,26 @@ export default function HistoriquePage() {
           </View>
         </Animated.View>
       ) : (
-        <View className="px-6 pt-6 pb-2">
-          <Text className="text-3xl font-bold text-gray-900 dark:text-white">
-            {t('history') || "Historique"}
-          </Text>
-          <Text className="text-base text-gray-500 dark:text-gray-400 mt-1">
-            {t('history_subtitle')}
-          </Text>
+        // --- HEADER NORMAL AVEC MENU ---
+        <View className="px-6 pt-6 pb-2 flex-row justify-between items-start">
+          <View>
+            <Text className="text-3xl font-bold text-gray-900 dark:text-white">
+              {t('history') || "Historique"}
+            </Text>
+            <Text className="text-base text-gray-500 dark:text-gray-400 mt-1">
+              {t('history_subtitle')}
+            </Text>
+          </View>
+
+          {/* BOUTON 3 POINTS */}
+          <TouchableOpacity
+            onPress={() => setMenuVisible(true)}
+            className="p-2 rounded-full active:bg-gray-200 dark:active:bg-gray-700"
+          >
+            <MoreVertical size={24} color={isDark ? "white" : "black"} />
+          </TouchableOpacity>
         </View>
+        // -----------------------------
       )}
 
       <Animated.FlatList
@@ -167,6 +193,43 @@ export default function HistoriquePage() {
         confirmLabel={t('confirm') || "Supprimer"}
         cancelLabel={t('cancel') || "Annuler"}
       />
+
+      {/* --- MENU DÉROULANT (MODAL) --- */}
+      <Modal
+        transparent={true}
+        visible={menuVisible}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+          <View className="flex-1 bg-black/10">
+            <TouchableWithoutFeedback>
+              <View
+                className="absolute top-16 right-6 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 w-48 py-2"
+                style={{ elevation: 5 }}
+              >
+                <TouchableOpacity
+                  onPress={handleAccount}
+                  className="flex-row items-center px-4 py-3 active:bg-gray-50 dark:active:bg-gray-700"
+                >
+                  <User size={18} color={isDark ? "#D1D5DB" : "#4B5563"} style={{ marginRight: 12 }} />
+                  <Text className="text-gray-700 dark:text-gray-200 font-medium">Compte</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleReportProblem}
+                  className="flex-row items-center px-4 py-3 active:bg-gray-50 dark:active:bg-gray-700"
+                >
+                  <HelpCircle size={18} color={isDark ? "#D1D5DB" : "#4B5563"} style={{ marginRight: 12 }} />
+                  <Text className="text-gray-700 dark:text-gray-200 font-medium">Un problème ?</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+      {/* ----------------------------- */}
+
     </View>
   );
 }

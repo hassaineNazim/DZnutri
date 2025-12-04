@@ -171,7 +171,7 @@ const UserReports = () => {
                             report={report}
                             onResolve={handleResolve}
                             onIgnore={handleIgnore}
-                            image={products[report.barcode]?.image_url}
+                            image={report.image_url}
                         />
                     ))}
                 </div>

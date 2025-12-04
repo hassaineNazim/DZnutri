@@ -101,6 +101,7 @@ class Report(Base):
     barcode = Column(String, index=True, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     description = Column(Text, nullable=True)
+    image_url = Column(String, nullable=True)
     # Statut du ticket (pending, resolved, ignored)
     status = Column(String, default="pending", index=True)
     
