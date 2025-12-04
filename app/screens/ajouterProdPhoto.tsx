@@ -22,7 +22,8 @@ import { useTranslation } from '../i18n';
 // Example images
 const FRONT_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_dlyit9dlyit9dlyi.png');
 const BACK_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_3ypwh63ypwh63ypw.png');
-
+// --- MODIF 1: Image exemple pour la nutrition (réutilisation ou nouvelle image) ---
+const NUTRITION_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_3ypwh63ypwh63ypw.png');
 
 export default function AjouterProduitPhotoPage() {
   const router = useRouter();
@@ -33,19 +34,22 @@ export default function AjouterProduitPhotoPage() {
     type: string;
     productName: string;
     brand: string;
+    category: string;
   }>();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageIngredientsUri, setImageIngredientsUri] = useState<string | null>(null);
+  // --- MODIF 2: État pour la 3ème image ---
+  const [imageNutritionUri, setImageNutritionUri] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
 
   // Modal state
   const [modalVisible, setModalVisible] = useState(false);
-  const [activePhotoType, setActivePhotoType] = useState<'front' | 'ingredients' | null>(null);
+  // --- MODIF 3: Type mis à jour ---
+  const [activePhotoType, setActivePhotoType] = useState<'front' | 'ingredients' | 'nutrition' | null>(null);
 
-  // Auto-start flow removed as per user request
-
-  const openCameraInstruction = (type: 'front' | 'ingredients') => {
+  const openCameraInstruction = (type: 'front' | 'ingredients' | 'nutrition') => {
     setActivePhotoType(type);
     setModalVisible(true);
   };
@@ -65,15 +69,20 @@ export default function AjouterProduitPhotoPage() {
     });
 
     if (!result.canceled) {
+      // --- MODIF 4: Gestion de la 3ème image ---
       if (activePhotoType === 'front') {
         setImageUri(result.assets[0].uri);
-      } else {
+      } else if (activePhotoType === 'ingredients') {
         setImageIngredientsUri(result.assets[0].uri);
+      } else if (activePhotoType === 'nutrition') {
+        setImageNutritionUri(result.assets[0].uri);
       }
     }
   };
 
   const handleSubmission = async () => {
+    // --- MODIF 5: Vérification optionnelle ou obligatoire ? ---
+    // Ici j'ai rendu la photo nutrition optionnelle, mais vous pouvez ajouter !imageNutritionUri si obligatoire
     if (!imageUri || !imageIngredientsUri) {
       Alert.alert(t('add_product_title'), t('photo_error'));
       return;
@@ -82,13 +91,14 @@ export default function AjouterProduitPhotoPage() {
 
     try {
       const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) throw new Error(t('connect')); // Or generic error
+      if (!userToken) throw new Error(t('connect'));
 
       const formData = new FormData();
       formData.append('barcode', params.barcode as string);
       formData.append('typeProduct', params.type as string);
       formData.append('productName', params.productName as string);
       formData.append('brand', params.brand as string);
+      formData.append('category', params.category as string);
 
       formData.append('image_front', {
         uri: imageUri,
@@ -101,6 +111,15 @@ export default function AjouterProduitPhotoPage() {
         name: `ingredients_${params.barcode}.jpg`,
         type: 'image/jpeg',
       } as any);
+
+      // --- MODIF 6: Ajout au FormData ---
+      if (imageNutritionUri) {
+        formData.append('image_nutrition', {
+          uri: imageNutritionUri,
+          name: `nutrition_${params.barcode}.jpg`,
+          type: 'image/jpeg',
+        } as any);
+      }
 
       const response = await fetch(`${API_URL}/api/submission`, {
         method: 'POST',
@@ -172,7 +191,6 @@ export default function AjouterProduitPhotoPage() {
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
-      {/* Re-integrated StepHeader for consistent navigation and progress bar */}
       <View className="px-6 pt-6">
         <StepHeader step={3} title={t('step_3_title')} />
       </View>
@@ -190,6 +208,14 @@ export default function AjouterProduitPhotoPage() {
           label={t('take_photo_ingredients')}
           uri={imageIngredientsUri}
           onPress={() => openCameraInstruction('ingredients')}
+        />
+
+        {/* --- MODIF 7: Bouton pour la 3ème photo --- */}
+        <PhotoButton
+          stepNumber={3}
+          label={t('take_photo_nutrition') || "Tableau Nutritionnel"}
+          uri={imageNutritionUri}
+          onPress={() => openCameraInstruction('nutrition')}
         />
 
         {imageUri && imageIngredientsUri && (
@@ -220,7 +246,10 @@ export default function AjouterProduitPhotoPage() {
           <View className="bg-white dark:bg-[#1F2937] p-5 rounded-3xl w-full max-w-sm shadow-2xl">
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-xl font-bold text-gray-900 dark:text-white">
-                {activePhotoType === 'front' ? t('take_photo_front') : t('take_photo_ingredients')}
+                {/* --- MODIF 8: Titre dynamique --- */}
+                {activePhotoType === 'front' ? t('take_photo_front') :
+                  activePhotoType === 'ingredients' ? t('take_photo_ingredients') :
+                    t('take_photo_nutrition') || "Tableau Nutritionnel"}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)} className="bg-gray-100 dark:bg-gray-800 p-2 rounded-full">
                 <X size={20} color={colorScheme === 'dark' ? '#9CA3AF' : '#6B7280'} />
@@ -229,16 +258,20 @@ export default function AjouterProduitPhotoPage() {
 
             <View className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-2 mb-6">
               <Image
-                source={activePhotoType === 'front' ? FRONT_EXAMPLE : BACK_EXAMPLE}
+                // --- MODIF 9: Image exemple dynamique ---
+                source={activePhotoType === 'front' ? FRONT_EXAMPLE :
+                  activePhotoType === 'ingredients' ? BACK_EXAMPLE :
+                    NUTRITION_EXAMPLE}
                 className="w-full h-64 rounded-xl"
                 resizeMode="contain"
               />
             </View>
 
             <Text className="text-center text-gray-600 dark:text-gray-300 mb-8 px-2 leading-6">
-              {activePhotoType === 'front'
-                ? t('photo_instruction_front')
-                : t('photo_instruction_back')}
+              {/* --- MODIF 10: Texte instruction dynamique --- */}
+              {activePhotoType === 'front' ? t('photo_instruction_front') :
+                activePhotoType === 'ingredients' ? t('photo_instruction_back') :
+                  t('photo_instruction_nutrition') || "Prenez une photo claire du tableau des valeurs nutritionnelles."}
             </Text>
 
             <TouchableOpacity
