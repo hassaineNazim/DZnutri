@@ -1,9 +1,9 @@
-import { useFocusEffect } from '@react-navigation/native';
+
 import { useRouter } from 'expo-router';
 import { CheckSquare, HelpCircle, MoreVertical, Trash2, User, X } from 'lucide-react-native'; // Ajout des icônes pour le menu
 import { useColorScheme } from 'nativewind';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Modal, Pressable, RefreshControl, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
 import ListItem from '../components/ListItem';
@@ -26,10 +26,12 @@ export default function HistoriquePage() {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { t } = useTranslation();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+
 
   // --- NOUVEAUX ÉTATS POUR LE MENU ---
   const [menuVisible, setMenuVisible] = useState(false);
@@ -43,19 +45,33 @@ export default function HistoriquePage() {
     setMenuVisible(false);
     router.push('/reglage/compte');
   };
-  // -----------------------------------
+  // 1. Chargement initial (Une seule fois au montage)
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      const loadHistoryFromServer = async () => {
-        setLoading(true);
-        const serverHistory = await fetchHistory();
-        setHistory(serverHistory);
-        setLoading(false);
-      };
-      loadHistoryFromServer();
-    }, [])
-  );
+  // Fonction de chargement centralisée
+  const loadHistory = async () => {
+    try {
+      // On ne met setLoading(true) que si c'est le premier chargement
+      // pour ne pas faire clignoter l'écran lors du refresh
+      if (!refreshing) setLoading(true);
+
+      const serverHistory = await fetchHistory();
+      setHistory(serverHistory);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false); // Important : arrêter l'animation de refresh
+    }
+  };
+
+  // 2. Fonction appelée lors du swipe vers le bas
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadHistory();
+  }, []);
 
   const toggleSelect = (id: number) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -155,6 +171,16 @@ export default function HistoriquePage() {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{ padding: 16, paddingTop: selectedIds.length > 0 ? 80 : 16 }}
         itemLayoutAnimation={Layout.springify()}
+        // --- 3. AJOUT DU REFRESH CONTROL ICI ---
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#84CC16"]} // Couleur du spinner (Android)
+            tintColor={isDark ? "#84CC16" : "#84CC16"} // Couleur du spinner (iOS)
+          />
+        }
+        // ---------------------------------------
         renderItem={({ item, index }) => (
           <Animated.View
             entering={FadeInDown.delay(index * 50).springify()}

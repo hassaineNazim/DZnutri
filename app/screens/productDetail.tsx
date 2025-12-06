@@ -1,13 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, ChevronDown, ChevronUp, Edit3, Share2, ThumbsDown, ThumbsUp } from 'lucide-react-native';
+import { AlertTriangle, ArrowLeft, Check, ChevronDown, ChevronRight, ChevronUp, Edit3, Heart } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Dimensions, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
   Extrapolation,
-  FadeInDown,
-  FadeInUp,
   interpolate,
-  Layout,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue
@@ -36,135 +33,29 @@ type Product = {
   ingredients_text?: string;
 };
 
-// Helper Nutri-Score (inchangé)
-const NutriScoreBadge = ({ grade }: { grade?: string }) => {
-  if (!grade) return null;
-  const grades = ['a', 'b', 'c', 'd', 'e'];
-  return (
-    <View className="flex-row items-center bg-gray-100 rounded-md p-1">
-      {grades.map((g) => (
-        <View
-          key={g}
-          className={`w-6 h-6 items-center justify-center rounded-sm mx-[1px] ${grade.toLowerCase() === g
-            ? g === 'a' ? 'bg-[#038141]'
-              : g === 'b' ? 'bg-[#85BB2F]'
-                : g === 'c' ? 'bg-[#FECB02]'
-                  : g === 'd' ? 'bg-[#EE8100]'
-                    : 'bg-[#E63E11]'
-            : 'bg-transparent'
-            }`}
-        >
-          <Text className={`font-bold uppercase ${grade.toLowerCase() === g ? 'text-white' : 'text-gray-400'}`}>
-            {g}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
+// --- HELPERS DE COULEUR ---
+const getScoreColor = (score?: number) => {
+  if (score === undefined) return '#6B7280';
+  if (score >= 60) return '#22C55E'; // Vert
+  if (score >= 30) return '#F97316'; // Orange
+  return '#EF4444'; // Rouge
 };
 
-// Helper Nova (inchangé)
-const NovaBadge = ({ group }: { group?: number }) => {
-  if (!group) return null;
-  const color = group === 1 ? '#22C55E' : group === 2 ? '#85BB2F' : group === 3 ? '#FECB02' : '#EF4444';
-  return (
-    <View className="flex-row items-center ml-4">
-      <Text className="text-gray-500 mr-1">Nova</Text>
-      <View className="w-6 h-8 rounded-md items-center justify-center" style={{ backgroundColor: color }}>
-        <Text className="text-white font-bold">{group}</Text>
-      </View>
-    </View>
-  );
+// Helper pour simuler les niveaux (Low/Moderate/High)
+// Dans un vrai cas, utilisez les données 'nutrient_levels' d'OFF si disponibles
+const getLevelColor = (value: number, highThreshold: number, moderateThreshold: number) => {
+  if (value > highThreshold) return '#EF4444'; // Rouge (Élevé - Mauvais)
+  if (value > moderateThreshold) return '#F97316'; // Orange (Modéré)
+  return '#22C55E'; // Vert (Faible - Bon)
 };
 
-const Section = ({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  return (
-    <Animated.View layout={Layout.springify()} className="bg-white dark:bg-[#1F2937] rounded-2xl mb-4 overflow-hidden shadow-sm">
-      <TouchableOpacity
-        onPress={() => setIsOpen(!isOpen)}
-        className="flex-row items-center justify-between p-4"
-        activeOpacity={0.7}
-      >
-        <Text className="text-lg font-bold text-gray-900 dark:text-white">{title}</Text>
-        {isOpen ? <ChevronUp size={20} color="#9CA3AF" /> : <ChevronDown size={20} color="#9CA3AF" />}
-      </TouchableOpacity>
-      {isOpen && (
-        <Animated.View entering={FadeInDown.duration(300)} exiting={FadeInUp.duration(200)} className="px-4 pb-4">
-          {children}
-        </Animated.View>
-      )}
-    </Animated.View>
-  );
+// Pour les nutriments positifs (Protéines, Fibres), la logique est inversée
+const getPositiveLevelColor = (value: number, highThreshold: number, moderateThreshold: number) => {
+  if (value > highThreshold) return '#22C55E'; // Vert (Élevé - Bon)
+  if (value > moderateThreshold) return '#F97316'; // Orange
+  return '#EF4444'; // Rouge (Faible - Mauvais)
 };
 
-const DetailItem = ({ label, value, isPositive }: { label: string; value?: string | number; isPositive?: boolean }) => (
-  <View className="flex-row items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
-    <View className="flex-row items-center flex-1 mr-4">
-      {isPositive !== undefined && (
-        <View className={`mr-3 p-1.5 rounded-full ${isPositive ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
-          {isPositive ? <ThumbsUp size={14} color={isPositive ? '#22C55E' : '#EF4444'} /> : <ThumbsDown size={14} color={isPositive ? '#22C55E' : '#EF4444'} />}
-        </View>
-      )}
-      <Text className="text-gray-700 dark:text-gray-300 text-base flex-1">{label}</Text>
-    </View>
-    <Text className="text-gray-900 dark:text-white font-semibold text-base">{value}</Text>
-  </View>
-);
-
-// --- COMPOSANTS INTERNES CORRIGÉS ---
-
-const NutritionCard = ({ label, value, status, subtext, simple }: { label: string, value: string, status?: 'high' | 'moderate' | 'low', subtext?: string, simple?: boolean }) => {
-  return (
-    <View className="w-[48%] bg-gray-100 rounded-xl p-3 mb-3">
-      <View className="flex-row justify-between items-start">
-        <Text className="text-gray-500 text-base mb-1">{label}</Text>
-        {!simple && status && (
-          <View className={`w-5 h-5 rounded-full items-center justify-center`} style={{ backgroundColor: status === 'low' ? '#22C55E' : '#EF4444' }}>
-            {status === 'low' ? (
-              <ThumbsUp size={12} color="white" />
-            ) : (
-              // CORRECTION : On gère la rotation avec style, pas className
-              <View style={{ transform: [{ rotate: status === 'high' ? '180deg' : '0deg' }] }}>
-                <ChevronDown size={14} color="white" />
-              </View>
-            )}
-          </View>
-        )}
-      </View>
-      <Text className="text-gray-900 font-bold text-lg">{value}</Text>
-      {subtext && (
-        <Text className="text-xs mt-1" style={{ color: status === 'low' ? '#22C55E' : '#EF4444' }}>
-          {subtext}
-        </Text>
-      )}
-    </View>
-  );
-};
-
-const ListItem = ({ label, value, status }: { label: string, value: string, status?: 'high' | 'low' }) => (
-  <View className="flex-row justify-between items-center py-2">
-    <Text className="text-gray-900 font-bold text-base">{label}</Text>
-    <View className="flex-row items-center">
-      <Text className="text-gray-900 font-bold text-base mr-2">{value}</Text>
-      {status === 'high' && (
-        <View className="w-5 h-5 bg-red-500 rounded-full items-center justify-center">
-          <View style={{ transform: [{ rotate: '180deg' }] }}>
-            <ChevronDown size={14} color="white" />
-          </View>
-        </View>
-      )}
-      {status === 'low' && (
-        <View className="w-5 h-5 bg-green-500 rounded-full items-center justify-center">
-          <ChevronDown size={14} color="white" />
-        </View>
-      )}
-    </View>
-  </View>
-);
-
-// --- COMPOSANT PRINCIPAL ---
 
 export default function ProductDetail() {
   const router = useRouter();
@@ -175,16 +66,9 @@ export default function ProductDetail() {
   const scrollY = useSharedValue(0);
   const [reportModalVisible, setReportModalVisible] = useState(false);
 
-  if (!product) {
-    return (
-      <View className="flex-1 justify-center items-center bg-white dark:bg-[#181A20]">
-        <Text className="text-red-500 text-lg">{t('product_unknown')}</Text>
-        <TouchableOpacity onPress={() => router.back()} className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-          <Text className="text-gray-900 dark:text-white">{t('cancel')}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  if (!product) return null;
+
+  console.log(product);
 
   const scrollHandler = useAnimatedScrollHandler(event => {
     scrollY.value = event.contentOffset.y;
@@ -207,185 +91,239 @@ export default function ProductDetail() {
     };
   });
 
-  const getNutrimentValue = (key: string) => product?.nutriments?.[key + '_100g'] ?? t('not_available');
-  const getNutrimentUnit = (key: string) => product?.nutriments?.[key + '_unit'] ?? '';
-
-  const getScoreDescription = (score?: number) => {
-    if (score === undefined) return t('unknown_product');
-    if (score >= 75) return t('excellent');
-    if (score >= 50) return t('good');
-    if (score >= 25) return t('mediocre');
-    return t('bad');
-  };
-
-  const getScoreColor = (score?: number) => {
-    if (score === undefined) return '#6B7280';
-    if (score >= 75) return '#22C55E';
-    if (score >= 50) return '#84CC16';
-    if (score >= 25) return '#F97316';
-    return '#EF4444';
-  };
+  const getNutrimentValue = (key: string) => Math.round(Number(product?.nutriments?.[key + '_100g'] ?? 0) * 10) / 10;
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
-      <StatusBar barStyle="light-content" />
+    <View className="flex-1 bg-white dark:bg-[#181A20]">
+      <StatusBar barStyle="dark-content" />
 
-      {/* Fixed Header Actions */}
+      {/* Header Flottant */}
       <View
         className="absolute top-0 left-0 right-0 z-50 flex-row justify-between items-center px-4"
         style={{ paddingTop: insets.top + 10 }}
       >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-10 h-10 bg-black/30 backdrop-blur-md rounded-full items-center justify-center"
-        >
-          <ArrowLeft size={24} color="white" />
+        <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full items-center justify-center shadow-sm">
+          <ArrowLeft size={24} color="#374151" />
         </TouchableOpacity>
-
         <View className="flex-row space-x-3">
-          <TouchableOpacity className="w-10 h-10 bg-black/30 backdrop-blur-md rounded-full items-center justify-center">
-            <Share2 size={20} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setReportModalVisible(true)}
-            className="w-10 h-10 bg-black/30 backdrop-blur-md rounded-full items-center justify-center"
-          >
-            <Edit3 size={20} color="white" />
+          <TouchableOpacity onPress={() => setReportModalVisible(true)} className="w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full items-center justify-center shadow-sm">
+            <Edit3 size={20} color="#374151" />
           </TouchableOpacity>
         </View>
       </View>
 
-      <Animated.ScrollView
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      >
-        {/* Parallax Header Background */}
-        <Animated.View className="w-full bg-white dark:bg-[#1F2937] items-center justify-end pb-10 overflow-hidden" style={[headerStyle]}>
-          <Animated.Image
-            source={{ uri: product.image_url || 'https://via.placeholder.com/300' }}
-            className="w-64 h-64"
+      <Animated.ScrollView onScroll={scrollHandler} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: 40 }}>
+
+        {/* Header Produit + Score */}
+        <View className="flex-row px-5 pt-24 pb-6">
+          <Image
+            source={{ uri: product.image_url }}
+            className="w-28 h-40 rounded-lg mr-4 bg-gray-50 dark:bg-gray-800"
             resizeMode="contain"
-            style={imageStyle}
           />
-        </Animated.View>
+          <View className="flex-1 justify-center">
+            <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-1 leading-7">{product.product_name}</Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-base mb-4">{product.brand}</Text>
+            <View className="flex-row items-center gap-3">
+              {product.nutriscore_grade && (
+                <View>
+                  <Text className="text-xs text-gray-400 dark:text-gray-500 mb-0.5 uppercase font-bold">Nutri-score</Text>
+                  <NutriScoreBadge grade={product.nutriscore_grade} />
+                </View>
+              )}
+              {product.nova_group && (
+                <View>
+                  <Text className="text-xs text-gray-400 dark:text-gray-500 mb-0.5 uppercase font-bold">Nova</Text>
+                  <View className={`w-8 h-8 rounded items-center justify-center ${product.nova_group > 3 ? 'bg-red-500' : 'bg-green-500'}`}>
+                    <Text className="text-white font-bold">{product.nova_group}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+          <View className="justify-center ml-2">
+            <ScoreGauge score={product.custom_score} size={90} strokeWidth={8} />
+          </View>
+        </View>
 
-        {/* Content Body */}
-        <View className="-mt-6 rounded-t-[32px] bg-gray-50 dark:bg-[#181A20] px-5 pt-8 min-h-screen">
 
-          {/* Title & Brand */}
-          <View className="items-center mb-8">
-            <Text className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-              {product.product_name || t('no_name')}
-            </Text>
-            <Text className="text-lg text-gray-500 dark:text-gray-400">
-              {product.brand || t('brand_unknown')}
-            </Text>
+        {/* --- SECTION ADDITIFS --- */}
+        <View className="mx-4 mt-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-[#1F2937] shadow-sm overflow-hidden">
+          <View className="flex-row items-center p-3 border-b border-gray-100 dark:border-gray-700">
+            <View className="bg-orange-100 dark:bg-orange-900/40 p-1.5 rounded-full mr-2">
+              <AlertTriangle size={16} color="#F97316" />
+            </View>
+            <Text className="text-lg font-bold text-gray-900 dark:text-white">Additifs</Text>
           </View>
 
-          {/* Score Gauge */}
-          <View className="items-center mb-10">
-            <ScoreGauge score={product.custom_score} size={160} strokeWidth={12} />
-            <Text
-              className="text-2xl font-bold mt-4"
-              style={{ color: getScoreColor(product.custom_score) }}
-            >
-              {getScoreDescription(product.custom_score)}
-            </Text>
+          {product.additives_tags && product.additives_tags.length > 0 ? (
+            product.additives_tags.map((tag, index) => (
+              <View key={`add-${index}`} className="flex-row items-center justify-between p-3 border-b border-gray-50 dark:border-gray-800 last:border-0">
+                <View className="flex-row items-center flex-1">
+                  {/* Simulation couleur risque : pair=vert, impair=orange */}
+                  <View className={`w-3 h-3 rounded-full mr-3 ${index % 2 === 0 ? 'bg-green-500' : 'bg-orange-400'}`} />
+                  <Text className="text-base text-gray-800 dark:text-gray-200 font-medium">{tag.replace('en:', '').toUpperCase()}</Text>
+                </View>
+                <View className="flex-row items-center">
+                  <Text className="text-sm text-gray-400 dark:text-gray-500 mr-2">
+                    {index % 2 === 0 ? 'Fonction A' : 'Fonction B'}
+                  </Text>
+                  <ChevronRight size={16} color="#D1D5DB" />
+                </View>
+              </View>
+            ))
+          ) : (
+            <View className="p-4">
+              <Text className="text-gray-500 dark:text-gray-400 italic">Aucun additif à déclarer.</Text>
+            </View>
+          )}
+        </View>
+
+
+        {/* --- SECTION NUTRITION (Design Grille + Liste) --- */}
+        <View className="mx-4 mt-6 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-[#1F2937] shadow-sm overflow-hidden">
+          <View className="flex-row items-center justify-between p-3 border-b border-gray-100 dark:border-gray-700">
+            <View className="flex-row items-center">
+              <View className="bg-red-100 dark:bg-red-900/40 p-1.5 rounded-full mr-2">
+                <Heart size={16} color="#EF4444" />
+              </View>
+              <View>
+                <Text className="text-lg font-bold text-gray-900 dark:text-white leading-5">Informations</Text>
+                <Text className="text-lg font-bold text-gray-900 dark:text-white leading-5">nutritionnelles</Text>
+              </View>
+            </View>
+            <View className="bg-orange-50 dark:bg-orange-900/20 px-3 py-1 rounded-full border border-orange-100 dark:border-orange-800">
+              <Text className="text-orange-600 dark:text-orange-400 font-bold text-sm">Score : {product.custom_score}</Text>
+            </View>
           </View>
 
-          {/* Analysis Sections */}
-          <Section title={t('quality') || "Qualités"} defaultOpen={true}>
-            {product.nutriments?.fiber_100g > 3 && (
-              <DetailItem label="Riche en fibres" value={`${getNutrimentValue('fiber')} ${getNutrimentUnit('fiber')}`} isPositive={true} />
-            )}
-            {product.nutriments?.proteins_100g > 10 && (
-              <DetailItem label="Excellente source de protéines" value={`${getNutrimentValue('proteins')} ${getNutrimentUnit('proteins')}`} isPositive={true} />
-            )}
-            {/* Fallback */}
-            {(!product.nutriments?.fiber_100g || product.nutriments.fiber_100g <= 3) &&
-              (!product.nutriments?.proteins_100g || product.nutriments.proteins_100g <= 10) && (
-                <Text className="text-gray-500 dark:text-gray-400 italic">Aucune qualité spécifique détectée.</Text>
-              )}
-          </Section>
-
-          <Section title={t('defects') || "Défauts"} defaultOpen={true}>
-            {product.nova_group && product.nova_group > 3 && (
-              <DetailItem label="Produit ultra-transformé" value={`NOVA ${product.nova_group}`} isPositive={false} />
-            )}
-            {product.nutriments?.sugars_100g > 10 && (
-              <DetailItem label="Trop sucré" value={`${getNutrimentValue('sugars')} ${getNutrimentUnit('sugars')}`} isPositive={false} />
-            )}
-            {product.nutriments?.saturated_fat_100g > 5 && (
-              <DetailItem label="Graisses saturées élevées" value={`${getNutrimentValue('saturated-fat')} ${getNutrimentUnit('saturated-fat')}`} isPositive={false} />
-            )}
-            {/* Fallback */}
-            {(!product.nova_group || product.nova_group <= 3) &&
-              (!product.nutriments?.sugars_100g || product.nutriments.sugars_100g <= 10) &&
-              (!product.nutriments?.saturated_fat_100g || product.nutriments.saturated_fat_100g <= 5) && (
-                <Text className="text-gray-500 dark:text-gray-400 italic">Aucun défaut majeur détecté.</Text>
-              )}
-          </Section>
-
-          <Section title={t('nutrition_facts') || "Informations nutritionnelles"}>
+          <View className="p-3">
             <View className="flex-row flex-wrap justify-between">
-              {/* Energy */}
+              {/* Energie (Seuil 300kcal pour "modéré") */}
               <NutritionCard
                 label="Energie"
-                value={`${Math.round(Number(getNutrimentValue('energy-kcal')))} Kcal`}
-                status="high"
-                subtext="Forte teneur"
+                value={`${Math.round(getNutrimentValue('energy-kcal'))} Kcal`}
+                subtext={getNutrimentValue('energy-kcal') > 300 ? "Forte teneur" : "Faible teneur"}
+                color={getLevelColor(getNutrimentValue('energy-kcal'), 500, 300)}
+                icon="up"
               />
-              {/* Fat */}
+              {/* Protéines (Seuil 10g pour "bon") */}
               <NutritionCard
-                label="Gras"
-                value={`${getNutrimentValue('fat')} g`}
-                status="high"
-                subtext="Forte teneur"
+                label="Protéines"
+                value={`${getNutrimentValue('proteins')} g`}
+                subtext={getNutrimentValue('proteins') > 10 ? "Excellente source" : "Faible teneur"}
+                color={getPositiveLevelColor(getNutrimentValue('proteins'), 10, 5)}
+                icon="down" // Flèche vers le bas si faible
               />
-              {/* Saturated Fat */}
+
+              {/* Sucre */}
+              <NutritionCard
+                label="Glucides"
+                value={`${getNutrimentValue('sugars')} g`}
+                subtext="Teneur"
+                color={getLevelColor(getNutrimentValue('sugars'), 20, 5)}
+                icon="check"
+              />
+
+              {/* Gras Saturés */}
               <NutritionCard
                 label="Gras saturés"
                 value={`${getNutrimentValue('saturated-fat')} g`}
-                status="high"
-                subtext="Forte teneur"
-              />
-              {/* Sugar */}
-              <NutritionCard
-                label="Sucre"
-                value={`${getNutrimentValue('sugars')} g`}
-                status="low"
-                subtext="Teneur saine"
+                subtext="Gras saturés"
+                color={getLevelColor(getNutrimentValue('saturated-fat'), 5, 1.5)}
+                icon="up"
               />
             </View>
 
-            <View className="mt-4 pt-2">
-              <ListItem label="Protéines" value={`${getNutrimentValue('proteins')} g`} />
-              <ListItem label="Fibres" value={`${getNutrimentValue('fiber')} g`} status="high" />
-              <ListItem label="Sel" value={`${getNutrimentValue('salt')} g`} status="high" />
-              <ListItem label="Calcium" value={`${(Number(getNutrimentValue('calcium')) * 1000).toFixed(1)} mg`} />
+            {/* Liste détaillée en bas */}
+            <View className="mt-2 border-t border-gray-100 dark:border-gray-700 pt-2">
+              <SmallNutriItem
+                label="Fibre"
+                value={`${getNutrimentValue('fiber')} g`}
+                color={getPositiveLevelColor(getNutrimentValue('fiber'), 3, 1)}
+                icon="down"
+              />
+              <SmallNutriItem
+                label="Sel"
+                value={`${getNutrimentValue('salt')} g`}
+                color={getLevelColor(getNutrimentValue('salt'), 1.5, 0.5)}
+                icon="up"
+              />
+              <SmallNutriItem
+                label="Calcium"
+                value={`${(getNutrimentValue('calcium') * 1000).toFixed(1)} mg`}
+                color="#6B7280"
+              />
             </View>
-          </Section>
-
-          <Section title={t('additional_info') || "Informations complémentaires"}>
-            {product.nutriscore_grade && (
-              <DetailItem label="Nutri-Score" value={product.nutriscore_grade.toUpperCase()} />
-            )}
-            {product.ecoscore_grade && (
-              <DetailItem label="Eco-Score" value={product.ecoscore_grade.toUpperCase()} />
-            )}
-            {product.additives_tags && (
-              <DetailItem label="Additifs" value={`${product.additives_tags.length} détectés`} />
-            )}
-          </Section>
-
+          </View>
         </View>
+
       </Animated.ScrollView>
+
       <ReportModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
-        barcode={product.barcode || product.id} // Fallback ID si barcode manquant
+        barcode={product.barcode || product.id}
       />
     </View>
   );
 }
+
+// --- COMPOSANT CARTE NUTRITION (Carré gris) ---
+const NutritionCard = ({ label, value, subtext, color, icon, simple }: any) => (
+  <View className="w-[48%] bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-3 border border-gray-100 dark:border-gray-700">
+    <View className="flex-row justify-between items-start mb-1">
+      <Text className="text-gray-500 dark:text-gray-400 text-sm font-medium">{label}</Text>
+      {!simple && (
+        <View className="w-5 h-5 rounded-full items-center justify-center" style={{ backgroundColor: color }}>
+          {icon === 'check' && <Check size={12} color="white" />}
+          {/* Utilisation correcte du style pour la rotation */}
+          {icon === 'up' && <ChevronUp size={14} color="white" />}
+          {icon === 'down' && <ChevronDown size={14} color="white" />}
+        </View>
+      )}
+    </View>
+    <Text className="text-gray-900 dark:text-white font-bold text-lg">{value}</Text>
+    {subtext ? (
+      <Text className="text-xs mt-1 font-medium" style={{ color: color }}>{subtext}</Text>
+    ) : null}
+  </View>
+);
+
+// --- COMPOSANT LIGNE SIMPLE (Bas de tableau) ---
+const SmallNutriItem = ({ label, value, color, icon }: any) => (
+  <View className="flex-row justify-between items-center py-2">
+    <Text className="text-gray-900 dark:text-white font-bold text-sm">{label}</Text>
+    <View className="flex-row items-center">
+      <Text className="text-gray-900 dark:text-white font-bold text-sm mr-2">{value}</Text>
+      {icon && (
+        <View className="w-4 h-4 rounded-full items-center justify-center" style={{ backgroundColor: color }}>
+          {icon === 'check' && <Check size={10} color="white" />}
+          {icon === 'up' && <ChevronUp size={10} color="white" />}
+          {icon === 'down' && <ChevronDown size={10} color="white" />}
+        </View>
+      )}
+    </View>
+  </View>
+);
+
+// --- HELPER BADGE NUTRISCORE ---
+const NutriScoreBadge = ({ grade }: { grade?: string }) => {
+  if (!grade) return null;
+  const grades = ['a', 'b', 'c', 'd', 'e'];
+  return (
+    <View className="flex-row items-center bg-gray-100 dark:bg-gray-800 rounded p-0.5">
+      {grades.map((g) => (
+        <View
+          key={g}
+          className={`w-5 h-5 items-center justify-center rounded-sm mx-[1px] ${grade.toLowerCase() === g
+            ? g === 'a' ? 'bg-[#038141]' : g === 'b' ? 'bg-[#85BB2F]' : g === 'c' ? 'bg-[#FECB02]' : g === 'd' ? 'bg-[#EE8100]' : 'bg-[#E63E11]'
+            : 'bg-transparent'
+            }`}
+        >
+          <Text className={`font-bold uppercase text-xs ${grade.toLowerCase() === g ? 'text-white' : 'text-gray-300'}`}>{g}</Text>
+        </View>
+      ))}
+    </View>
+  );
+};
