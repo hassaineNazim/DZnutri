@@ -19,12 +19,13 @@ export default function AjouterProduitInfoPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { barcode } = useLocalSearchParams<{ barcode: string }>();
+  const { type } = useLocalSearchParams<{ type: string }>();
 
   const [productName, setProductName] = useState('');
   const [brand, setBrand] = useState('');
 
   // --- NOUVEAU : État pour la catégorie technique ---
-  const [category, setCategory] = useState(TECHNICAL_CATEGORIES[0]); // Par défaut "Solide"
+  const [typeSpecifique, settypeSpecifique] = useState(TECHNICAL_CATEGORIES[0]); // Par défaut "Solide"
   const [dropdownVisible, setDropdownVisible] = useState(false);
   // -----------------------------------------------
 
@@ -56,7 +57,8 @@ export default function AjouterProduitInfoPage() {
       // On passe la catégorie sélectionnée (value) comme paramètre "type" ou "category"
       params: {
         barcode,
-        type: category.value, // "boissons", "fromages", etc.
+        type: type,
+        typeSpecifique: typeSpecifique.value,
         productName,
         brand
       },
@@ -125,7 +127,7 @@ export default function AjouterProduitInfoPage() {
               className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex-row justify-between items-center"
             >
               <Text className="text-gray-900 dark:text-white font-medium">
-                {category.label}
+                {typeSpecifique.label}
               </Text>
               <ChevronDown size={20} color="#9CA3AF" />
             </TouchableOpacity>
@@ -164,16 +166,16 @@ export default function AjouterProduitInfoPage() {
               keyExtractor={(item) => item.value}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  className={`p-4 border-b border-gray-50 dark:border-gray-800 flex-row justify-between items-center ${item.value === category.value ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}
+                  className={`p-4 border-b border-gray-50 dark:border-gray-800 flex-row justify-between items-center ${item.value === typeSpecifique.value ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}
                   onPress={() => {
-                    setCategory(item);
+                    settypeSpecifique(item);
                     setDropdownVisible(false);
                   }}
                 >
-                  <Text className={`text-base ${item.value === category.value ? 'text-emerald-600 font-bold' : 'text-gray-700 dark:text-gray-300'}`}>
+                  <Text className={`text-base ${item.value === typeSpecifique.value ? 'text-emerald-600 font-bold' : 'text-gray-700 dark:text-gray-300'}`}>
                     {item.label}
                   </Text>
-                  {item.value === category.value && <Check size={20} color="#10B981" />}
+                  {item.value === typeSpecifique.value && <Check size={20} color="#10B981" />}
                 </TouchableOpacity>
               )}
             />
