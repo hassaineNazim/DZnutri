@@ -32,10 +32,13 @@ export default function AjouterProduitPhotoPage() {
   const params = useLocalSearchParams<{
     barcode: string;
     type: string;
+    typeSpecifique: string;
     productName: string;
     brand: string;
     category: string;
   }>();
+
+
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageIngredientsUri, setImageIngredientsUri] = useState<string | null>(null);
@@ -96,6 +99,7 @@ export default function AjouterProduitPhotoPage() {
       const formData = new FormData();
       formData.append('barcode', params.barcode as string);
       formData.append('typeProduct', params.type as string);
+      formData.append('typeSpecifique', params.typeSpecifique as string);
       formData.append('productName', params.productName as string);
       formData.append('brand', params.brand as string);
       formData.append('category', params.category as string);
@@ -126,6 +130,7 @@ export default function AjouterProduitPhotoPage() {
         headers: { 'Authorization': `Bearer ${userToken}` },
         body: formData,
       });
+
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -213,7 +218,7 @@ export default function AjouterProduitPhotoPage() {
         {/* --- MODIF 7: Bouton pour la 3ème photo --- */}
         <PhotoButton
           stepNumber={3}
-          label={t('take_photo_nutrition') || "Tableau Nutritionnel"}
+          label={t('Tableau Nutritionnel')}
           uri={imageNutritionUri}
           onPress={() => openCameraInstruction('nutrition')}
         />

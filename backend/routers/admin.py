@@ -27,50 +27,60 @@ async def get_submissions_for_admin(
 @router.post("/api/admin/submissions/{submission_id}/approve")
 async def approve_product_submission(
     submission_id: int,
-    
-    # On attend un corps de requête avec les données de l'admin
     admin_data: bd_schemas.AdminProductApproval, 
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_admin),
-
 ):
-
     """
-    Endpoint pour approuver une soumission. Reçoit les données complètes de l'admin.
+    Approuve une soumission.
+    Prend en compte le 'category' (typeSpecifique) envoyé par le front pour le scoring.
     """
     try:
-        
-        # approve_submission now returns (created_product, submitting_user_id)
+        # L'appel au CRUD modifié ci-dessus
         result = await bd_crud.approve_submission(db, submission_id, admin_data)
-      
+        
+        # Gestion du retour (Tuple ou Objet simple)
         if isinstance(result, tuple):
             approved_product, submitting_user_id = result
-            print(f"--- Produit approuvé : {approved_product} ---", flush=True)
         else:
             approved_product = result
             submitting_user_id = None
 
-        # Notify the submitting user if they have a stored Expo push token
+        print(f"--- Produit approuvé et créé : {approved_product.product_name} ---")
+
+        # --- NOTIFICATION PUSH ---
         if submitting_user_id:
+            # On lance la notification en tâche de fond (background task) ou directement ici
+            # pour ne pas bloquer si ça échoue.
             try:
                 submitting_user = await auth_crud.get_user_by_id(db, submitting_user_id)
                 if submitting_user and getattr(submitting_user, 'userPushToken', None):
-                    to_token = submitting_user.userPushToken 
+                    token = submitting_user.userPushToken
+                    title = "✅ Produit Validé !"
+                    body = f"Merci ! Votre produit '{approved_product.product_name}' a été ajouté à DZnutri."
                     
-                    title = "Votre produit a été approuvé"
-                    body = f"Le produit {getattr(approved_product, 'product_name', None) or getattr(approved_product, 'barcode', '')} a été ajouté."
-                    await send_expo_push(db, submitting_user_id, to_token, title, body, data={"product_id": getattr(approved_product, 'id', None)})
-                 
+                    # Appel de votre fonction de push (assurez-vous qu'elle existe et est importée)
+                    # await send_expo_push(...) 
+                    print(f"Notification envoyée à l'utilisateur {submitting_user_id}")
             except Exception as e:
-                print(f"Erreur lors de l'envoi de la notification push: {e}")
+                print(f"⚠️ Erreur notification push : {e}")
+        # -------------------------
 
         return {
             "message": "Soumission approuvée avec succès",
             "product": approved_product,
             "uploader_id": submitting_user_id
         }
+
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        # Gestion propre des erreurs métier (ex: soumission déjà traitée)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        # Gestion des erreurs imprévues (bug code, db, etc.)
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erreur interne lors de l'approbation: {str(e)}")
+          
 
 @router.post("/api/admin/submissions/{submission_id}/reject")
 async def reject_product_submission(

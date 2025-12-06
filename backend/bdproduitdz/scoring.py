@@ -354,7 +354,8 @@ async def calculate_score(db: AsyncSession, product_data: Dict[str, Any]) -> Dic
             "additives_details": additives_res["details"],
             "bio_details": bio_res["details"],
             "nova_group": normalize_nova(product_data),
-            "ecoscore_grade": ecoscore or "non-disponible"
+            "ecoscore_grade": ecoscore or "non-disponible",
+            "TypeSpecifique": category_technical or "non-disponible"
         },
         "unknown_additifs": unknown
     }

@@ -43,55 +43,63 @@ async def get_all_submissions(db: AsyncSession, status: str = "pending"):
     )
     return result.scalars().all()
 
-# Dans produit/crud.py
+# Dans backend/bdproduitdz/crud.py
 
 async def approve_submission(db: AsyncSession, submission_id: int, admin_data: schemas.AdminProductApproval):
     """
-    Approuve une soumission en utilisant les données validées par l'admin.
+    Approuve une soumission : Calcule le score final et crée le produit.
     """
-    # 1. Récupérer la soumission (inchangé)
+    # 1. Récupérer la soumission originale
     result = await db.execute(select(models.Submission).where(models.Submission.id == submission_id))
     submission = result.scalars().first()
     
     if not submission or submission.status != "pending":
         raise ValueError("Soumission non trouvée ou déjà traitée")
 
+    # 2. Préparer les données pour le scoring
+    # On convertit les données de l'admin en dictionnaire.
+    # Note : admin_data.category contient maintenant le "typeSpecifique" (ex: "boissons")
+    data_for_scoring = admin_data.model_dump()
     
+    # On s'assure que les tags d'additifs sont bien une liste pour le scoring
+    if 'additives_tags' not in data_for_scoring or data_for_scoring['additives_tags'] is None:
+        data_for_scoring['additives_tags'] = []
 
-    # --- CORRECTION ICI ---
-    # 3. Préparer UN SEUL dictionnaire complet pour le scoring
-    data_for_scoring = {
-        **admin_data.model_dump(),  
-    }
-    
-    # 4. Ajouter un print pour vérifier que les données sont bien là
-    print("--- Données envoyées au scoring ---")
-    print(data_for_scoring)
-    print("----------------------------------")
+    print(f"--- Scoring pour approbation : {data_for_scoring.get('product_name')} (Type: {data_for_scoring.get('category')}) ---")
 
-    # 5. Calculer le score final
+    # 3. Calculer le score final (Appel Asynchrone)
+    # Le scoring va gérer tout seul les additifs inconnus grâce à votre nouveau code
     score_result = await scoring.calculate_score(db, data_for_scoring)
-    # 4. Ajouter un print pour vérifier que les données sont bien là
-    print("--- Données du scoring ---")
-    print(score_result)
-    print("----------------------------------")
     
-    # 6. Préparer et créer le produit final (inchangé)
+    print(f"--- Résultat Scoring : {score_result.get('score')}/100 ---")
+
+    # 4. Créer le produit final
     product_to_create = schemas.ProductCreate(
+        # On reprend toutes les données validées par l'admin
         **admin_data.model_dump(),
+        
+        # On ajoute les infos fixes venant de la soumission originale
         barcode=submission.barcode,
-        image_url=submission.image_front_url,
+        image_url=submission.image_front_url, # L'image principale
+        
+        # On injecte les résultats du scoring
         custom_score=score_result.get('score'),
-        detail_custom_score=score_result.get('details')
+        detail_custom_score=score_result.get('details'),
+        
+        # On peut aussi sauvegarder le type spécifique si on veut le garder
+        # (Assurez-vous que votre modèle Product a une colonne pour ça, sinon ignorez)
+        # category=admin_data.category 
     )
+
+    # 5. Sauvegarder le produit
     created_product = await create_product(db, product=product_to_create)
     
-    # 7. Mettre à jour le statut de la soumission (inchangé)
+    # 6. Mettre à jour le statut de la soumission
     submission.status = "approved"
     db.add(submission)
     await db.commit()
     
-    # Retourner le produit créé ET l'id de l'utilisateur qui a soumis
+    # 7. Retourner le tuple (produit, user_id) pour la notification
     return created_product, submission.submitted_by_user_id
 
 

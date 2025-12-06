@@ -34,43 +34,61 @@ const SubmissionCard = ({ submission, onApprove, onReject, loading }) => {
       </div>
 
       {/* --- SECTION DÉTAILS (inchangée) --- */}
+      {/* --- SECTION DÉTAILS --- */}
       {showDetails && (
         <div className="px-4 pb-4 border-t border-gray-200">
-          <h4 className="text-md font-semibold text-gray-800 mt-3 mb-2">Ingrédients</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Texte Détecté (IA)
-              </label>
-              <textarea
-                readOnly
-                className="w-full h-48 p-2 border rounded bg-gray-50 font-mono text-xs"
-                value={submission.ocr_ingredients_text || 'Aucun texte détecté.'}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Image Fournie
-              </label>
 
-              {submission.image_ingredients_url ? (
-                // On ajoute les classes flex au conteneur de l'image
-                <div className="w-full h-48 flex justify-center items-center bg-gray-50 rounded-lg border border-gray-200">
-                  <button onClick={() => setFullscreenImage(getImageUrl(submission.image_ingredients_url))}>
+          {/* Bloc Texte OCR */}
+          <h4 className="text-md font-semibold text-gray-800 mt-3 mb-2">Texte Détecté (IA)</h4>
+          <textarea
+            readOnly
+            className="w-full h-32 p-2 border rounded bg-gray-50 font-mono text-xs mb-4"
+            value={submission.ocr_ingredients_text || 'Aucun texte détecté.'}
+          />
+
+          {/* Bloc Images (Ingrédients + Nutrition) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {/* Image 1 : Ingrédients */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Photo Ingrédients
+              </label>
+              <div className="w-full h-48 flex justify-center items-center bg-gray-50 rounded-lg border border-gray-200">
+                {submission.image_ingredients_url ? (
+                  <button onClick={() => setFullscreenImage(getImageUrl(submission.image_ingredients_url))} className="w-full h-full flex justify-center items-center">
                     <img
                       src={getImageUrl(submission.image_ingredients_url)}
-                      alt="Product Ingredients"
-                      // L'image prendra la hauteur max et sera contenue
-                      className="max-h-48 max-w-48 object-contain rounded-lg"
+                      alt="Ingrédients"
+                      className="max-h-full max-w-full object-contain rounded-lg hover:opacity-90"
                     />
                   </button>
-                </div>
-              ) : (
-                <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-lg border border-gray-200">
-                  <p className="text-sm text-gray-500">Pas d'image</p>
-                </div>
-              )}
+                ) : (
+                  <span className="text-gray-400 text-sm">Non fournie</span>
+                )}
+              </div>
             </div>
+
+            {/* Image 2 : Tableau Nutritionnel (NOUVEAU) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Photo Tableau Nutritionnel
+              </label>
+              <div className="w-full h-48 flex justify-center items-center bg-gray-50 rounded-lg border border-gray-200">
+                {submission.image_nutrition_url ? (
+                  <button onClick={() => setFullscreenImage(getImageUrl(submission.image_nutrition_url))} className="w-full h-full flex justify-center items-center">
+                    <img
+                      src={getImageUrl(submission.image_nutrition_url)}
+                      alt="Tableau Nutritionnel"
+                      className="max-h-full max-w-full object-contain rounded-lg hover:opacity-90"
+                    />
+                  </button>
+                ) : (
+                  <span className="text-gray-400 text-sm">Non fournie</span>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
       )}
