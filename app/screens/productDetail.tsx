@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AlertTriangle, ArrowLeft, Check, ChevronDown, ChevronRight, ChevronUp, Edit3, Heart } from 'lucide-react-native';
+import { AlertTriangle, ArrowLeft, Check, ChevronDown, ChevronRight, ChevronUp, Heart } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Dimensions, Image, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
@@ -10,18 +10,23 @@ import Animated, {
   useSharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AlternativesList from '../components/AlternativesList';
 import ReportModal from '../components/ReportModal';
 import ScoreGauge from '../components/ScoreGauge';
+import { useProductFavorite } from '../hooks/useProductFavorite';
 import { useTranslation } from '../i18n';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = 300;
+
 
 type Product = {
   id: string;
   barcode?: string;
   product_name?: string;
   brand?: string;
+  category?: string;
+  subcategory?: string;
   image_url?: string;
   custom_score?: number;
   nutriscore_grade?: string;
@@ -57,6 +62,7 @@ const getPositiveLevelColor = (value: number, highThreshold: number, moderateThr
 };
 
 
+
 export default function ProductDetail() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -65,6 +71,11 @@ export default function ProductDetail() {
   const insets = useSafeAreaInsets();
   const scrollY = useSharedValue(0);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+
+  // Fallback to id if barcode determines the scan code
+  const barcodeToUse = product?.barcode || product?.id;
+
+  const { isFavorite, toggleFavorite } = useProductFavorite(barcodeToUse || '', product);
 
   if (!product) return null;
 
@@ -105,9 +116,12 @@ export default function ProductDetail() {
         <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full items-center justify-center shadow-sm">
           <ArrowLeft size={24} color="#374151" />
         </TouchableOpacity>
-        <View className="flex-row space-x-3">
+        <View className="flex-row space-x-3 gap-3">
+          <TouchableOpacity onPress={() => toggleFavorite()} className="w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full items-center justify-center shadow-sm">
+            <Heart size={20} color={isFavorite ? "#EC4899" : "#374151"} fill={isFavorite ? "#EC4899" : "none"} />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => setReportModalVisible(true)} className="w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full items-center justify-center shadow-sm">
-            <Edit3 size={20} color="#374151" />
+            <AlertTriangle size={20} color="#EF4444" />
           </TouchableOpacity>
         </View>
       </View>
@@ -123,7 +137,14 @@ export default function ProductDetail() {
           />
           <View className="flex-1 justify-center">
             <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-1 leading-7">{product.product_name}</Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-base mb-4">{product.brand}</Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-base mb-1">{product.brand}</Text>
+            {(product.subcategory || product.category) ? (
+              <Text className="text-emerald-600 dark:text-emerald-400 text-sm font-medium mb-4 bg-emerald-50 dark:bg-emerald-900/30 self-start px-2 py-0.5 rounded-md overflow-hidden">
+                {product.subcategory ? product.subcategory : product.category?.split(',')[0]}
+              </Text>
+            ) : (
+              <View className="mb-4" />
+            )}
             <View className="flex-row items-center gap-3">
               {product.nutriscore_grade && (
                 <View>
@@ -259,6 +280,8 @@ export default function ProductDetail() {
         </View>
 
       </Animated.ScrollView>
+
+      <AlternativesList barcode={product.barcode || product.id} currentScore={product.custom_score} />
 
       <ReportModal
         visible={reportModalVisible}
