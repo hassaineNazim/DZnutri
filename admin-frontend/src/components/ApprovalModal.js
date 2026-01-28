@@ -7,6 +7,16 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
 
   // Nouveau champ pour le scoring précis
   const [typeSpecifique, setTypeSpecifique] = useState('');
+  const [subcategory, setSubcategory] = useState('');
+
+  // Mapping des sous-catégories par type spécifique
+  const subcategoryOptions = {
+    'solid': ['Gâteaux et pâtisseries', 'Plats préparés', 'Céréales', 'Snacks salés', 'Confiseries', 'Autre'],
+    'boissons': ['Sodas', 'Jus de fruits', 'Thé et infusions', 'Café', 'Boissons énergisantes', 'Autre'],
+    'matières grasses': ['Huile', 'Beurre', 'Margarine', 'Mayonnaise', 'Autre'],
+    'fromages': ['Fromage frais', 'Fromage à pâte dure', 'Fromage à pâte molle', 'Fromage fondu', 'Autre'],
+    'eau': ['Eau plate', 'Eau gazeuse', 'Eau aromatisée']
+  };
 
   const [ingredientsText, setIngredientsText] = useState('');
   const [additives, setAdditives] = useState('');
@@ -27,6 +37,7 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
       setBrand(submission.brand || '');
       // On pré-remplit avec ce que l'utilisateur a choisi, ou 'solid' par défaut
       setTypeSpecifique(submission.typeSpecifique || 'solid');
+      setSubcategory(submission.subcategory || '');
       setIngredientsText(submission.ocr_ingredients_text || '');
 
       // Parsing des nutriments
@@ -71,6 +82,7 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
       brand: brand,
       // IMPORTANT : On envoie le type spécifique comme "category" pour le scoring backend
       category: typeSpecifique,
+      subcategory: subcategory || null,
       ingredients_text: ingredientsText,
       nutriments: {
         'energy-kcal_100g': parseFloat(nutriments['energy-kcal_100g']) || 0,
@@ -132,20 +144,43 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
               </div>
 
               {/* --- TYPE SPÉCIFIQUE (NOUVEAU) --- */}
-              <div>
-                <label className="block text-sm font-bold text-blue-800 mb-1">Type Spécifique (Crucial pour le Score)</label>
-                <select
-                  value={typeSpecifique}
-                  onChange={(e) => setTypeSpecifique(e.target.value)}
-                  className="w-full border-2 border-blue-100 bg-blue-50/50 rounded-lg p-2.5 text-gray-800 font-medium focus:border-blue-500 outline-none cursor-pointer"
-                >
-                  <option value="solid">Solide (Standard : Gâteaux, Plats...)</option>
-                  <option value="boissons">Boissons (Sodas, Jus, Thé...)</option>
-                  <option value="matières grasses">Matières Grasses (Huile, Beurre, Mayo)</option>
-                  <option value="fromages">Fromages</option>
-                  <option value="eau">Eau (Naturelle uniquement)</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">Sélectionnez la catégorie exacte pour que l'algorithme applique les bons seuils.</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-blue-800 mb-1">Type Spécifique (Crucial pour le Score)</label>
+                  <select
+                    value={typeSpecifique}
+                    onChange={(e) => {
+                      setTypeSpecifique(e.target.value);
+                      setSubcategory(''); // Reset subcategory when type changes
+                    }}
+                    className="w-full border-2 border-blue-100 bg-blue-50/50 rounded-lg p-2.5 text-gray-800 font-medium focus:border-blue-500 outline-none cursor-pointer"
+                  >
+                    <option value="solid">Solide (Standard : Gâteaux, Plats...)</option>
+                    <option value="boissons">Boissons (Sodas, Jus, Thé...)</option>
+                    <option value="matières grasses">Matières Grasses (Huile, Beurre, Mayo)</option>
+                    <option value="fromages">Fromages</option>
+                    <option value="eau">Eau (Naturelle uniquement)</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Sélectionnez la catégorie exacte pour que l'algorithme applique les bons seuils.</p>
+                </div>
+
+                {/* Sous-catégorie (appears when type is selected) */}
+                {typeSpecifique && subcategoryOptions[typeSpecifique] && (
+                  <div className="pl-4 border-l-2 border-blue-200">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Sous-catégorie</label>
+                    <select
+                      value={subcategory}
+                      onChange={(e) => setSubcategory(e.target.value)}
+                      className="w-full border border-gray-300 bg-white rounded-lg p-2.5 text-gray-700 focus:border-blue-500 outline-none cursor-pointer"
+                    >
+                      <option value="">-- Sélectionner --</option>
+                      {subcategoryOptions[typeSpecifique].map(sub => (
+                        <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">Précisez le type de produit pour un meilleur filtrage.</p>
+                  </div>
+                )}
               </div>
 
               {/* Nutriments */}

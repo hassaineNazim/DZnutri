@@ -509,4 +509,48 @@ async def update_product(db: AsyncSession, barcode: str, product_update: schemas
     
     return db_product
 
+async def get_better_alternatives(db: AsyncSession, barcode: str, limit: int = 5) -> List[models.Product]:
+    """
+    Trouve de meilleures alternatives pour un produit donné.
+    Critères : Même catégorie, score plus élevé.
+    """
+    # 1. Récupérer le produit de référence
+    ref_product = await getProduitByBarcode(db, barcode)
+    
+    if not ref_product:
+        return []
+        
+    # LOGIQUE DE RECHERCHE D'ALTERNATIVES
+    # Priorité 1 : Sous-catégorie (plus précis)
+    # Priorité 2 : Catégorie (plus large)
+    
+    query_filters = [
+        models.Product.custom_score > (ref_product.custom_score or 0),
+        models.Product.barcode != barcode 
+    ]
+    
+    if ref_product.subcategory:
+        print(f"Recherche alternatives par sous-catégorie : {ref_product.subcategory}")
+        query_filters.append(models.Product.subcategory == ref_product.subcategory)
+    elif ref_product.category:
+        print(f"Recherche alternatives par catégorie : {ref_product.category}")
+        query_filters.append(models.Product.category == ref_product.category)
+    else:
+        # Si ni catégorie ni sous-catégorie, on ne peut rien proposer de pertinent
+        return []
+
+    # Construire la requête
+    stmt = (
+        select(models.Product)
+        .where(*query_filters)
+        .order_by(models.Product.custom_score.desc())
+        .limit(limit)
+    )
+    
+    result = await db.execute(stmt)
+    alternatives = result.scalars().all()
+    
+    return alternatives
+
+
 

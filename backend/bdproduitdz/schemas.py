@@ -18,6 +18,7 @@ class ProductBase(BaseModel):
     ingredients_text: Optional[str] = None
     image_url: Optional[str] = None
     category: Optional[str] = None
+    subcategory: Optional[str] = None
     additives_tags: Optional[List[str]] = []
     nutri_score: Optional[str] = None  
     nova_group: Optional[int] = None
@@ -79,6 +80,7 @@ class AdminProductApproval(BaseModel):
     product_name: str
     brand: str
     category: Optional[str] = None
+    subcategory: Optional[str] = None
     ingredients_text: Optional[str] = None
     nutriments: Optional[Dict[str, Any]] = {}
     additives_tags: Optional[List[str]] = []

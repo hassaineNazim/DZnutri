@@ -23,6 +23,7 @@ class Product(Base):
     is_verified = Column(Boolean, default=False)
     image_url = Column(String, nullable=True)
     category = Column(String, nullable=True)
+    subcategory = Column(String, nullable=True)
     additives_tags = Column(JSON, nullable=True)
     custom_score = Column(Integer, nullable=True)
 
@@ -112,6 +113,20 @@ class Report(Base):
     
     # Relations (Optionnel, pour récupérer l'objet user facilement)
     # user = relationship("UserTable", back_populates="reports")
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # On stocke le barcode pour la simplicité, ou on lie au produit interne
+    # Si on lie au produit interne, il FAUT que le produit existe dans la table produits
+    # Comme notre logique est "scan -> sauvegarde en DB", le produit devrait exister.
+    product_id = Column(Integer, ForeignKey("produits.id"), nullable=False)
+    
+    saved_at = Column(DateTime, server_default=func.now())
+
+    product = relationship("Product")
 
 
 
