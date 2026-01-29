@@ -59,8 +59,8 @@ async def approve_product_submission(
                     title = "✅ Produit Validé !"
                     body = f"Merci ! Votre produit '{approved_product.product_name}' a été ajouté à DZnutri."
                     
-                    # Appel de votre fonction de push (assurez-vous qu'elle existe et est importée)
-                    # await send_expo_push(...) 
+                    # Appel de votre fonction de push
+                    await send_expo_push(db, submitting_user_id, token, title, body)
                     print(f"Notification envoyée à l'utilisateur {submitting_user_id}")
             except Exception as e:
                 print(f"⚠️ Erreur notification push : {e}")

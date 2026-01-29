@@ -19,6 +19,7 @@ class UserTable(Base):
     reset_code_expires_at = Column(DateTime, nullable=True)  
     products = relationship("Product", back_populates="user")
     submissions = relationship("Submission", back_populates="submitted_by")
+    notifications = relationship("Notification", back_populates="user")
 
 
 
