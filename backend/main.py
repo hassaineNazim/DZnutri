@@ -6,7 +6,7 @@ import os
 import cloudinary
 from dotenv import load_dotenv
 
-from routers import auth, products, submissions, admin, history, report, profile, search, favorites
+from routers import auth, products, submissions, admin, history, report, profile, search, favorites, notifications
 
 load_dotenv() 
 
@@ -67,3 +67,4 @@ app.include_router(report.router)
 app.include_router(profile.router)
 app.include_router(search.router)
 app.include_router(favorites.router)
+app.include_router(notifications.router)

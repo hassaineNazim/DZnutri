@@ -107,3 +107,20 @@ class ReportResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+# --- NOTIFICATION SCHEMAS ---
+class NotificationBase(BaseModel):
+    title: str
+    message: str
+    type: Optional[str] = "info" # info, success, warning, error
+
+class NotificationCreate(NotificationBase):
+    user_id: int
+
+class NotificationResponse(NotificationBase):
+    id: int
+    read: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

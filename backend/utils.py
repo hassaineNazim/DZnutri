@@ -33,7 +33,7 @@ async def send_expo_push(db: AsyncSession, user_id: int, to_token: str, title: s
         message = PushMessage(to=to_token, title=title, body=body, data=data, sound="default", priority='high')
         print(f"------------------- [############# you sent this : {message} ############. ------------------------", flush=True)
         
-        print(f"--- [PID {os.getpid()}] _publish: Envoi vers Expo (c'est l'étape lente)... ---", flush=True)
+        print(f"--- [PID {os.getpid()}] _publish: Envoi vers Expo (peut prendre qques secondes)... ---", flush=True)
         
         # C'est l'appel réseau bloquant
         response = client.publish(message) 

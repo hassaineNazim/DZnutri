@@ -134,3 +134,17 @@ class Favorite(Base):
 
 print("--- Le fichier des modèles Produit est chargé ---")
 
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    type = Column(String, default="info") # info, success, warning, error
+    read = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    user = relationship("UserTable", back_populates="notifications")
+
+# Update UserTable to include relationship (Adding this comment for context, will need to update UserTable if it's in another file or same)

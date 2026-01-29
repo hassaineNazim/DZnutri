@@ -3,7 +3,7 @@ from jose import JWTError, jwt
 
 SECRET_KEY = "super-secret-key"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 43200 # 30 days
 
 def create_access_token(data: dict, expires_delta: int | None = None):
     """

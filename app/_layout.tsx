@@ -4,6 +4,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "./i18n";
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import NotificationListener from './components/NotificationListener';
 import { ToastProvider } from './context/ToastContext';
 import { persister, queryClient } from './services/queryClient';
 
@@ -15,6 +16,7 @@ export default function RootLayout() {
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
       <ToastProvider>
+        <NotificationListener />
         <SafeAreaProvider>
           <View className={colorScheme === 'dark' ? 'dark flex-1' : 'flex-1'}>
             <SafeAreaView style={{ flex: 1, backgroundColor: colorScheme === 'dark' ? '#000' : 'white' }}>

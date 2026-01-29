@@ -98,8 +98,20 @@ async def approve_submission(db: AsyncSession, submission_id: int, admin_data: s
     submission.status = "approved"
     db.add(submission)
     await db.commit()
+
+    # 7. Créer une notification pour l'utilisateur
+    try:
+        notif_data = schemas.NotificationCreate(
+            user_id=submission.submitted_by_user_id,
+            title="Produit Approuvé",
+            message=f"Merci ! Votre produit '{created_product.product_name}' a été validé.",
+            type="success"
+        )
+        await create_notification(db, notif_data)
+    except Exception as e:
+        print(f"Erreur création notification: {e}")
     
-    # 7. Retourner le tuple (produit, user_id) pour la notification
+    # 8. Retourner le tuple (produit, user_id) pour la suite eventuelle
     return created_product, submission.submitted_by_user_id
 
 
@@ -554,3 +566,30 @@ async def get_better_alternatives(db: AsyncSession, barcode: str, limit: int = 5
 
 
 
+
+async def create_notification(db: AsyncSession, notification: schemas.NotificationCreate):
+    db_notification = models.Notification(**notification.dict())
+    db.add(db_notification)
+    await db.commit()
+    await db.refresh(db_notification)
+    return db_notification
+
+async def get_user_notifications(db: AsyncSession, user_id: int, unread_only: bool = False, limit: int = 50):
+    query = select(models.Notification).where(models.Notification.user_id == user_id)
+    if unread_only:
+        query = query.where(models.Notification.read == False)
+    query = query.order_by(models.Notification.created_at.desc()).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+async def mark_notification_read(db: AsyncSession, notification_id: int, user_id: int):
+    result = await db.execute(select(models.Notification).where(
+        models.Notification.id == notification_id,
+        models.Notification.user_id == user_id
+    ))
+    notification = result.scalars().first()
+    if notification:
+        notification.read = True
+        await db.commit()
+        return True
+    return False
