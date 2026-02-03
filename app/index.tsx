@@ -6,7 +6,7 @@ import "../global.css";
 import { API_URL } from "./config/api";
 
 // Call this before your app component renders
-Settings.initializeSDK(); 
+Settings.initializeSDK();
 
 // ... rest of your App.js
 export default function Index() {
@@ -36,9 +36,16 @@ export default function Index() {
                     const resp = await fetch(`${API_URL}/auth/me`, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
-                    intertIsLoggedIn = resp.ok;
-                    if (!resp.ok) {
+
+                    if (resp.ok) {
+                        intertIsLoggedIn = true;
+                    } else if (resp.status === 401) {
+                        // Only logout if explicitly unauthorized (expired/invalid token)
                         await AsyncStorage.removeItem('userToken');
+                        intertIsLoggedIn = false;
+                    } else {
+                        // Server error (500) or other issues: Optimistically keep user logged in
+                        intertIsLoggedIn = true;
                     }
                 } catch {
                     // Network failure: keep user logged in optimistically
@@ -54,7 +61,7 @@ export default function Index() {
             setIsLoading(false);
         }
     };
-   
+
 
     if (isLoading) {
         return null;
@@ -63,7 +70,6 @@ export default function Index() {
     if (isLoggedIn) {
         return <Redirect href="/(tabs)/historique" />;
     } else {
-         return <Redirect href="/auth" />;
+        return <Redirect href="/auth" />;
     }
 }
- 

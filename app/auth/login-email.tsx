@@ -14,7 +14,6 @@ export default function LoginEmail() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
     const handleLogin = async () => {
         if (!email || !password) {
             setError("Veuillez remplir tous les champs");

@@ -17,6 +17,7 @@ import {
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import StepHeader from '../components/StepHeader';
 import { API_URL } from '../config/api';
+import { useToast } from '../context/ToastContext';
 import { useTranslation } from '../i18n';
 
 // Example images
@@ -37,6 +38,8 @@ export default function AjouterProduitPhotoPage() {
     brand: string;
     category: string;
   }>();
+
+  const { showToast } = useToast();
 
 
 
@@ -137,14 +140,15 @@ export default function AjouterProduitPhotoPage() {
         throw new Error(errorData.detail || 'Server Error');
       }
 
-      Alert.alert(t('success_title'), t('success_message'), [
-        {
-          text: 'OK',
-          onPress: () => router.replace('../scanner'),
-        },
-      ]);
+      showToast(t('success_message') || "Produit soumis avec succès !", 'success');
+
+      // Petit délai pour laisser le temps de voir le toast avant de rediriger
+      setTimeout(() => {
+        router.replace('../scanner');
+      }, 1500);
+
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      showToast(error.message || "Une erreur est survenue", 'error');
     } finally {
       setLoading(false);
     }

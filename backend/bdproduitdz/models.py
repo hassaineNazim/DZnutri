@@ -23,6 +23,7 @@ class Product(Base):
     is_verified = Column(Boolean, default=False)
     image_url = Column(String, nullable=True)
     category = Column(String, nullable=True)
+    subcategory = Column(String, nullable=True)
     additives_tags = Column(JSON, nullable=True)
     custom_score = Column(Integer, nullable=True)
 
@@ -113,9 +114,37 @@ class Report(Base):
     # Relations (Optionnel, pour récupérer l'objet user facilement)
     # user = relationship("UserTable", back_populates="reports")
 
+class Favorite(Base):
+    __tablename__ = "favorites"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # On stocke le barcode pour la simplicité, ou on lie au produit interne
+    # Si on lie au produit interne, il FAUT que le produit existe dans la table produits
+    # Comme notre logique est "scan -> sauvegarde en DB", le produit devrait exister.
+    product_id = Column(Integer, ForeignKey("produits.id"), nullable=False)
+    
+    saved_at = Column(DateTime, server_default=func.now())
+
+    product = relationship("Product")
+
 
 
 
 
 print("--- Le fichier des modèles Produit est chargé ---")
 
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    type = Column(String, default="info") # info, success, warning, error
+    read = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    user = relationship("UserTable", back_populates="notifications")
+
+# Update UserTable to include relationship (Adding this comment for context, will need to update UserTable if it's in another file or same)
