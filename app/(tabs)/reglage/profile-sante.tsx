@@ -3,8 +3,8 @@ import { Activity, AlertTriangle, ChevronLeft, Flame, Leaf, Plus, Save, X } from
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import { useTranslation } from '../../i18n';
-import { api } from '../../services/axios';
 
 const COMMON_ALLERGIES = ['gluten', 'peanuts', 'lactose', 'eggs', 'soy', 'fish', 'shellfish', 'nuts'];
 const DIET_TYPES = ['none', 'vegan', 'vegetarian', 'keto', 'paleo'];
@@ -13,8 +13,7 @@ const ACTIVITY_LEVELS = ['sedentary', 'light', 'moderate', 'active', 'very_activ
 export default function HealthProfilePage() {
     const router = useRouter();
     const { t } = useTranslation();
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    const { data: profile, isLoading, updateProfile, isUpdating } = useUserProfile();
 
     const [formData, setFormData] = useState({
         height: '',
@@ -35,46 +34,35 @@ export default function HealthProfilePage() {
     const [newDislike, setNewDislike] = useState('');
 
     useEffect(() => {
-        fetchProfile();
-    }, []);
-
-    const fetchProfile = async () => {
-        try {
-            const response = await api.get('/profile');
-            const data = response.data;
-
+        if (profile) {
             let day = '', month = '', year = '';
-            if (data.birth_date) {
-                const date = new Date(data.birth_date);
+            // Parse existing date if available
+            if (profile.birth_date) {
+                const date = new Date(profile.birth_date);
                 day = date.getDate().toString();
                 month = (date.getMonth() + 1).toString();
                 year = date.getFullYear().toString();
             }
 
             setFormData({
-                height: data.height?.toString() || '',
-                weight: data.weight?.toString() || '',
+                height: profile.height?.toString() || '',
+                weight: profile.weight?.toString() || '',
                 birth_day: day,
                 birth_month: month,
                 birth_year: year,
-                gender: data.gender || 'male',
-                activity_level: data.activity_level || 'sedentary',
-                allergies: data.allergies || [],
-                medical_conditions: data.medical_conditions || [],
-                diet_type: data.diet_type || 'none',
-                disliked_ingredients: data.disliked_ingredients || [],
-                daily_calories: data.daily_calories || 0,
-                daily_proteins: data.daily_proteins || 0
+                gender: profile.gender || 'male',
+                activity_level: profile.activity_level || 'sedentary',
+                allergies: profile.allergies || [],
+                medical_conditions: profile.medical_conditions || [],
+                diet_type: profile.diet_type || 'none',
+                disliked_ingredients: profile.disliked_ingredients || [],
+                daily_calories: profile.daily_calories || 0,
+                daily_proteins: profile.daily_proteins || 0
             });
-        } catch (error) {
-            console.log('Error fetching profile:', error);
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [profile]);
 
     const handleSave = async () => {
-        setSaving(true);
         try {
             // Format date
             let birth_date = null;
@@ -94,21 +82,19 @@ export default function HealthProfilePage() {
                 disliked_ingredients: formData.disliked_ingredients
             };
 
-            const response = await api.put('/profile', payload);
+            const updatedData = await updateProfile(payload);
 
             // Update local state with returned calculated values
             setFormData(prev => ({
                 ...prev,
-                daily_calories: response.data.daily_calories,
-                daily_proteins: response.data.daily_proteins
+                daily_calories: updatedData.daily_calories,
+                daily_proteins: updatedData.daily_proteins
             }));
 
             Alert.alert(t('success_title') || 'Succès', 'Profil mis à jour avec succès');
         } catch (error) {
             console.log('Error saving profile:', error);
             Alert.alert('Erreur', 'Impossible de sauvegarder le profil');
-        } finally {
-            setSaving(false);
         }
     };
 
@@ -141,7 +127,7 @@ export default function HealthProfilePage() {
         }));
     };
 
-    if (loading) {
+    if (isLoading) {
         return (
             <View className="flex-1 bg-gray-50 dark:bg-[#181A20] items-center justify-center">
                 <ActivityIndicator size="large" color="#22C55E" />
@@ -164,10 +150,10 @@ export default function HealthProfilePage() {
                 </Text>
                 <TouchableOpacity
                     onPress={handleSave}
-                    disabled={saving}
+                    disabled={isUpdating}
                     className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 items-center justify-center"
                 >
-                    {saving ? <ActivityIndicator size="small" color="#22C55E" /> : <Save size={20} color="#22C55E" />}
+                    {isUpdating ? <ActivityIndicator size="small" color="#22C55E" /> : <Save size={20} color="#22C55E" />}
                 </TouchableOpacity>
             </View>
 

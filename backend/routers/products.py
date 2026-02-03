@@ -112,7 +112,9 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
             ecoscore_grade=off_product_data.get('ecoscore_grade'),
             
             custom_score=custom_score,
-            detail_custom_score=detail_custom_score
+            detail_custom_score=detail_custom_score,
+            category=off_product_data.get('pnns_groups_1', off_product_data.get('categories', '').split(',')[0]),
+            subcategory=off_product_data.get('pnns_groups_2', off_product_data.get('categories', '').split(',')[1] if len(off_product_data.get('categories', '').split(',')) > 1 else None)
         )
         
         # 6. On appelle le CRUD pour créer le produit dans notre base de données
@@ -136,3 +138,12 @@ async def test_api(barcode: str):
 
     data = response.json()
     return {"message": data}
+
+@router.get("/api/product/{barcode}/alternatives")
+async def get_product_alternatives(barcode: str, db: AsyncSession = Depends(get_db)):
+    """
+    Retourne une liste de produits alternatifs (meilleur score, même catégorie).
+    """
+    alternatives = await bd_crud.get_better_alternatives(db, barcode=barcode)
+    return {"alternatives": alternatives}
+

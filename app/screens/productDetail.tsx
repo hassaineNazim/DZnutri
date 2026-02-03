@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AlertTriangle, ArrowLeft, Check, ChevronDown, ChevronRight, ChevronUp, Edit3, Heart } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { AlertTriangle, ArrowLeft, Check, ChevronDown, ChevronRight, ChevronUp, Heart } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import { Dimensions, Image, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
   Extrapolation,
@@ -10,18 +10,24 @@ import Animated, {
   useSharedValue
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AlternativesList from '../components/AlternativesList';
 import ReportModal from '../components/ReportModal';
 import ScoreGauge from '../components/ScoreGauge';
+import { useAllergenCheck } from '../hooks/useAllergenCheck';
+import { useProductFavorite } from '../hooks/useProductFavorite';
 import { useTranslation } from '../i18n';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = 300;
+
 
 type Product = {
   id: string;
   barcode?: string;
   product_name?: string;
   brand?: string;
+  category?: string;
+  subcategory?: string;
   image_url?: string;
   custom_score?: number;
   nutriscore_grade?: string;
@@ -57,6 +63,7 @@ const getPositiveLevelColor = (value: number, highThreshold: number, moderateThr
 };
 
 
+
 export default function ProductDetail() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -66,9 +73,37 @@ export default function ProductDetail() {
   const scrollY = useSharedValue(0);
   const [reportModalVisible, setReportModalVisible] = useState(false);
 
+  // Fallback to id if barcode determines the scan code
+  const barcodeToUse = product?.barcode || product?.id;
+
+  const { isFavorite, toggleFavorite } = useProductFavorite(barcodeToUse || '', product);
+
   if (!product) return null;
 
-  console.log(product);
+  const [fullProduct, setFullProduct] = useState<Product>(product);
+
+  useEffect(() => {
+    const fetchFullDetails = async () => {
+      // If we already have ingredients, no need to fetch (unless we want fresh data)
+      // But if it's undefined/null, we try to fetch from backend which might have it
+      if (!fullProduct.ingredients_text && fullProduct.barcode) {
+        try {
+          const { api } = require('../services/axios'); // Lazy require to avoid circular deps if any
+          const response = await api.get(`/api/product/${fullProduct.barcode}`);
+          if (response.data && response.data.product) {
+            console.log("Fetched full details for ingredients");
+            setFullProduct(response.data.product);
+          }
+        } catch (e) {
+          console.log("Error fetching full details:", e);
+        }
+      }
+    };
+    fetchFullDetails();
+  }, [fullProduct.barcode]);
+
+  console.log("Current Product ingredients:", fullProduct.ingredients_text);
+
 
   const scrollHandler = useAnimatedScrollHandler(event => {
     scrollY.value = event.contentOffset.y;
@@ -91,7 +126,7 @@ export default function ProductDetail() {
     };
   });
 
-  const getNutrimentValue = (key: string) => Math.round(Number(product?.nutriments?.[key + '_100g'] ?? 0) * 10) / 10;
+  const getNutrimentValue = (key: string) => Math.round(Number(fullProduct?.nutriments?.[key + '_100g'] ?? 0) * 10) / 10;
 
   return (
     <View className="flex-1 bg-white dark:bg-[#181A20]">
@@ -105,9 +140,12 @@ export default function ProductDetail() {
         <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full items-center justify-center shadow-sm">
           <ArrowLeft size={24} color="#374151" />
         </TouchableOpacity>
-        <View className="flex-row space-x-3">
+        <View className="flex-row space-x-3 gap-3">
+          <TouchableOpacity onPress={() => toggleFavorite()} className="w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full items-center justify-center shadow-sm">
+            <Heart size={20} color={isFavorite ? "#EC4899" : "#374151"} fill={isFavorite ? "#EC4899" : "none"} />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => setReportModalVisible(true)} className="w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full items-center justify-center shadow-sm">
-            <Edit3 size={20} color="#374151" />
+            <AlertTriangle size={20} color="#EF4444" />
           </TouchableOpacity>
         </View>
       </View>
@@ -117,35 +155,44 @@ export default function ProductDetail() {
         {/* Header Produit + Score */}
         <View className="flex-row px-5 pt-24 pb-6">
           <Image
-            source={{ uri: product.image_url }}
+            source={{ uri: fullProduct.image_url }}
             className="w-28 h-40 rounded-lg mr-4 bg-gray-50 dark:bg-gray-800"
             resizeMode="contain"
           />
           <View className="flex-1 justify-center">
-            <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-1 leading-7">{product.product_name}</Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-base mb-4">{product.brand}</Text>
+            <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-1 leading-7">{fullProduct.product_name}</Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-base mb-1">{fullProduct.brand}</Text>
+            {(fullProduct.subcategory || fullProduct.category) ? (
+              <Text className="text-emerald-600 dark:text-emerald-400 text-sm font-medium mb-4 bg-emerald-50 dark:bg-emerald-900/30 self-start px-2 py-0.5 rounded-md overflow-hidden">
+                {fullProduct.subcategory ? fullProduct.subcategory : fullProduct.category?.split(',')[0]}
+              </Text>
+            ) : (
+              <View className="mb-4" />
+            )}
             <View className="flex-row items-center gap-3">
-              {product.nutriscore_grade && (
+              {fullProduct.nutriscore_grade && (
                 <View>
                   <Text className="text-xs text-gray-400 dark:text-gray-500 mb-0.5 uppercase font-bold">Nutri-score</Text>
-                  <NutriScoreBadge grade={product.nutriscore_grade} />
+                  <NutriScoreBadge grade={fullProduct.nutriscore_grade} />
                 </View>
               )}
-              {product.nova_group && (
+              {fullProduct.nova_group && (
                 <View>
                   <Text className="text-xs text-gray-400 dark:text-gray-500 mb-0.5 uppercase font-bold">Nova</Text>
-                  <View className={`w-8 h-8 rounded items-center justify-center ${product.nova_group > 3 ? 'bg-red-500' : 'bg-green-500'}`}>
-                    <Text className="text-white font-bold">{product.nova_group}</Text>
+                  <View className={`w-8 h-8 rounded items-center justify-center ${fullProduct.nova_group > 3 ? 'bg-red-500' : 'bg-green-500'}`}>
+                    <Text className="text-white font-bold">{fullProduct.nova_group}</Text>
                   </View>
                 </View>
               )}
             </View>
           </View>
           <View className="justify-center ml-2">
-            <ScoreGauge score={product.custom_score} size={90} strokeWidth={8} />
+            <ScoreGauge score={fullProduct.custom_score} size={90} strokeWidth={8} />
           </View>
         </View>
 
+        {/* --- ALERTES ALLERGIES --- */}
+        <AllergenWarning ingredients={fullProduct.ingredients_text} />
 
         {/* --- SECTION ADDITIFS --- */}
         <View className="mx-4 mt-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-[#1F2937] shadow-sm overflow-hidden">
@@ -156,8 +203,8 @@ export default function ProductDetail() {
             <Text className="text-lg font-bold text-gray-900 dark:text-white">Additifs</Text>
           </View>
 
-          {product.additives_tags && product.additives_tags.length > 0 ? (
-            product.additives_tags.map((tag, index) => (
+          {fullProduct.additives_tags && fullProduct.additives_tags.length > 0 ? (
+            fullProduct.additives_tags.map((tag, index) => (
               <View key={`add-${index}`} className="flex-row items-center justify-between p-3 border-b border-gray-50 dark:border-gray-800 last:border-0">
                 <View className="flex-row items-center flex-1">
                   {/* Simulation couleur risque : pair=vert, impair=orange */}
@@ -193,7 +240,7 @@ export default function ProductDetail() {
               </View>
             </View>
             <View className="bg-orange-50 dark:bg-orange-900/20 px-3 py-1 rounded-full border border-orange-100 dark:border-orange-800">
-              <Text className="text-orange-600 dark:text-orange-400 font-bold text-sm">Score : {product.custom_score}</Text>
+              <Text className="text-orange-600 dark:text-orange-400 font-bold text-sm">Score : {fullProduct.custom_score}</Text>
             </View>
           </View>
 
@@ -260,10 +307,12 @@ export default function ProductDetail() {
 
       </Animated.ScrollView>
 
+      <AlternativesList barcode={fullProduct.barcode || fullProduct.id} currentScore={fullProduct.custom_score} />
+
       <ReportModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
-        barcode={product.barcode || product.id}
+        barcode={fullProduct.barcode || fullProduct.id}
       />
     </View>
   );
@@ -324,6 +373,41 @@ const NutriScoreBadge = ({ grade }: { grade?: string }) => {
           <Text className={`font-bold uppercase text-xs ${grade.toLowerCase() === g ? 'text-white' : 'text-gray-300'}`}>{g}</Text>
         </View>
       ))}
+    </View>
+  );
+};
+
+// --- COMPOSANT ALERTE ALLERGIE ---
+const AllergenWarning = ({ ingredients }: { ingredients?: string }) => {
+  const { detectedAllergens, hasAllergies } = useAllergenCheck(ingredients);
+  const { t } = useTranslation();
+
+  if (!hasAllergies) return null;
+
+  return (
+    <View className="mx-4 mt-2">
+      <View className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4 flex-row items-start shadow-sm">
+        <View className="bg-red-100 dark:bg-red-900/50 p-2 rounded-full mr-3 mt-0.5">
+          <AlertTriangle size={20} color="#EF4444" />
+        </View>
+        <View className="flex-1">
+          <Text className="text-red-700 dark:text-red-400 font-bold text-base mb-1">
+            {t('allergen_warning_title') || 'Attention : Allergènes détectés'}
+          </Text>
+          <Text className="text-red-600 dark:text-red-300 text-sm leading-5">
+            {t('allergen_warning_desc') || 'Ce produit contient des ingrédients que vous avez signalés dans votre profil santé :'}
+          </Text>
+          <View className="flex-row flex-wrap mt-2 gap-2">
+            {detectedAllergens.map(allergy => (
+              <View key={allergy} className="bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded-md border border-red-200 dark:border-red-800">
+                <Text className="text-red-700 dark:text-red-300 font-bold text-xs uppercase">
+                  {t(allergy) || allergy}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
     </View>
   );
 };

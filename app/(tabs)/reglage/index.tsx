@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ChevronRight, Info, Languages, Palette, User } from 'lucide-react-native';
+import { ChevronRight, Heart, Info, Languages, Palette, User } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import React, { useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
@@ -144,9 +144,20 @@ export default function SettingsPage() {
             </IconContainer>
           }
           label={t('settings_language')}
-          value={getCurrentLabel()}
           onPress={() => setSelectorVisible(true)}
         />
+
+        <ListItem
+          icon={
+            <IconContainer color="bg-pink-100 dark:bg-pink-900/30">
+              <Heart size={20} color={isDarkMode ? '#F471B5' : '#DB2777'} />
+            </IconContainer>
+          }
+          label={t('favorites') ?? 'Favoris'}
+          onPress={() => router.push('/screens/FavoritesScreen')}
+        />
+
+
 
         <ListItem
           icon={
