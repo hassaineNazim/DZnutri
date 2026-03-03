@@ -22,7 +22,7 @@ const getApiUrl = () => {
 
 
     // Fallback: previously configured local IP (update if your machine IP differs)
-    return 'http://192.168.1.77:8000';
+    return 'http://172.20.10.2:8000';
 };
 
 export const API_URL = getApiUrl();
