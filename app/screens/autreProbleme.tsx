@@ -104,22 +104,31 @@ export default function AutreProblemePage() {
 
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <View style={{ flex: 1, backgroundColor: 'white', paddingTop: 50 }}>
             <Stack.Screen options={{ headerShown: false }} />
             {/* HEADER */}
-            <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
-                <View className="flex-row items-center">
-                    <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity 
+                        onPress={() => {
+                            if (router.canGoBack()) {
+                                router.back();
+                            } else {
+                                router.push('/screens/reportUser');
+                            }
+                        }} 
+                        style={{ padding: 10, marginLeft: -8 }}
+                    >
                         <X size={24} color="black" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-bold text-gray-900 ml-2">Aide</Text>
+                    <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827', marginLeft: 8 }}>Aide</Text>
                 </View>
 
-                <TouchableOpacity onPress={handleSubmit} disabled={loading || !description.trim()}>
+                <TouchableOpacity onPress={handleSubmit} disabled={loading || !description.trim()} style={{ padding: 10 }}>
                     {loading ? (
                         <ActivityIndicator color="#22C55E" />
                     ) : (
-                        <Text className={`font-bold ${description.trim() ? 'text-green-600' : 'text-gray-300'}`}>
+                        <Text style={{ fontWeight: 'bold', color: description.trim() ? '#16a34a' : '#d1d5db' }}>
                             ENVOYER
                         </Text>
                     )}
@@ -127,61 +136,55 @@ export default function AutreProblemePage() {
             </View>
 
             {/* CONTENU */}
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                className="flex-1"
+            <ScrollView 
+                contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+                keyboardShouldPersistTaps="handled"
+                style={{ flex: 1 }}
             >
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <ScrollView contentContainerStyle={{ padding: 20 }}>
+                <Text style={{ color: '#4b5563', fontSize: 16, marginBottom: 24 }}>
+                    Décrivez le problème rencontré :
+                </Text>
 
-                        <Text className="text-gray-600 text-base mb-6">
-                            Décrivez le problème rencontré :
-                        </Text>
+                {/* Champ Texte (Ligne soulignée comme sur la photo) */}
+                <TextInput
+                    style={{ fontSize: 18, color: '#111827', borderBottomWidth: 1, borderBottomColor: '#d1d5db', paddingBottom: 8, marginBottom: 32 }}
+                    placeholder="Ex: Le code-barres n'est pas reconnu..."
+                    multiline
+                    value={description}
+                    onChangeText={setDescription}
+                    autoFocus
+                />
 
-                        {/* Champ Texte (Ligne soulignée comme sur la photo) */}
-                        <TextInput
-                            className="text-lg text-gray-900 border-b border-gray-300 pb-2 mb-8"
-                            placeholder=""
-                            multiline
-                            value={description}
-                            onChangeText={setDescription}
-                            autoFocus
-                        />
-
-                        {/* Zone Photo */}
-                        <View>
-                            {image ? (
-                                <View className="relative w-32 h-32">
-                                    <Image source={{ uri: image }} className="w-full h-full rounded-lg" />
-                                    <TouchableOpacity
-                                        onPress={() => setImage(null)}
-                                        className="absolute -top-2 -right-2 bg-gray-200 rounded-full p-1"
-                                    >
-                                        <X size={16} color="black" />
-                                    </TouchableOpacity>
-                                </View>
-                            ) : (
-                                <TouchableOpacity
-                                    onPress={pickImage}
-                                    className="w-32 h-32 bg-gray-100 rounded-lg items-center justify-center border border-gray-200"
-                                >
-                                    <View className="items-center">
-                                        <View className="border-2 border-gray-400 rounded-md p-1 mb-2">
-                                            <View className="w-3 h-3 bg-gray-400 rounded-sm" />
-                                            {/* Simule l'icône "+" dans un carré */}
-                                            <Text className="text-gray-500 font-bold text-lg absolute -top-1 left-1.5">+</Text>
-                                        </View>
-                                        <Text className="text-xs text-gray-500 font-bold text-center px-2">
-                                            AJOUTER UNE PHOTO
-                                        </Text>
-                                    </View>
-                                </TouchableOpacity>
-                            )}
+                {/* Zone Photo */}
+                <View>
+                    {image ? (
+                        <View style={{ position: 'relative', width: 128, height: 128 }}>
+                            <Image source={{ uri: image }} style={{ width: '100%', height: '100%', borderRadius: 8 }} />
+                            <TouchableOpacity
+                                onPress={() => setImage(null)}
+                                style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#e5e7eb', borderRadius: 9999, padding: 4, zIndex: 10 }}
+                            >
+                                <X size={16} color="black" />
+                            </TouchableOpacity>
                         </View>
-
-                    </ScrollView>
-                </TouchableWithoutFeedback>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+                    ) : (
+                        <TouchableOpacity
+                            onPress={pickImage}
+                            style={{ width: 128, height: 128, backgroundColor: '#f3f4f6', borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e5e7eb' }}
+                        >
+                            <View style={{ alignItems: 'center' }}>
+                                <View style={{ borderWidth: 2, borderColor: '#9ca3af', borderRadius: 6, padding: 4, marginBottom: 8 }}>
+                                    <View style={{ width: 12, height: 12, backgroundColor: '#9ca3af', borderRadius: 2 }} />
+                                    <Text style={{ color: '#6b7280', fontWeight: 'bold', fontSize: 18, position: 'absolute', top: -4, left: 6 }}>+</Text>
+                                </View>
+                                <Text style={{ fontSize: 12, color: '#6b7280', fontWeight: 'bold', textAlign: 'center', paddingHorizontal: 8 }}>
+                                    AJOUTER UNE PHOTO
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </ScrollView>
+        </View>
     );
 }

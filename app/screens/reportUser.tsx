@@ -9,7 +9,7 @@ export default function ReportUserPage() {
 
     // Fonction générique pour gérer le clic sur un problème
     const handleProblemPress = (problemType: string) => {
-        router.push('./autreProbleme');
+        router.push('/screens/autreProbleme');
     };
 
     const openFAQ = (question: string) => {
