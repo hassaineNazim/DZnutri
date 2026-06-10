@@ -107,7 +107,7 @@ async def login_admin(
         raise HTTPException(status_code=403, detail="Accès refusé ou identifiants incorrects")
     
     # On vérifie le mot de passe
-    if not auth_hashing.verify_password(form_data.password, user_in_db.hashed_password):
+    if not await auth_hashing.verify_password(form_data.password, user_in_db.hashed_password):
         raise HTTPException(status_code=401, detail="Identifiants incorrects")
 
 
@@ -136,7 +136,7 @@ async def login(user: auth_schemas.UserLogin, db: AsyncSession = Depends(get_db)
     if not db_user or not db_user.hashed_password:
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
         
-    if not auth_hashing.verify_password(user.password, db_user.hashed_password):
+    if not await auth_hashing.verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
 
         
@@ -175,7 +175,7 @@ async def reset_password(payload: auth_schemas.ResetPassword, db: AsyncSession =
             raise HTTPException(status_code=400, detail="Code expiré")
             
     
-        user.hashed_password = auth_hashing.hash_password(payload.new_password)
+        user.hashed_password = await auth_hashing.hash_password(payload.new_password)
         user.reset_code = None # Invalider le code
         user.reset_code_expires_at = None
         db.add(user)
