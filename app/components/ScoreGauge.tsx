@@ -24,6 +24,7 @@ export default function ScoreGauge({
 
     useEffect(() => {
         progress.value = withDelay(300, withTiming(score / 100, { duration: 1500 }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [score]);
 
     const animatedProps = useAnimatedProps(() => {

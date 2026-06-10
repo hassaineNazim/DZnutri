@@ -38,7 +38,7 @@ const UserReports = () => {
             });
 
             // Store all reports initially
-            console.log("All fetched reports:", response.data);
+
             setAllReports(response.data);
 
             // Fetch product details for each report

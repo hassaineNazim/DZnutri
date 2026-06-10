@@ -90,7 +90,7 @@ export default function Register() {
             } else {
                 setError(data?.detail || "Erreur lors de l'inscription");
             }
-        } catch (e) {
+        } catch {
             setError("Erreur de connexion au serveur");
         } finally {
             setLoading(false);

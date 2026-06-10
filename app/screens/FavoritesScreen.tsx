@@ -6,14 +6,7 @@ import { ActivityIndicator, FlatList, Image, Text, TouchableOpacity, View } from
 import { useTranslation } from '../i18n';
 import { api } from '../services/axios';
 
-type Product = {
-    id: string;
-    barcode: string;
-    product_name?: string;
-    brand?: string;
-    image_url?: string;
-    custom_score?: number;
-};
+
 
 const getScoreColor = (score?: number) => {
     if (score === undefined) return '#6B7280';
@@ -37,7 +30,7 @@ export default function FavoritesScreen() {
     useFocusEffect(
         useCallback(() => {
             refetch();
-        }, [])
+        }, [refetch])
     );
 
     return (

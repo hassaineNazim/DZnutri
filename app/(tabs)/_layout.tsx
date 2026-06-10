@@ -1,10 +1,9 @@
 import { Tabs } from "expo-router";
-import { useColorScheme, View } from "react-native";
+import { View } from "react-native";
 import BottomNavBar from "../components/BottomNavBar";
 import { useTranslation } from "../i18n";
 export default function TabLayout() {
     const { t } = useTranslation();
-    const colorScheme = useColorScheme();
     return (
 
         <View className="flex-1 bg-black dark:bg-[#181A20]">

@@ -6,17 +6,12 @@ import {
     ActivityIndicator,
     Alert,
     Image,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
     ScrollView,
     Text,
     TextInput,
     TouchableOpacity,
-    TouchableWithoutFeedback,
     View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { reportProduct } from '../services/report';
 
 export default function AutreProblemePage() {

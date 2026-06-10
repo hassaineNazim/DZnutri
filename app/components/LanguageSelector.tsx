@@ -69,6 +69,7 @@ export default function LanguageSelector({
                 }
             );
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visible]);
 
     // Animated styles

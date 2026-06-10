@@ -4,7 +4,7 @@ export const submissionsAPI = {
   // Get all submissions with optional status filter
   getSubmissions: async (status = 'pending') => {
     const response = await api.get(`/api/admin/submissions?status=${status}`);
-    console.log("Fetched submissions:", response.data);
+
     return response.data;
   },
 

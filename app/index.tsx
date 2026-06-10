@@ -54,7 +54,7 @@ export default function Index() {
             } else {
                 intertIsLoggedIn = true;
             }
-        } catch (error) {
+        } catch {
             intertIsLoggedIn = false;
         } finally {
             setIsLoggedIn(intertIsLoggedIn);

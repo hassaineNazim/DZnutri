@@ -62,7 +62,7 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
       let additivesData = submission.found_additives;
       if (typeof additivesData === 'string') {
         try { additivesData = JSON.parse(additivesData); }
-        catch (e) { additivesData = []; }
+        catch { additivesData = []; }
       }
       const additivesArray = Array.isArray(additivesData) ? additivesData : [];
       const additivesString = additivesArray
@@ -106,7 +106,7 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
 
   const getImageUrl = (path) => {
     if (!path) return null;
-    return path.startsWith('http') ? path : `http://localhost:8000/${path}`;
+    return path.startsWith('http') ? path : `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/${path}`;
   };
 
   if (!submission) return null;

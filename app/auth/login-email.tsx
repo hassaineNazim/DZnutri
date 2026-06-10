@@ -39,7 +39,7 @@ export default function LoginEmail() {
             } else {
                 setError(data?.detail || "Email ou mot de passe incorrect");
             }
-        } catch (e) {
+        } catch {
             setError("Erreur de connexion au serveur");
         } finally {
             setLoading(false);

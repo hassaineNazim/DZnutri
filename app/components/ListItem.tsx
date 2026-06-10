@@ -41,6 +41,7 @@ export default function ListItem({ item, onPress, onDelete, onLongPress, selecte
   useEffect(() => {
     // Animate to the score value with a slight delay for a staggered effect
     progress.value = withDelay(200, withTiming(score / MAX_SCORE, { duration: 1000 }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [score]);
 
   const animatedProps = useAnimatedProps(() => ({
@@ -63,7 +64,7 @@ export default function ListItem({ item, onPress, onDelete, onLongPress, selecte
       if (hr < 24) return `${hr}` + t('h');
       const days = Math.floor(hr / 24);
       return `${days}` + t('d');
-    } catch (e) {
+    } catch {
       return iso;
     }
   };
@@ -167,7 +168,7 @@ function getQualityLabel(score?: number | null, tFn?: any) {
     if (score >= 70) return tFn ? tFn('excellent') : 'Excellent';
     if (score >= 35) return tFn ? tFn('mediocre') : 'Médiocre';
     return tFn ? tFn('bad') : 'Mauvais';
-  } catch (e) {
+  } catch {
     return 'N/A';
   }
 }

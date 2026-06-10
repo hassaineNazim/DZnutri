@@ -4,14 +4,13 @@ import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@
 import { useRouter } from 'expo-router';
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Image, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
 import { AccessToken, LoginManager, Settings } from "react-native-fbsdk-next";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { API_URL } from '../config/api';
 import { useTranslation } from '../i18n';
 import { registerForPushAndSendToServer } from '../services/PushNotif';
 
-const { width } = Dimensions.get('window');
 
 export default function Login() {
   const router = useRouter();
@@ -77,7 +76,7 @@ export default function Login() {
           } else {
             setError(`Erreur du serveur : ${data?.detail || 'Authentification échouée'}`);
           }
-        } catch (e) {
+        } catch {
           setError("Erreur : Impossible de contacter le backend.");
         }
       }
@@ -141,7 +140,7 @@ export default function Login() {
       } else {
         setError(`Erreur du serveur : ${data?.detail || 'Authentification échouée'}`);
       }
-    } catch (e) {
+    } catch {
       setError("Erreur : Impossible de contacter le backend.");
     } finally {
       setLoading(false);
