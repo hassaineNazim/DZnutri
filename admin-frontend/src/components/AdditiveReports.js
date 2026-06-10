@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Ban, PlusCircle } from 'lucide-react';
+
 import { useEffect, useState } from 'react';
 import { authAPI } from '../api/auth';
 import ReportTable from './ReportTable';
@@ -35,13 +35,6 @@ const AdditiveReports = () => {
         fetchAdditives();
     }, []);
 
-    const handleAdd = (item) => {
-        alert(`Ajout de l'additif ${item.code} à la base.`);
-    };
-
-    const handleIgnore = (item) => {
-        alert(`Ignorer l'additif ${item.code}.`);
-    };
 
     const columns = [
         { header: 'Code Additif', accessor: 'code' },
@@ -59,24 +52,6 @@ const AdditiveReports = () => {
     ];
 
     // Custom action column render for this specific table
-    const ActionButtons = ({ item }) => (
-        <div className="flex justify-end space-x-2">
-            <button
-                onClick={() => handleAdd(item)}
-                className="text-green-600 hover:text-green-900"
-                title="Ajouter"
-            >
-                <PlusCircle className="h-5 w-5" />
-            </button>
-            <button
-                onClick={() => handleIgnore(item)}
-                className="text-gray-400 hover:text-gray-600"
-                title="Ignorer"
-            >
-                <Ban className="h-5 w-5" />
-            </button>
-        </div>
-    );
 
     if (loading) return <div className="p-4">Chargement...</div>;
     if (error) return <div className="p-4 text-red-600">{error}</div>;

@@ -73,7 +73,7 @@ export default function Scanner() {
     if (!permission?.granted) {
       requestPermission();
     }
-  }, []);
+  }, [permission?.granted, requestPermission]);
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     if (scanResult.status !== 'scanning') return;

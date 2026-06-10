@@ -98,11 +98,6 @@ export default function SettingsPage() {
     }
   };
 
-  const getCurrentLabel = () => {
-    if (follow) return 'Système';
-    const found = languageData.find(l => l.value === lang);
-    return found ? found.label : lang;
-  };
 
   const IconContainer = ({ children, color = "bg-gray-100 dark:bg-gray-700" }: { children?: React.ReactNode, color?: string }) => (
     <View className={`w-10 h-10 rounded-xl items-center justify-center ${color}`}>

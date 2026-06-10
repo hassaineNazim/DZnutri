@@ -299,7 +299,6 @@ const AllergenWarning = ({ ingredients }: { ingredients?: string }) => {
 
 export default function ProductDetail() {
   const router = useRouter();
-  const { t } = useTranslation();
   const { product: productJson } = useLocalSearchParams();
   const product: Product | null = productJson ? JSON.parse(productJson as string) : null;
   const insets = useSafeAreaInsets();
@@ -316,10 +315,10 @@ export default function ProductDetail() {
           const { api } = require('../services/axios');
           const res = await api.get(`/api/product/${fullProduct.barcode}`);
           if (res.data?.product) setFullProduct(res.data.product);
-        } catch (_) {}
+        } catch {}
       })();
     }
-  }, [fullProduct?.barcode]);
+  }, [fullProduct?.barcode, fullProduct?.ingredients_text]);
 
   if (!product || !fullProduct) return null;
 

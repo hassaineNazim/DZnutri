@@ -1,7 +1,6 @@
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { useColorScheme, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { useTranslation } from "./i18n";
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import NotificationListener from './components/NotificationListener';
@@ -9,9 +8,7 @@ import { ToastProvider } from './context/ToastContext';
 import { persister, queryClient } from './services/queryClient';
 
 export default function RootLayout() {
-  const { t } = useTranslation();
   const colorScheme = useColorScheme();
-  const router = useRouter();
 
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>

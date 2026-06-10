@@ -80,6 +80,7 @@ export default function Rech() {
     if (hasSearched) {
       searchProducts();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   return (

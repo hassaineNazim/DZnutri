@@ -1,7 +1,7 @@
 // Dans components/BottomNavBar.tsx
 
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { useRouter } from 'expo-router'; // useRouter peut rester pour le ScanButton
+
 import { ChartLine, Clock, Search, Settings } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, Text, useColorScheme, View } from 'react-native';
@@ -30,7 +30,6 @@ const getIconForRoute = (routeName: string, color: string) => {
 // On accepte les props ici
 export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
   const colorScheme = useColorScheme();
-  const router = useRouter(); // On le garde pour le ScanButton si besoin
 
  const { t } = useTranslation();
   return (

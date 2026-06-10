@@ -47,7 +47,7 @@ export default function ComptePage() {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       const response = await api.get('/auth/me');
       setUser(response.data);
@@ -62,12 +62,12 @@ export default function ComptePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useFocusEffect(
     useCallback(() => {
       fetchUser();
-    }, [])
+    }, [fetchUser])
   );
 
   const logout = async () => {

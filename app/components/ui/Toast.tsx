@@ -1,13 +1,12 @@
 import { BlurView } from 'expo-blur';
 import { AlertTriangle, Check, Info, XCircle } from 'lucide-react-native';
 import React from 'react';
-import { Dimensions, Platform, Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import Animated, {
     SlideInUp,
     SlideOutUp
 } from 'react-native-reanimated';
 
-const { width } = Dimensions.get('window');
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 

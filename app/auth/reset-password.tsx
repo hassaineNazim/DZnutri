@@ -66,7 +66,7 @@ export default function ResetPassword() {
             } else {
                 setError(data?.detail || "Erreur lors de la réinitialisation");
             }
-        } catch (e) {
+        } catch {
             setError("Erreur de connexion au serveur");
         } finally {
             setLoading(false);

@@ -1,7 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Activity, AlertTriangle, Award, Leaf, TrendingUp, XCircle } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, ScrollView, Text, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, useColorScheme, View } from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -28,7 +28,6 @@ type StatsData = {
 };
 
 // --- CONSTANTS ---
-const { width } = Dimensions.get('window');
 const CIRCLE_LENGTH = 2 * Math.PI * 70; // Radius = 70
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 

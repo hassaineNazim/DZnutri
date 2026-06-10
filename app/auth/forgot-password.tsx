@@ -41,7 +41,7 @@ export default function ForgotPassword() {
             } else {
                 setError(data?.detail || "Une erreur est survenue");
             }
-        } catch (e) {
+        } catch {
             setError("Erreur de connexion au serveur");
         } finally {
             setLoading(false);

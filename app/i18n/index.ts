@@ -5,7 +5,7 @@ import { I18nManager } from 'react-native';
 let Updates: any = null;
 try {
   Updates = require('expo-updates');
-} catch (e) {
+} catch {
   Updates = null;
 }
 
@@ -438,7 +438,7 @@ const listeners: ((lang: SupportedLang) => void)[] = [];
 let reactNativeLocalize: any = null;
 try {
   reactNativeLocalize = require('react-native-localize');
-} catch (e) {
+} catch {
   reactNativeLocalize = null;
 }
 
@@ -459,7 +459,7 @@ function detectSystemLang(): SupportedLang {
       if (code === 'en') return 'en';
       return 'fr';
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   return 'fr';
@@ -468,7 +468,7 @@ function detectSystemLang(): SupportedLang {
 function notifyListeners(l: SupportedLang) {
   if (__DEV__) console.log('[i18n] notifyListeners ->', l);
   listeners.forEach((cb) => {
-    try { cb(l); } catch (e) { /* ignore */ }
+    try { cb(l); } catch { /* ignore */ }
   });
 }
 
@@ -484,7 +484,7 @@ export async function getStoredLang(): Promise<SupportedLang> {
   try {
     const v = await AsyncStorage.getItem(STORAGE_KEY);
     if (v === 'en' || v === 'ar' || v === 'fr') return v;
-  } catch (e) {
+  } catch {
     // ignore
   }
   return 'fr';
@@ -495,7 +495,7 @@ export async function getStoredFollow(): Promise<boolean> {
     const v = await AsyncStorage.getItem(STORAGE_FOLLOW);
     if (v === null) return true; // default to follow system
     return v === '1' || v === 'true';
-  } catch (e) {
+  } catch {
     return true;
   }
 }
@@ -504,7 +504,7 @@ export async function setStoredFollow(val: boolean) {
   followSystem = val;
   try {
     await AsyncStorage.setItem(STORAGE_FOLLOW, val ? '1' : '0');
-  } catch (e) {
+  } catch {
     // ignore
   }
 }
@@ -513,7 +513,7 @@ export async function setStoredLang(lang: SupportedLang) {
   currentLang = lang;
   try {
     await AsyncStorage.setItem(STORAGE_KEY, lang);
-  } catch (e) {
+  } catch {
     // ignore
   }
 }
@@ -548,7 +548,6 @@ export function useTranslation() {
   }, []);
 
   const setLanguage = async (l: SupportedLang): Promise<{ needsRestart: boolean }> => {
-    const previous = lang;
     await setStoredLang(l);
     currentLang = l;
     setLang(l);
@@ -576,7 +575,7 @@ export function useTranslation() {
       // Instead we return { needsRestart: true } and let the UI show the manual restart modal
 
       return { needsRestart };
-    } catch (e) {
+    } catch {
       return { needsRestart: true };
     }
   };
@@ -611,7 +610,7 @@ export function useTranslation() {
       // Instead we return { needsRestart: true } and let the UI show the manual restart modal
 
       return { needsRestart };
-    } catch (e) {
+    } catch {
       return { needsRestart: true };
     }
   };
