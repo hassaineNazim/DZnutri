@@ -47,7 +47,7 @@ async def get_user_by_id(db: AsyncSession, user_id: int):
 
 async def create_user(db: AsyncSession, user: dict):
     """Crée un nouvel utilisateur avec email et mot de passe."""
-    hashed_pwd = hash_password(user['password'])
+    hashed_pwd = await hash_password(user['password'])
     db_user = models.UserTable(
         email=user['email'],
         username=user['username'],

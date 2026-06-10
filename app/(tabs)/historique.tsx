@@ -46,12 +46,8 @@ export default function HistoriquePage() {
     router.push('/reglage/compte');
   };
   // 1. Chargement initial (Une seule fois au montage)
-  useEffect(() => {
-    loadHistory();
-  }, []);
-
   // Fonction de chargement centralisée
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     try {
       // On ne met setLoading(true) que si c'est le premier chargement
       // pour ne pas faire clignoter l'écran lors du refresh
@@ -65,13 +61,17 @@ export default function HistoriquePage() {
       setLoading(false);
       setRefreshing(false); // Important : arrêter l'animation de refresh
     }
-  };
+  }, [refreshing]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   // 2. Fonction appelée lors du swipe vers le bas
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadHistory();
-  }, []);
+  }, [loadHistory]);
 
   const toggleSelect = (id: number) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);

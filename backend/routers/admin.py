@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
@@ -28,6 +28,7 @@ async def get_submissions_for_admin(
 async def approve_product_submission(
     submission_id: int,
     admin_data: bd_schemas.AdminProductApproval, 
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_admin),
 ):
@@ -59,9 +60,9 @@ async def approve_product_submission(
                     title = "✅ Produit Validé !"
                     body = f"Merci ! Votre produit '{approved_product.product_name}' a été ajouté à DZnutri."
                     
-                    # Appel de votre fonction de push
-                    await send_expo_push(db, submitting_user_id, token, title, body)
-                    print(f"Notification envoyée à l'utilisateur {submitting_user_id}")
+                    # Appel de votre fonction de push en tâche de fond
+                    background_tasks.add_task(send_expo_push, submitting_user_id, token, title, body)
+                    print(f"Notification planifiée pour l'utilisateur {submitting_user_id}")
             except Exception as e:
                 print(f"⚠️ Erreur notification push : {e}")
         # -------------------------

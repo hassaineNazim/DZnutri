@@ -5,6 +5,11 @@ from pathlib import Path
 import os
 import cloudinary
 from dotenv import load_dotenv
+from contextlib import asynccontextmanager
+
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from redis import asyncio as aioredis
 
 from routers import auth, products, submissions, admin, history, report, profile, search, favorites, notifications
 
@@ -19,11 +24,21 @@ cloudinary.config(
 
 Path("uploads").mkdir(exist_ok=True)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize Redis cache on startup
+    # Note: 'redis' is the hostname from docker-compose.yml
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+    redis = aioredis.from_url(redis_url, encoding="utf8", decode_responses=True)
+    FastAPICache.init(RedisBackend(redis), prefix="dznutri-cache")
+    yield
+    # Cleanup on shutdown
 
 app = FastAPI(
     title="DZnutri API",
     description="API for DZnutri product management system",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Toute URL commençant par /uploads cherchera un fichier dans le dossier "uploads".

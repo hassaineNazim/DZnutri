@@ -12,6 +12,7 @@ services:
       - .:/app # Permet le rechargement à chaud : les changements dans votre code sont reflétés dans le conteneur
     depends_on:
       - db # Dit à Docker d'attendre que la base de données soit prête
+      - redis # Attendre que Redis soit prêt
 
   # Le service de la base de données PostgreSQL
   db:
@@ -24,6 +25,12 @@ services:
       - "5432:5432" # Lie le port 5432 de notre PC au port 5432 du conteneur
     volumes:
       - postgres_data:/var/lib/postgresql/data # Sauvegarde les données de la BD
+
+  # Le service de Cache (Redis)
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
 
 volumes:
   postgres_data: # Définit le volume pour la persistance des données

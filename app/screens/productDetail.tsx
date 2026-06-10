@@ -1,25 +1,33 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AlertTriangle, ArrowLeft, Check, ChevronDown, ChevronRight, ChevronUp, Heart } from 'lucide-react-native';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ChevronRight,
+  Droplets,
+  Dumbbell,
+  Flame,
+  FlaskConical,
+  Heart,
+  Leaf,
+  MoreHorizontal,
+  Wheat,
+} from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Image, StatusBar, Text, TouchableOpacity, View } from 'react-native';
-import Animated, {
-  Extrapolation,
-  interpolate,
-  useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useSharedValue
-} from 'react-native-reanimated';
+import {
+  Image,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AlternativesList from '../components/AlternativesList';
 import ReportModal from '../components/ReportModal';
-import ScoreGauge from '../components/ScoreGauge';
 import { useAllergenCheck } from '../hooks/useAllergenCheck';
 import { useProductFavorite } from '../hooks/useProductFavorite';
 import { useTranslation } from '../i18n';
-
-const { width } = Dimensions.get('window');
-const HEADER_HEIGHT = 300;
-
 
 type Product = {
   id: string;
@@ -36,372 +44,247 @@ type Product = {
   detail_custom_score?: { [key: string]: any };
   nutriments?: { [key: string]: any };
   additives_tags?: string[];
+  additives_info?: { code: string; name: string; risk_level?: string; function?: string }[];
   ingredients_text?: string;
 };
 
-// --- HELPERS DE COULEUR ---
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
 const getScoreColor = (score?: number) => {
-  if (score === undefined) return '#6B7280';
-  if (score >= 60) return '#22C55E'; // Vert
-  if (score >= 30) return '#F97316'; // Orange
-  return '#EF4444'; // Rouge
+  if (score === undefined) return '#9CA3AF';
+  if (score >= 70) return '#22C55E';  // vert  (≥70)
+  if (score >= 35) return '#F97316';  // orange (≥35)
+  return '#EF4444';                   // rouge  (<35)
 };
 
-// Helper pour simuler les niveaux (Low/Moderate/High)
-// Dans un vrai cas, utilisez les données 'nutrient_levels' d'OFF si disponibles
-const getLevelColor = (value: number, highThreshold: number, moderateThreshold: number) => {
-  if (value > highThreshold) return '#EF4444'; // Rouge (Élevé - Mauvais)
-  if (value > moderateThreshold) return '#F97316'; // Orange (Modéré)
-  return '#22C55E'; // Vert (Faible - Bon)
+const getScoreBgColor = (score?: number) => {
+  if (score === undefined) return '#F3F4F6';
+  if (score >= 70) return '#DCFCE7';  // green-100
+  if (score >= 35) return '#FFEDD5';  // orange-100
+  return '#FEE2E2';                   // red-100
 };
 
-// Pour les nutriments positifs (Protéines, Fibres), la logique est inversée
-const getPositiveLevelColor = (value: number, highThreshold: number, moderateThreshold: number) => {
-  if (value > highThreshold) return '#22C55E'; // Vert (Élevé - Bon)
-  if (value > moderateThreshold) return '#F97316'; // Orange
-  return '#EF4444'; // Rouge (Faible - Mauvais)
+const getLevelColor = (value: number, high: number, moderate: number) => {
+  if (value > high) return '#EF4444';
+  if (value > moderate) return '#F97316';
+  return '#22C55E';
 };
 
+const getPositiveLevelColor = (value: number, high: number, moderate: number) => {
+  if (value > high) return '#22C55E';
+  if (value > moderate) return '#F97316';
+  return '#EF4444';
+};
 
+/** "en:e322-lecithins" → { code: "E322", name: "Lecithins" } */
+const parseAdditive = (tag: string) => {
+  const clean = tag.replace(/^[a-z]{2}:/, '');
+  const dash = clean.indexOf('-');
+  if (dash === -1) return { code: clean.toUpperCase(), name: '' };
+  const code = clean.slice(0, dash).toUpperCase();
+  const name = clean
+    .slice(dash + 1)
+    .split('-')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+  return { code, name };
+};
 
-export default function ProductDetail() {
-  const router = useRouter();
-  const { t } = useTranslation();
-  const { product: productJson } = useLocalSearchParams();
-  const product: Product | null = productJson ? JSON.parse(productJson as string) : null;
-  const insets = useSafeAreaInsets();
-  const scrollY = useSharedValue(0);
-  const [reportModalVisible, setReportModalVisible] = useState(false);
+const getAdditiveColor = (index: number, riskLevel?: string) => {
+  if (riskLevel === 'high' || riskLevel === 'danger') return '#EF4444';
+  if (riskLevel === 'moderate') return '#F97316';
+  if (riskLevel === 'low') return '#22C55E';
+  return index % 3 === 0 ? '#22C55E' : index % 3 === 1 ? '#F97316' : '#22C55E';
+};
 
-  // Fallback to id if barcode determines the scan code
-  const barcodeToUse = product?.barcode || product?.id;
+// ─── Semi-circle gauge (speedometer style) ──────────────────────────────────
 
-  const { isFavorite, toggleFavorite } = useProductFavorite(barcodeToUse || '', product);
+const SemiCircleGauge = ({ score = 0, size = 120 }: { score: number; size?: number }) => {
+  const sw = 11; // strokeWidth
+  const r = (size - sw) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const color = getScoreColor(score);
 
-  if (!product) return null;
-
-  const [fullProduct, setFullProduct] = useState<Product>(product);
-
-  useEffect(() => {
-    const fetchFullDetails = async () => {
-      // If we already have ingredients, no need to fetch (unless we want fresh data)
-      // But if it's undefined/null, we try to fetch from backend which might have it
-      if (!fullProduct.ingredients_text && fullProduct.barcode) {
-        try {
-          const { api } = require('../services/axios'); // Lazy require to avoid circular deps if any
-          const response = await api.get(`/api/product/${fullProduct.barcode}`);
-          if (response.data && response.data.product) {
-            console.log("Fetched full details for ingredients");
-            setFullProduct(response.data.product);
-          }
-        } catch (e) {
-          console.log("Error fetching full details:", e);
-        }
-      }
-    };
-    fetchFullDetails();
-  }, [fullProduct.barcode]);
-
-  console.log("Current Product ingredients:", fullProduct.ingredients_text);
-
-
-  const scrollHandler = useAnimatedScrollHandler(event => {
-    scrollY.value = event.contentOffset.y;
+  // Convert "math angle" (y-up) to SVG point (y-down)
+  const pt = (deg: number) => ({
+    x: +(cx + r * Math.cos((deg * Math.PI) / 180)).toFixed(3),
+    y: +(cy - r * Math.sin((deg * Math.PI) / 180)).toFixed(3),
   });
 
-  const headerStyle = useAnimatedStyle(() => {
-    return {
-      height: interpolate(scrollY.value, [-100, 0, HEADER_HEIGHT], [HEADER_HEIGHT + 100, HEADER_HEIGHT, 100], Extrapolation.CLAMP),
-      opacity: interpolate(scrollY.value, [0, HEADER_HEIGHT - 100], [1, 0]),
-    };
-  });
+  const L = pt(180); // left
+  const R = pt(0);   // right
+  const scoreAngle = 180 - (score / 100) * 180;
+  const S = pt(scoreAngle);
 
-  const imageStyle = useAnimatedStyle(() => {
-    return {
-      opacity: interpolate(scrollY.value, [-100, 0, HEADER_HEIGHT / 2], [1, 1, 0]),
-      transform: [
-        { scale: interpolate(scrollY.value, [-100, 0], [1.2, 1], Extrapolation.CLAMP) },
-        { translateY: interpolate(scrollY.value, [-100, 0, HEADER_HEIGHT], [0, 0, 50], Extrapolation.CLAMP) }
-      ]
-    };
-  });
+  // sweep=1 (clockwise in SVG, y-down) traces the TOP arc from left → through top → right
+  const bgArc = `M ${L.x} ${L.y} A ${r} ${r} 0 0 1 ${R.x} ${R.y}`;
+  const scoreArc =
+    score > 0 ? `M ${L.x} ${L.y} A ${r} ${r} 0 0 1 ${S.x} ${S.y}` : '';
 
-  const getNutrimentValue = (key: string) => Math.round(Number(fullProduct?.nutriments?.[key + '_100g'] ?? 0) * 10) / 10;
+  // SVG shows only the top half; text is overlaid at the bottom-center of the arc
+  const svgH = cy + sw;
 
   return (
-    <View className="flex-1 bg-white dark:bg-[#181A20]">
-      <StatusBar barStyle="dark-content" />
-
-      {/* Header Flottant */}
+    <View style={{ width: size, height: svgH, alignItems: 'center' }}>
+      <Svg width={size} height={svgH}>
+        <Path d={bgArc} stroke={getScoreBgColor(score)} strokeWidth={sw} fill="none" strokeLinecap="round" />
+        {scoreArc ? (
+          <Path d={scoreArc} stroke={color} strokeWidth={sw} fill="none" strokeLinecap="round" />
+        ) : null}
+      </Svg>
+      {/* Overlay score text centered at the bottom of the arc */}
       <View
-        className="absolute top-0 left-0 right-0 z-50 flex-row justify-between items-center px-4"
-        style={{ paddingTop: insets.top + 10 }}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+          paddingBottom: 2,
+        }}
       >
-        <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full items-center justify-center shadow-sm">
-          <ArrowLeft size={24} color="#374151" />
-        </TouchableOpacity>
-        <View className="flex-row space-x-3 gap-3">
-          <TouchableOpacity onPress={() => toggleFavorite()} className="w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full items-center justify-center shadow-sm">
-            <Heart size={20} color={isFavorite ? "#EC4899" : "#374151"} fill={isFavorite ? "#EC4899" : "none"} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setReportModalVisible(true)} className="w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full items-center justify-center shadow-sm">
-            <AlertTriangle size={20} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', color, lineHeight: 28 }}>{score}</Text>
+        <Text style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 13 }}>Score : {score}</Text>
       </View>
-
-      <Animated.ScrollView onScroll={scrollHandler} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: 40 }}>
-
-        {/* Header Produit + Score */}
-        <View className="flex-row px-5 pt-24 pb-6">
-          <Image
-            source={{ uri: fullProduct.image_url }}
-            className="w-28 h-40 rounded-lg mr-4 bg-gray-50 dark:bg-gray-800"
-            resizeMode="contain"
-          />
-          <View className="flex-1 justify-center">
-            <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-1 leading-7">{fullProduct.product_name}</Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-base mb-1">{fullProduct.brand}</Text>
-            {(fullProduct.subcategory || fullProduct.category) ? (
-              <Text className="text-emerald-600 dark:text-emerald-400 text-sm font-medium mb-4 bg-emerald-50 dark:bg-emerald-900/30 self-start px-2 py-0.5 rounded-md overflow-hidden">
-                {fullProduct.subcategory ? fullProduct.subcategory : fullProduct.category?.split(',')[0]}
-              </Text>
-            ) : (
-              <View className="mb-4" />
-            )}
-            <View className="flex-row items-center gap-3">
-              {fullProduct.nutriscore_grade && (
-                <View>
-                  <Text className="text-xs text-gray-400 dark:text-gray-500 mb-0.5 uppercase font-bold">Nutri-score</Text>
-                  <NutriScoreBadge grade={fullProduct.nutriscore_grade} />
-                </View>
-              )}
-              {fullProduct.nova_group && (
-                <View>
-                  <Text className="text-xs text-gray-400 dark:text-gray-500 mb-0.5 uppercase font-bold">Nova</Text>
-                  <View className={`w-8 h-8 rounded items-center justify-center ${fullProduct.nova_group > 3 ? 'bg-red-500' : 'bg-green-500'}`}>
-                    <Text className="text-white font-bold">{fullProduct.nova_group}</Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          </View>
-          <View className="justify-center ml-2">
-            <ScoreGauge score={fullProduct.custom_score} size={90} strokeWidth={8} />
-          </View>
-        </View>
-
-        {/* --- ALERTES ALLERGIES --- */}
-        <AllergenWarning ingredients={fullProduct.ingredients_text} />
-
-        {/* --- SECTION ADDITIFS --- */}
-        <View className="mx-4 mt-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-[#1F2937] shadow-sm overflow-hidden">
-          <View className="flex-row items-center p-3 border-b border-gray-100 dark:border-gray-700">
-            <View className="bg-orange-100 dark:bg-orange-900/40 p-1.5 rounded-full mr-2">
-              <AlertTriangle size={16} color="#F97316" />
-            </View>
-            <Text className="text-lg font-bold text-gray-900 dark:text-white">Additifs</Text>
-          </View>
-
-          {fullProduct.additives_tags && fullProduct.additives_tags.length > 0 ? (
-            fullProduct.additives_tags.map((tag, index) => (
-              <View key={`add-${index}`} className="flex-row items-center justify-between p-3 border-b border-gray-50 dark:border-gray-800 last:border-0">
-                <View className="flex-row items-center flex-1">
-                  {/* Simulation couleur risque : pair=vert, impair=orange */}
-                  <View className={`w-3 h-3 rounded-full mr-3 ${index % 2 === 0 ? 'bg-green-500' : 'bg-orange-400'}`} />
-                  <Text className="text-base text-gray-800 dark:text-gray-200 font-medium">{tag.replace('en:', '').toUpperCase()}</Text>
-                </View>
-                <View className="flex-row items-center">
-                  <Text className="text-sm text-gray-400 dark:text-gray-500 mr-2">
-                    {index % 2 === 0 ? 'Fonction A' : 'Fonction B'}
-                  </Text>
-                  <ChevronRight size={16} color="#D1D5DB" />
-                </View>
-              </View>
-            ))
-          ) : (
-            <View className="p-4">
-              <Text className="text-gray-500 dark:text-gray-400 italic">Aucun additif à déclarer.</Text>
-            </View>
-          )}
-        </View>
-
-
-        {/* --- SECTION NUTRITION (Design Grille + Liste) --- */}
-        <View className="mx-4 mt-6 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-[#1F2937] shadow-sm overflow-hidden">
-          <View className="flex-row items-center justify-between p-3 border-b border-gray-100 dark:border-gray-700">
-            <View className="flex-row items-center">
-              <View className="bg-red-100 dark:bg-red-900/40 p-1.5 rounded-full mr-2">
-                <Heart size={16} color="#EF4444" />
-              </View>
-              <View>
-                <Text className="text-lg font-bold text-gray-900 dark:text-white leading-5">Informations</Text>
-                <Text className="text-lg font-bold text-gray-900 dark:text-white leading-5">nutritionnelles</Text>
-              </View>
-            </View>
-            <View className="bg-orange-50 dark:bg-orange-900/20 px-3 py-1 rounded-full border border-orange-100 dark:border-orange-800">
-              <Text className="text-orange-600 dark:text-orange-400 font-bold text-sm">Score : {fullProduct.custom_score}</Text>
-            </View>
-          </View>
-
-          <View className="p-3">
-            <View className="flex-row flex-wrap justify-between">
-              {/* Energie (Seuil 300kcal pour "modéré") */}
-              <NutritionCard
-                label="Energie"
-                value={`${Math.round(getNutrimentValue('energy-kcal'))} Kcal`}
-                subtext={getNutrimentValue('energy-kcal') > 300 ? "Forte teneur" : "Faible teneur"}
-                color={getLevelColor(getNutrimentValue('energy-kcal'), 500, 300)}
-                icon="up"
-              />
-              {/* Protéines (Seuil 10g pour "bon") */}
-              <NutritionCard
-                label="Protéines"
-                value={`${getNutrimentValue('proteins')} g`}
-                subtext={getNutrimentValue('proteins') > 10 ? "Excellente source" : "Faible teneur"}
-                color={getPositiveLevelColor(getNutrimentValue('proteins'), 10, 5)}
-                icon="down" // Flèche vers le bas si faible
-              />
-
-              {/* Sucre */}
-              <NutritionCard
-                label="Glucides"
-                value={`${getNutrimentValue('sugars')} g`}
-                subtext="Teneur"
-                color={getLevelColor(getNutrimentValue('sugars'), 20, 5)}
-                icon="check"
-              />
-
-              {/* Gras Saturés */}
-              <NutritionCard
-                label="Gras saturés"
-                value={`${getNutrimentValue('saturated-fat')} g`}
-                subtext="Gras saturés"
-                color={getLevelColor(getNutrimentValue('saturated-fat'), 5, 1.5)}
-                icon="up"
-              />
-            </View>
-
-            {/* Liste détaillée en bas */}
-            <View className="mt-2 border-t border-gray-100 dark:border-gray-700 pt-2">
-              <SmallNutriItem
-                label="Fibre"
-                value={`${getNutrimentValue('fiber')} g`}
-                color={getPositiveLevelColor(getNutrimentValue('fiber'), 3, 1)}
-                icon="down"
-              />
-              <SmallNutriItem
-                label="Sel"
-                value={`${getNutrimentValue('salt')} g`}
-                color={getLevelColor(getNutrimentValue('salt'), 1.5, 0.5)}
-                icon="up"
-              />
-              <SmallNutriItem
-                label="Calcium"
-                value={`${(getNutrimentValue('calcium') * 1000).toFixed(1)} mg`}
-                color="#6B7280"
-              />
-            </View>
-          </View>
-        </View>
-
-      </Animated.ScrollView>
-
-      <AlternativesList barcode={fullProduct.barcode || fullProduct.id} currentScore={fullProduct.custom_score} />
-
-      <ReportModal
-        visible={reportModalVisible}
-        onClose={() => setReportModalVisible(false)}
-        barcode={fullProduct.barcode || fullProduct.id}
-      />
-    </View>
-  );
-}
-
-// --- COMPOSANT CARTE NUTRITION (Carré gris) ---
-const NutritionCard = ({ label, value, subtext, color, icon, simple }: any) => (
-  <View className="w-[48%] bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-3 border border-gray-100 dark:border-gray-700">
-    <View className="flex-row justify-between items-start mb-1">
-      <Text className="text-gray-500 dark:text-gray-400 text-sm font-medium">{label}</Text>
-      {!simple && (
-        <View className="w-5 h-5 rounded-full items-center justify-center" style={{ backgroundColor: color }}>
-          {icon === 'check' && <Check size={12} color="white" />}
-          {/* Utilisation correcte du style pour la rotation */}
-          {icon === 'up' && <ChevronUp size={14} color="white" />}
-          {icon === 'down' && <ChevronDown size={14} color="white" />}
-        </View>
-      )}
-    </View>
-    <Text className="text-gray-900 dark:text-white font-bold text-lg">{value}</Text>
-    {subtext ? (
-      <Text className="text-xs mt-1 font-medium" style={{ color: color }}>{subtext}</Text>
-    ) : null}
-  </View>
-);
-
-// --- COMPOSANT LIGNE SIMPLE (Bas de tableau) ---
-const SmallNutriItem = ({ label, value, color, icon }: any) => (
-  <View className="flex-row justify-between items-center py-2">
-    <Text className="text-gray-900 dark:text-white font-bold text-sm">{label}</Text>
-    <View className="flex-row items-center">
-      <Text className="text-gray-900 dark:text-white font-bold text-sm mr-2">{value}</Text>
-      {icon && (
-        <View className="w-4 h-4 rounded-full items-center justify-center" style={{ backgroundColor: color }}>
-          {icon === 'check' && <Check size={10} color="white" />}
-          {icon === 'up' && <ChevronUp size={10} color="white" />}
-          {icon === 'down' && <ChevronDown size={10} color="white" />}
-        </View>
-      )}
-    </View>
-  </View>
-);
-
-// --- HELPER BADGE NUTRISCORE ---
-const NutriScoreBadge = ({ grade }: { grade?: string }) => {
-  if (!grade) return null;
-  const grades = ['a', 'b', 'c', 'd', 'e'];
-  return (
-    <View className="flex-row items-center bg-gray-100 dark:bg-gray-800 rounded p-0.5">
-      {grades.map((g) => (
-        <View
-          key={g}
-          className={`w-5 h-5 items-center justify-center rounded-sm mx-[1px] ${grade.toLowerCase() === g
-            ? g === 'a' ? 'bg-[#038141]' : g === 'b' ? 'bg-[#85BB2F]' : g === 'c' ? 'bg-[#FECB02]' : g === 'd' ? 'bg-[#EE8100]' : 'bg-[#E63E11]'
-            : 'bg-transparent'
-            }`}
-        >
-          <Text className={`font-bold uppercase text-xs ${grade.toLowerCase() === g ? 'text-white' : 'text-gray-300'}`}>{g}</Text>
-        </View>
-      ))}
     </View>
   );
 };
 
-// --- COMPOSANT ALERTE ALLERGIE ---
+// ─── Nutrition badge pill ────────────────────────────────────────────────────
+
+const Badge = ({ text, color }: { text: string; color: string }) => (
+  <View
+    style={{
+      backgroundColor: color,
+      borderRadius: 20,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      alignSelf: 'flex-start',
+      marginTop: 5,
+    }}
+  >
+    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{text}</Text>
+  </View>
+);
+
+// ─── Nutrition 2×2 card ──────────────────────────────────────────────────────
+
+const NutritionCard = ({
+  icon,
+  label,
+  value,
+  badgeText,
+  badgeColor,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  badgeText: string;
+  badgeColor: string;
+}) => (
+  <View
+    style={{
+      width: '48%',
+      backgroundColor: '#F3F4F6',
+      borderRadius: 14,
+      padding: 12,
+      marginBottom: 10,
+    }}
+  >
+    <View style={{ marginBottom: 4 }}>{icon}</View>
+    <Text style={{ color: '#9CA3AF', fontSize: 12, marginBottom: 1 }}>{label}</Text>
+    <Text style={{ color: '#111827', fontSize: 20, fontWeight: 'bold' }}>{value}</Text>
+    <Badge text={badgeText} color={badgeColor} />
+  </View>
+);
+
+// ─── Simple nutrient row ─────────────────────────────────────────────────────
+
+const NutriRow = ({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) => (
+  <View
+    style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 9,
+      borderTopWidth: 1,
+      borderTopColor: '#F3F4F6',
+    }}
+  >
+    <View style={{ marginRight: 8 }}>{icon}</View>
+    <Text style={{ flex: 1, color: '#374151', fontSize: 14 }}>{label}</Text>
+    <Text style={{ color: '#6B7280', fontSize: 14 }}>{value}</Text>
+  </View>
+);
+
+// ─── Allergen warning ────────────────────────────────────────────────────────
+
 const AllergenWarning = ({ ingredients }: { ingredients?: string }) => {
   const { detectedAllergens, hasAllergies } = useAllergenCheck(ingredients);
   const { t } = useTranslation();
-
   if (!hasAllergies) return null;
-
   return (
-    <View className="mx-4 mt-2">
-      <View className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4 flex-row items-start shadow-sm">
-        <View className="bg-red-100 dark:bg-red-900/50 p-2 rounded-full mr-3 mt-0.5">
-          <AlertTriangle size={20} color="#EF4444" />
+    <View style={{ marginHorizontal: 16, marginTop: 12 }}>
+      <View
+        style={{
+          backgroundColor: '#FEF2F2',
+          borderWidth: 1,
+          borderColor: '#FECACA',
+          borderRadius: 16,
+          padding: 14,
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: '#FEE2E2',
+            padding: 8,
+            borderRadius: 50,
+            marginRight: 12,
+            marginTop: 2,
+          }}
+        >
+          <AlertTriangle size={18} color="#EF4444" />
         </View>
-        <View className="flex-1">
-          <Text className="text-red-700 dark:text-red-400 font-bold text-base mb-1">
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#B91C1C', fontWeight: 'bold', fontSize: 14, marginBottom: 4 }}>
             {t('allergen_warning_title') || 'Attention : Allergènes détectés'}
           </Text>
-          <Text className="text-red-600 dark:text-red-300 text-sm leading-5">
-            {t('allergen_warning_desc') || 'Ce produit contient des ingrédients que vous avez signalés dans votre profil santé :'}
+          <Text style={{ color: '#DC2626', fontSize: 13, lineHeight: 18 }}>
+            {t('allergen_warning_desc') ||
+              'Ce produit contient des ingrédients que vous avez signalés dans votre profil santé.'}
           </Text>
-          <View className="flex-row flex-wrap mt-2 gap-2">
-            {detectedAllergens.map(allergy => (
-              <View key={allergy} className="bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded-md border border-red-200 dark:border-red-800">
-                <Text className="text-red-700 dark:text-red-300 font-bold text-xs uppercase">
-                  {t(allergy) || allergy}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 6 }}>
+            {detectedAllergens.map(a => (
+              <View
+                key={a}
+                style={{
+                  backgroundColor: '#FEE2E2',
+                  borderWidth: 1,
+                  borderColor: '#FECACA',
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 8,
+                }}
+              >
+                <Text
+                  style={{
+                    color: '#B91C1C',
+                    fontWeight: 'bold',
+                    fontSize: 11,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {t(a) || a}
                 </Text>
               </View>
             ))}
@@ -411,3 +294,298 @@ const AllergenWarning = ({ ingredients }: { ingredients?: string }) => {
     </View>
   );
 };
+
+// ─── Main screen ─────────────────────────────────────────────────────────────
+
+export default function ProductDetail() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const { product: productJson } = useLocalSearchParams();
+  const product: Product | null = productJson ? JSON.parse(productJson as string) : null;
+  const insets = useSafeAreaInsets();
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [fullProduct, setFullProduct] = useState<Product>(product!);
+
+  const barcodeToUse = product?.barcode || product?.id;
+  const { isFavorite, toggleFavorite } = useProductFavorite(barcodeToUse || '', product);
+
+  useEffect(() => {
+    if (!fullProduct?.ingredients_text && fullProduct?.barcode) {
+      (async () => {
+        try {
+          const { api } = require('../services/axios');
+          const res = await api.get(`/api/product/${fullProduct.barcode}`);
+          if (res.data?.product) setFullProduct(res.data.product);
+        } catch (_) {}
+      })();
+    }
+  }, [fullProduct?.barcode]);
+
+  if (!product || !fullProduct) return null;
+
+  const nv = (key: string) =>
+    Math.round(Number(fullProduct.nutriments?.[key + '_100g'] ?? 0) * 10) / 10;
+
+  const energy = Math.round(nv('energy-kcal'));
+  const proteins = nv('proteins');
+  const sugars = nv('sugars');
+  const saturatedFat = nv('saturated-fat');
+  const fiber = nv('fiber');
+  const salt = nv('salt');
+  const calcium = (nv('calcium') * 1000).toFixed(1);
+
+  const ic = '#9CA3AF'; // icon color
+  const is = 15;        // icon size
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* ── Header ── */}
+      <View
+        style={{
+          backgroundColor: '#FFFFFF',
+          paddingTop: insets.top,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 16,
+          paddingBottom: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: '#F9FAFB',
+        }}
+      >
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
+          <ArrowLeft size={22} color="#374151" />
+        </TouchableOpacity>
+
+        <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827' }}>remo</Text>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <TouchableOpacity onPress={() => toggleFavorite()}>
+            <Heart
+              size={20}
+              color={isFavorite ? '#EC4899' : '#374151'}
+              fill={isFavorite ? '#EC4899' : 'none'}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setReportModalVisible(true)}>
+            <MoreHorizontal size={22} color="#374151" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+
+        {/* ── Product card ── */}
+        <View
+          style={{
+            backgroundColor: '#FFFFFF',
+            marginHorizontal: 16,
+            marginTop: 16,
+            borderRadius: 16,
+            padding: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.07,
+            shadowRadius: 8,
+            elevation: 3,
+          }}
+        >
+          <Image
+            source={{ uri: fullProduct.image_url }}
+            style={{ width: 80, height: 80, borderRadius: 10, backgroundColor: '#F9FAFB' }}
+            resizeMode="contain"
+          />
+          <View style={{ flex: 1, paddingHorizontal: 12 }}>
+            <Text
+              style={{ fontSize: 17, fontWeight: 'bold', color: '#111827', lineHeight: 24 }}
+              numberOfLines={2}
+            >
+              {fullProduct.product_name}
+            </Text>
+            <Text style={{ fontSize: 13, color: '#9CA3AF', marginTop: 2 }}>
+              {fullProduct.brand}
+            </Text>
+          </View>
+          <SemiCircleGauge score={fullProduct.custom_score ?? 0} size={110} />
+        </View>
+
+        {/* ── Allergen warning ── */}
+        <AllergenWarning ingredients={fullProduct.ingredients_text} />
+
+        {/* ── Additives card ── */}
+        <View
+          style={{
+            backgroundColor: '#FFFFFF',
+            marginHorizontal: 16,
+            marginTop: 12,
+            borderRadius: 16,
+            overflow: 'hidden',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.07,
+            shadowRadius: 8,
+            elevation: 3,
+          }}
+        >
+          {/* Card header */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+              borderBottomWidth: 1,
+              borderBottomColor: '#F9FAFB',
+            }}
+          >
+            <FlaskConical size={17} color="#6B7280" style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>Additives</Text>
+          </View>
+
+          {/* Additive rows */}
+          {fullProduct.additives_tags && fullProduct.additives_tags.length > 0 ? (
+            fullProduct.additives_tags.map((tag, idx) => {
+              const info = fullProduct.additives_info?.find(
+                a => a.code?.toLowerCase() === tag.replace(/^[a-z]{2}:/, '').split('-')[0],
+              );
+              const { code, name } = parseAdditive(tag);
+              const dotColor = getAdditiveColor(idx, info?.risk_level);
+              const isLast = idx === fullProduct.additives_tags!.length - 1;
+              return (
+                <View
+                  key={idx}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                    borderBottomWidth: isLast ? 0 : 1,
+                    borderBottomColor: '#F9FAFB',
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: dotColor,
+                      marginRight: 10,
+                    }}
+                  />
+                  <Text style={{ flex: 1, fontSize: 14, color: '#374151' }}>
+                    {code}
+                    {name ? ` (${name})` : ''}
+                  </Text>
+                  <FlaskConical size={13} color="#C4B5A0" style={{ marginRight: 4 }} />
+                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginRight: 2 }}>
+                    {info?.function || 'Fonction'}
+                  </Text>
+                  <ChevronRight size={14} color="#D1D5DB" />
+                </View>
+              );
+            })
+          ) : (
+            <View style={{ padding: 14 }}>
+              <Text style={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+                Aucun additif à déclarer.
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* ── Nutritional Information card ── */}
+        <View
+          style={{
+            backgroundColor: '#FFFFFF',
+            marginHorizontal: 16,
+            marginTop: 12,
+            borderRadius: 16,
+            overflow: 'hidden',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.07,
+            shadowRadius: 8,
+            elevation: 3,
+          }}
+        >
+          {/* Card header */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+              borderBottomWidth: 1,
+              borderBottomColor: '#F9FAFB',
+            }}
+          >
+            <Heart size={17} color="#6B7280" style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>
+              Nutritional Information
+            </Text>
+          </View>
+
+          <View style={{ padding: 12 }}>
+            {/* 2 × 2 grid */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <NutritionCard
+                icon={<Flame size={is} color={ic} />}
+                label="Energy"
+                value={`${energy} Kcal`}
+                badgeText={energy > 300 ? 'Forte teneur' : 'Faible teneur'}
+                badgeColor={getLevelColor(energy, 500, 300)}
+              />
+              <NutritionCard
+                icon={<Dumbbell size={is} color={ic} />}
+                label="Proteines"
+                value={`${proteins} g`}
+                badgeText={proteins > 10 ? 'Excellente source' : 'Faible teneur'}
+                badgeColor={getPositiveLevelColor(proteins, 10, 5)}
+              />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <NutritionCard
+                icon={<Wheat size={is} color={ic} />}
+                label="Glucides"
+                value={`${sugars} g`}
+                badgeText="Teneur"
+                badgeColor={getLevelColor(sugars, 20, 10)}
+              />
+              <NutritionCard
+                icon={<Droplets size={is} color={ic} />}
+                label="Gras saturés"
+                value={`${saturatedFat} g`}
+                badgeText="Gras saturés"
+                badgeColor={getLevelColor(saturatedFat, 5, 1.5)}
+              />
+            </View>
+
+            {/* Simple rows */}
+            <NutriRow icon={<Leaf size={is} color={ic} />} label="Fibre" value={`${fiber} g`} />
+            <NutriRow icon={<Flame size={is} color={ic} />} label="Sel" value={`${salt} g`} />
+            <NutriRow
+              icon={<Droplets size={is} color={ic} />}
+              label="Calcium"
+              value={`${calcium} mg`}
+            />
+          </View>
+        </View>
+      </ScrollView>
+
+      <AlternativesList
+        barcode={fullProduct.barcode || fullProduct.id}
+        currentScore={fullProduct.custom_score}
+      />
+
+      <ReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        barcode={fullProduct.barcode || fullProduct.id}
+      />
+    </View>
+  );
+}

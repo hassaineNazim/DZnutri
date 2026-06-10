@@ -433,7 +433,7 @@ const translations: Record<SupportedLang, Record<string, string>> = {
 
 let currentLang: SupportedLang = 'fr';
 let followSystem: boolean = true;
-const listeners: Array<(lang: SupportedLang) => void> = [];
+const listeners: ((lang: SupportedLang) => void)[] = [];
 
 let reactNativeLocalize: any = null;
 try {

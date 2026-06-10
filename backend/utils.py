@@ -16,7 +16,7 @@ def generate_reset_code(length=6):
 
 
 # Helper to send Expo push notifications using exponent_server_sdk in a thread
-async def send_expo_push(db: AsyncSession, user_id: int, to_token: str, title: str, body: str, data: dict | None = None):
+async def send_expo_push(user_id: int, to_token: str, title: str, body: str, data: dict | None = None):
     """
     Envoie une notification push en utilisant la SDK Expo dans un thread séparé
     avec un timeout et des logs de débogage clairs.

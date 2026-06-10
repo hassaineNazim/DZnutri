@@ -12,6 +12,7 @@ from bdproduitdz import models as bd_models
 router = APIRouter(tags=["Products"])
 
 from sqlalchemy import select
+from fastapi_cache.decorator import cache
 
 
 # --- Fonction Helper pour détecter les produits incomplets ---
@@ -38,6 +39,7 @@ def is_product_suspicious(product_data: dict) -> bool:
 
 # --- VOTRE ENDPOINT MIS À JOUR ---
 @router.get("/api/product/{barcode}")
+@cache(expire=86400) # Cache de 24 heures
 async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db)):
     """
     Cherche un produit. D'abord en local, sinon sur Open Food Facts.
@@ -140,6 +142,7 @@ async def test_api(barcode: str):
     return {"message": data}
 
 @router.get("/api/product/{barcode}/alternatives")
+@cache(expire=86400) # Cache de 24 heures pour les alternatives
 async def get_product_alternatives(barcode: str, db: AsyncSession = Depends(get_db)):
     """
     Retourne une liste de produits alternatifs (meilleur score, même catégorie).

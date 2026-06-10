@@ -58,7 +58,7 @@ const ScoreGauge = ({ score }: { score: number }) => {
 
   useEffect(() => {
     progress.value = withTiming(score / 100, { duration: 1500 });
-  }, [score]);
+  }, [score, progress]);
 
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: CIRCLE_LENGTH * (1 - progress.value),
@@ -126,7 +126,7 @@ const StatBar = ({ label, count, total, color, icon: Icon, delay }: { label: str
 
   useEffect(() => {
     animatedWidth.value = withDelay(delay, withTiming(widthPercent, { duration: 1000 }));
-  }, [widthPercent]);
+  }, [widthPercent, animatedWidth, delay]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     width: `${animatedWidth.value}%`,
