@@ -1,9 +1,13 @@
 import logging
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_cache import FastAPICache
 
 from database import get_db
+from observability import metrics
 
 logger = logging.getLogger("dznutri.admin")
 
@@ -25,10 +29,115 @@ from auth import schemas as auth_schemas
 from auth import security as auth_security
 from auth import crud as auth_crud
 from bdproduitdz import crud as bd_crud
+from bdproduitdz import models as bd_models
 from bdproduitdz import schemas as bd_schemas
 from utils import send_expo_push
 
 router = APIRouter(tags=["Admin"])
+
+
+@router.get("/api/admin/monitoring")
+async def get_monitoring_dashboard(
+    db: AsyncSession = Depends(get_db),
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_admin),
+):
+    """Agrège les métriques du dashboard "Statistiques & Monitoring".
+
+    Combine deux sources :
+    - les métriques **temps réel** en mémoire (trafic, latence, OCR runtime,
+      utilisateurs actifs, alertes) issues du middleware d'observabilité ;
+    - des agrégats **durables** lus en base (totaux, top des produits scannés,
+      taux de succès OCR historique des soumissions).
+
+    Toute la lecture base se fait en requêtes agrégées (COUNT/GROUP BY) pour
+    rester légère même avec un gros volume de données.
+    """
+    now = datetime.now(timezone.utc)
+    last_24h = now - timedelta(hours=24)
+    last_30d = now - timedelta(days=30)
+
+    # --- Totaux de base (requêtes COUNT, pas de chargement de lignes) -------
+    total_users = await db.scalar(select(func.count(auth_models.UserTable.id))) or 0
+    total_products = await db.scalar(select(func.count(bd_models.Product.id))) or 0
+    scans_24h = await db.scalar(
+        select(func.count(bd_models.ScanHistory.id)).where(
+            bd_models.ScanHistory.scanned_at >= last_24h
+        )
+    ) or 0
+
+    # --- Soumissions par statut --------------------------------------------
+    status_rows = await db.execute(
+        select(bd_models.Submission.status, func.count(bd_models.Submission.id)).group_by(
+            bd_models.Submission.status
+        )
+    )
+    submissions_by_status = {status or "unknown": count for status, count in status_rows}
+
+    # --- Top produits scannés (30 derniers jours) --------------------------
+    top_rows = await db.execute(
+        select(
+            bd_models.Product.barcode,
+            bd_models.Product.product_name,
+            bd_models.Product.brand,
+            bd_models.Product.image_url,
+            func.count(bd_models.ScanHistory.id).label("scan_count"),
+        )
+        .join(bd_models.ScanHistory, bd_models.ScanHistory.product_id == bd_models.Product.id)
+        .where(bd_models.ScanHistory.scanned_at >= last_30d)
+        .group_by(
+            bd_models.Product.id,
+            bd_models.Product.barcode,
+            bd_models.Product.product_name,
+            bd_models.Product.brand,
+            bd_models.Product.image_url,
+        )
+        .order_by(func.count(bd_models.ScanHistory.id).desc())
+        .limit(10)
+    )
+    top_scanned = [
+        {
+            "barcode": barcode,
+            "product_name": product_name,
+            "brand": brand,
+            "image_url": image_url,
+            "scan_count": scan_count,
+        }
+        for barcode, product_name, brand, image_url, scan_count in top_rows
+    ]
+
+    # --- Taux de succès OCR historique (sur les soumissions) ---------------
+    # Une soumission est "OCR en échec" si son texte contient le marqueur d'erreur.
+    ocr_attempted = await db.scalar(
+        select(func.count(bd_models.Submission.id)).where(
+            bd_models.Submission.ocr_ingredients_text.isnot(None),
+            bd_models.Submission.ocr_ingredients_text != "",
+        )
+    ) or 0
+    ocr_failed = await db.scalar(
+        select(func.count(bd_models.Submission.id)).where(
+            bd_models.Submission.ocr_ingredients_text.ilike("%Erreur OCR%")
+        )
+    ) or 0
+    ocr_success = max(ocr_attempted - ocr_failed, 0)
+    ocr_success_rate = round(ocr_success / ocr_attempted, 4) if ocr_attempted else None
+
+    return {
+        "generated_at": now.isoformat(),
+        "totals": {
+            "users": total_users,
+            "products": total_products,
+            "scans_last_24h": scans_24h,
+            "submissions_by_status": submissions_by_status,
+        },
+        "top_scanned_products": top_scanned,
+        "ocr_history": {
+            "attempted": ocr_attempted,
+            "success": ocr_success,
+            "failure": ocr_failed,
+            "success_rate": ocr_success_rate,
+        },
+        "runtime": metrics.snapshot(),
+    }
 
 @router.get("/api/admin/submissions")
 async def get_submissions_for_admin(
@@ -95,10 +204,10 @@ async def approve_product_submission(
     except ValueError as e:
         # Gestion propre des erreurs métier (ex: soumission déjà traitée)
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        # Gestion des erreurs imprévues (bug code, db, etc.)
+    except Exception:
+        # Erreurs imprévues : on journalise le détail mais on ne l'expose pas au client.
         logger.exception("Erreur interne lors de l'approbation de la soumission %s", submission_id)
-        raise HTTPException(status_code=500, detail=f"Erreur interne lors de l'approbation: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur interne lors de l'approbation.")
           
 
 @router.post("/api/admin/submissions/{submission_id}/reject")
@@ -119,8 +228,9 @@ async def reject_product_submission(
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors du rejet: {str(e)}")
+    except Exception:
+        logger.exception("Erreur interne lors du rejet de la soumission %s", submission_id)
+        raise HTTPException(status_code=500, detail="Erreur interne lors du rejet.")
 
 @router.get("/api/admin/profile", response_model=auth_schemas.AdminUser)
 async def get_admin_profile(

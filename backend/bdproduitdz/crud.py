@@ -87,7 +87,8 @@ async def approve_submission(db: AsyncSession, submission_id: int, admin_data: s
         # On injecte les résultats du scoring
         custom_score=score_result.get('score'),
         detail_custom_score=score_result.get('details'),
-        
+        nutri_score=score_result.get('nutri_score'),
+
         # On peut aussi sauvegarder le type spécifique si on veut le garder
         # (Assurez-vous que votre modèle Product a une colonne pour ça, sinon ignorez)
         # category=admin_data.category 
@@ -541,6 +542,10 @@ async def update_product(db: AsyncSession, barcode: str, product_update: schemas
     # 4. Mettre à jour le score dans le produit
     db_product.custom_score = score_result.get('score')
     db_product.detail_custom_score = score_result.get('details')
+    # La lettre Nutri-Score est recalculée par notre moteur : on ne garde la
+    # valeur saisie que si le moteur n'a rien pu déterminer.
+    if score_result.get('nutri_score'):
+        db_product.nutri_score = score_result.get('nutri_score')
 
     # 5. Sauvegarder
     db.add(db_product)
