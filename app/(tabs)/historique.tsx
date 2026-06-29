@@ -46,12 +46,12 @@ export default function HistoriquePage() {
     router.push('/reglage/compte');
   };
   // 1. Chargement initial (Une seule fois au montage)
-  // Fonction de chargement centralisée
-  const loadHistory = useCallback(async () => {
+  // Fonction de chargement centralisée. `isRefresh` évite le spinner plein écran
+  // lors d'un pull-to-refresh. La fonction est stable (deps vides) pour ne pas
+  // relancer l'effet — et donc des fetchs en double — à chaque setRefreshing.
+  const loadHistory = useCallback(async (isRefresh = false) => {
     try {
-      // On ne met setLoading(true) que si c'est le premier chargement
-      // pour ne pas faire clignoter l'écran lors du refresh
-      if (!refreshing) setLoading(true);
+      if (!isRefresh) setLoading(true);
 
       const serverHistory = await fetchHistory();
       setHistory(serverHistory);
@@ -61,7 +61,7 @@ export default function HistoriquePage() {
       setLoading(false);
       setRefreshing(false); // Important : arrêter l'animation de refresh
     }
-  }, [refreshing]);
+  }, []);
 
   useEffect(() => {
     loadHistory();
@@ -70,7 +70,7 @@ export default function HistoriquePage() {
   // 2. Fonction appelée lors du swipe vers le bas
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadHistory();
+    loadHistory(true);
   }, [loadHistory]);
 
   const toggleSelect = (id: number) => {
@@ -183,7 +183,7 @@ export default function HistoriquePage() {
         // ---------------------------------------
         renderItem={({ item, index }) => (
           <Animated.View
-            entering={FadeInDown.delay(index * 50).springify()}
+            entering={FadeInDown.delay(Math.min(index, 10) * 50).springify()}
             layout={Layout.springify()}
           >
             <ListItem

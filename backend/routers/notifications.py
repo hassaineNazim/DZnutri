@@ -13,7 +13,7 @@ router = APIRouter(
     tags=["Notifications"]
 )
 
-@router.get("/", response_model=List[bd_schemas.NotificationResponse])
+@router.get("", response_model=List[bd_schemas.NotificationResponse])
 async def get_my_notifications(
     unread_only: bool = False,
     limit: int = 50,

@@ -20,7 +20,7 @@ export default function Dropdown({ data, onChange, placeholder }: DropDownProps)
   const [expanded, setExpanded] = useState(false);
   const [selectedValue, setSelectedValue] = useState<OptionItem | null>(null);
   const [dropdownTop, setDropdownTop] = useState(0);
-  const buttonRef = useRef<TouchableOpacity>(null);
+  const buttonRef = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
 
   
 

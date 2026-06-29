@@ -1,7 +1,10 @@
+import logging
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
 import certifi
+
+logger = logging.getLogger("dznutri.products")
 
 from database import get_db
 from bdproduitdz import crud as bd_crud
@@ -13,6 +16,36 @@ router = APIRouter(tags=["Products"])
 
 from sqlalchemy import select
 from fastapi_cache.decorator import cache
+
+
+# --- Client HTTP partagé pour Open Food Facts ---
+# Réutiliser un seul client (au lieu d'en créer un par requête) permet de
+# garder les connexions ouvertes (keep-alive), de mutualiser le pool de
+# sockets et la résolution DNS. On le ferme proprement au shutdown (main.py).
+_off_client: httpx.AsyncClient | None = None
+
+OFF_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
+
+
+def get_off_client() -> httpx.AsyncClient:
+    """Retourne le client HTTP partagé (créé à la première utilisation)."""
+    global _off_client
+    if _off_client is None or _off_client.is_closed:
+        _off_client = httpx.AsyncClient(
+            verify=certifi.where(),
+            timeout=OFF_TIMEOUT,
+            # Open Food Facts demande un User-Agent identifiant pour ne pas bloquer.
+            headers={"User-Agent": "DZnutri/1.0 (dznutriment@gmail.com)"},
+        )
+    return _off_client
+
+
+async def close_off_client() -> None:
+    """Ferme le client partagé (appelé au shutdown de l'app)."""
+    global _off_client
+    if _off_client is not None and not _off_client.is_closed:
+        await _off_client.aclose()
+    _off_client = None
 
 
 # --- Fonction Helper pour détecter les produits incomplets ---
@@ -50,34 +83,34 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
     db_product = await bd_crud.getProduitByBarcode(db, barcode=barcode)
     
     if db_product:
-        print(f"Produit {barcode} trouvé dans la base de données locale.")
+        logger.debug("Produit %s trouvé en base locale.", barcode)
         return {"source": "local_db", "product": db_product}
 
     # 2. Si non trouvé, on cherche sur Open Food Facts
-    print(f"Produit non trouvé localement, recherche sur Open Food Facts pour {barcode}...")
+    logger.debug("Produit %s non trouvé localement, recherche Open Food Facts...", barcode)
     off_api_url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
-    
-    async with httpx.AsyncClient(verify=certifi.where()) as client:
-        try:
-            response = await client.get(off_api_url)
-        except httpx.RequestError:
-            raise HTTPException(status_code=503, detail="Erreur de communication avec Open Food Facts")
+
+    client = get_off_client()
+    try:
+        response = await client.get(off_api_url)
+    except httpx.RequestError:
+        raise HTTPException(status_code=503, detail="Erreur de communication avec Open Food Facts")
 
     data = response.json()
-    
+
     if data.get("status") == 1:
-        print("Produit trouvé sur Open Food Facts.")
+        logger.debug("Produit %s trouvé sur Open Food Facts.", barcode)
         off_product_data = data.get("product")
-        
+
         # 3. On calcule le score
         scoringGlobal = await bd_scoring.calculate_score(db, off_product_data)
         custom_score = scoringGlobal.get('score')
         detail_custom_score = scoringGlobal.get('details')
-        print(f"Score calculé : {custom_score}")
-        
+        logger.debug("Score calculé pour %s : %s", barcode, custom_score)
+
         # --- SIGNALEMENT AUTOMATIQUE (VERSION TABLE REPORTS) ---
         if is_product_suspicious(off_product_data):
-            print(f"--- ALERTE : Produit {barcode} suspect. Création Report Automatique... ---")
+            logger.info("Produit %s suspect -> création d'un report automatique.", barcode)
             
             # Vérifier si un report existe déjà pour éviter les doublons
             existing_report = await db.execute(
@@ -129,14 +162,14 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
 
 @router.put("/testapi") #Juste pour voir la structure de l'API d'OpenFoodFacts
 async def test_api(barcode: str):
-    print(f"Produit non trouvé localement, recherche sur Open Food Facts pour {barcode}...")
+    logger.debug("Test API OFF pour %s...", barcode)
     off_api_url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
-    
-    async with httpx.AsyncClient(verify=certifi.where()) as client:
-        try:
-            response = await client.get(off_api_url)
-        except httpx.RequestError:
-            raise HTTPException(status_code=503, detail="Erreur de communication avec Open Food Facts")
+
+    client = get_off_client()
+    try:
+        response = await client.get(off_api_url)
+    except httpx.RequestError:
+        raise HTTPException(status_code=503, detail="Erreur de communication avec Open Food Facts")
 
     data = response.json()
     return {"message": data}

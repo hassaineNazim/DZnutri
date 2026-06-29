@@ -1,0 +1,4 @@
+# Forcer les fins de ligne LF pour les scripts shell : indispensable pour que
+# l'entrypoint Docker fonctionne sur Linux (un \r casserait le shebang).
+*.sh text eol=lf
+docker-entrypoint.sh text eol=lf

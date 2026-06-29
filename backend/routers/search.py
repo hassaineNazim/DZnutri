@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, desc, func, distinct
 from typing import List, Optional
 
+from fastapi_cache.decorator import cache
+
 from database import get_db
 from bdproduitdz import models, schemas
 
@@ -65,6 +67,7 @@ async def search_products(
     return products
 
 @router.get("/api/categories")
+@cache(expire=3600)  # Les catégories changent rarement : cache 1h (purgé sur écriture admin)
 async def get_categories(db: AsyncSession = Depends(get_db)):
     """
     Get all categories and their subcategories.

@@ -9,12 +9,14 @@ type ScoreGaugeProps = {
     score?: number;
     size?: number;
     strokeWidth?: number;
+    showText?: boolean;
 };
 
 export default function ScoreGauge({
     score = 0,
     size = 80,
     strokeWidth = 8,
+    showText = true,
 }: ScoreGaugeProps) {
     const center = size / 2;
     const radius = center - strokeWidth / 2;
@@ -69,17 +71,19 @@ export default function ScoreGauge({
                     origin={`${center}, ${center}`}
                 />
             </Svg>
-            <View className="absolute items-center justify-center">
-                <Text
-                    className="font-bold"
-                    style={{
-                        fontSize: size * 0.4,
-                        color: colors.main
-                    }}
-                >
-                    {score}
-                </Text>
-            </View>
+            {showText && (
+                <View className="absolute items-center justify-center">
+                    <Text
+                        className="font-bold"
+                        style={{
+                            fontSize: size * 0.4,
+                            color: colors.main
+                        }}
+                    >
+                        {score}
+                    </Text>
+                </View>
+            )}
         </View>
     );
 }

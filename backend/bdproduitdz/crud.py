@@ -11,6 +11,8 @@ from datetime import datetime
 import logging
 from sqlalchemy import func
 
+logger = logging.getLogger("dznutri.crud")
+
 
 async def getProduitByBarcode(db: AsyncSession, barcode: str):
     """Récupère un produit officiel par son code-barres de manière asynchrone."""
@@ -65,13 +67,13 @@ async def approve_submission(db: AsyncSession, submission_id: int, admin_data: s
     if 'additives_tags' not in data_for_scoring or data_for_scoring['additives_tags'] is None:
         data_for_scoring['additives_tags'] = []
 
-    print(f"--- Scoring pour approbation : {data_for_scoring.get('product_name')} (Type: {data_for_scoring.get('category')}) ---")
+    logger.info("Scoring pour approbation : %s (Type: %s)", data_for_scoring.get('product_name'), data_for_scoring.get('category'))
 
     # 3. Calculer le score final (Appel Asynchrone)
     # Le scoring va gérer tout seul les additifs inconnus grâce à votre nouveau code
     score_result = await scoring.calculate_score(db, data_for_scoring)
-    
-    print(f"--- Résultat Scoring : {score_result.get('score')}/100 ---")
+
+    logger.info("Résultat scoring : %s/100", score_result.get('score'))
 
     # 4. Créer le produit final
     product_to_create = schemas.ProductCreate(
@@ -109,7 +111,7 @@ async def approve_submission(db: AsyncSession, submission_id: int, admin_data: s
         )
         await create_notification(db, notif_data)
     except Exception as e:
-        print(f"Erreur création notification: {e}")
+        logger.error("Erreur création notification: %s", e)
     
     # 8. Retourner le tuple (produit, user_id) pour la suite eventuelle
     return created_product, submission.submitted_by_user_id
@@ -296,12 +298,37 @@ def normalize_db_key(key: str) -> str:
     # "SIN 330" -> "sin330"
     return str(key).strip().lower().replace(" ", "")
 
-async def get_additifs_penalty(db: AsyncSession) -> Dict[str, float]:
+# Cache en mémoire de la table des additifs : elle change très rarement (un admin
+# ajoute un additif de temps en temps), mais get_additifs_penalty est appelé à
+# CHAQUE calcul de score. On évite ainsi une requête « SELECT * additifs » par scan.
+_additifs_cache: Dict[str, object] = {"data": None, "ts": 0.0}
+_ADDITIFS_TTL_SECONDS = 300.0  # 5 minutes
+
+
+def invalidate_additifs_cache() -> None:
+    """À appeler après une modification de la table des additifs (côté admin)."""
+    _additifs_cache["data"] = None
+    _additifs_cache["ts"] = 0.0
+
+
+async def get_additifs_penalty(db: AsyncSession, force_refresh: bool = False) -> Dict[str, float]:
     """
     Crée un dictionnaire de pénalités pour TOUS les identifiants d'additifs
     (E, SIN, INS), normalisés pour la recherche.
     ex: {"e330": 2.0, "sin330": 2.0, "ins330": 2.0, ...}
+
+    Le résultat est mis en cache en mémoire pendant _ADDITIFS_TTL_SECONDS.
     """
+    import time
+    now = time.monotonic()
+    cached = _additifs_cache["data"]
+    if (
+        not force_refresh
+        and cached is not None
+        and (now - float(_additifs_cache["ts"])) < _ADDITIFS_TTL_SECONDS
+    ):
+        return cached  # type: ignore[return-value]
+
     # 1. On sélectionne tous les identifiants et le niveau de danger
     query = select(
         models.Additif.e_number, 
@@ -329,7 +356,10 @@ async def get_additifs_penalty(db: AsyncSession) -> Dict[str, float]:
         for key in keys_to_add:
             if key:
                 penalty_map[key] = penalty
-                
+
+    # Mise en cache du résultat
+    _additifs_cache["data"] = penalty_map
+    _additifs_cache["ts"] = now
     return penalty_map
 
 
@@ -392,11 +422,10 @@ async def store_or_increment_pending_additifs(db: AsyncSession, additives: List[
 
     try:
         await db.execute(update_on_conflict_stmt)
-        
+
     except Exception as e:
-        print(f"Erreur lors de l'upsert des additifs : {e}")
-        
-        raise e    
+        logger.error("Erreur lors de l'upsert des additifs : %s", e)
+        raise e
   
 async def get_user_by_submission(db: AsyncSession, submission_id: int) :
     
@@ -405,7 +434,6 @@ async def get_user_by_submission(db: AsyncSession, submission_id: int) :
         .where(models.Submission.id == submission_id)
     )
     user = result.scalars()
-    print(user)
     if user is None:
         raise ValueError("Soumission non trouvée")
     return user
@@ -506,9 +534,9 @@ async def update_product(db: AsyncSession, barcode: str, product_update: schemas
     # On reconstruit un dictionnaire complet pour le scoring
     data_for_scoring = product_update.model_dump()
     
-    print(f"--- Recalcul du score pour {barcode} ---")
+    logger.info("Recalcul du score pour %s", barcode)
     score_result = await scoring.calculate_score(db, data_for_scoring)
-    print(f"Nouveau score : {score_result.get('score')}")
+    logger.info("Nouveau score pour %s : %s", barcode, score_result.get('score'))
     
     # 4. Mettre à jour le score dans le produit
     db_product.custom_score = score_result.get('score')
@@ -542,10 +570,10 @@ async def get_better_alternatives(db: AsyncSession, barcode: str, limit: int = 5
     ]
     
     if ref_product.subcategory:
-        print(f"Recherche alternatives par sous-catégorie : {ref_product.subcategory}")
+        logger.debug("Alternatives par sous-catégorie : %s", ref_product.subcategory)
         query_filters.append(models.Product.subcategory == ref_product.subcategory)
     elif ref_product.category:
-        print(f"Recherche alternatives par catégorie : {ref_product.category}")
+        logger.debug("Alternatives par catégorie : %s", ref_product.category)
         query_filters.append(models.Product.category == ref_product.category)
     else:
         # Si ni catégorie ni sous-catégorie, on ne peut rien proposer de pertinent

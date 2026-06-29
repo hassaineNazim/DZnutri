@@ -9,6 +9,8 @@ from . import crud
 # Import des modèles pour le typage
 from . import models
 
+logger = logging.getLogger("dznutri.scoring")
+
 # =============================================================================
 # 1. FONCTIONS HELPERS (Outils généraux)
 # =============================================================================
@@ -285,18 +287,16 @@ async def calculate_score(db: AsyncSession, product_data: Dict[str, Any]) -> Dic
     # 2. On crée une "méga-chaîne" de texte en minuscule pour la recherche
     # Cela regroupe "Boissons", "en:beverages", "Eaux", etc.
     full_category_text = (cat_string + " " + " ".join(cat_tags) + " " + main_cat).lower()
-    
-    print(f"\n[DEBUG SCORING] Produit : {product_data.get('product_name')}")
-    print(f"[DEBUG SCORING] Texte des catégories analysé : {full_category_text[:100]}...") # On affiche les 100 premiers caractères
+
+    logger.debug("Scoring produit : %s", product_data.get('product_name'))
+    logger.debug("Texte des catégories analysé : %s", full_category_text[:100])
 
     # 3. Détection EAU
     # On cherche si l'un des mots-clés de l'eau est DANS la méga-chaîne
     is_water = any(keyword in full_category_text for keyword in CAT_WATER)
-    
-    print(f"[DEBUG SCORING] Est-ce de l'eau ? {is_water}")
 
     if is_water:
-        print("[DEBUG SCORING] -> STOP. Note forcée à 100.")
+        logger.debug("Produit détecté comme eau -> note forcée à 100.")
         return {
             "score": 100,
             "details": {

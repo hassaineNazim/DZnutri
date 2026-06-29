@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List, Dict, Any
@@ -5,6 +6,8 @@ import cloudinary
 import cloudinary.uploader
 from functools import partial
 import asyncio
+
+logger = logging.getLogger("dznutri.submissions")
 
 # Assurez-vous que ces imports correspondent à votre structure de dossiers
 from database import get_db
@@ -37,15 +40,10 @@ async def create_product_submission(
     """
     loop = asyncio.get_running_loop()
 
-    # ==============================================================================
-    # LOGGING POUR DEBUG
-    print(f"--- SUBMISSION RECEIVED ---")
-    print(f"Barcode: {barcode}")
-    print(f"Type Product: {typeProduct}")
-    print(f"Type Specifique: {typeSpecifique}")
-    print(f"Product Name: {productName}")
-    print(f"Brand: {brand}")
-    # ==============================================================================
+    logger.info(
+        "Soumission reçue: barcode=%s type=%s/%s nom=%s marque=%s",
+        barcode, typeProduct, typeSpecifique, productName, brand,
+    )
 
     # ==============================================================================
     # 1. UPLOAD DES IMAGES SUR CLOUDINARY (PARALLÈLE)

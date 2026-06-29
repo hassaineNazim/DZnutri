@@ -1,36 +1,75 @@
-version: '3.8'
+# Stack de production DZnutri : API FastAPI + PostgreSQL + Redis (+ admin web).
+# Lancement :  docker compose up -d --build
+# (Définir au minimum POSTGRES_PASSWORD et un .env avec les secrets applicatifs.)
 
 services:
-  # Le service de notre backend FastAPI
-  backend:
-    build: .  # Construit l'image à partir du Dockerfile dans ce dossier
-    ports:
-      - "8000:8000" # Lie le port 8000 de notre PC au port 8000 du conteneur
-    env_file:
-      - .env # Charge les variables d'environnement depuis le fichier .env
-    volumes:
-      - .:/app # Permet le rechargement à chaud : les changements dans votre code sont reflétés dans le conteneur
-    depends_on:
-      - db # Dit à Docker d'attendre que la base de données soit prête
-      - redis # Attendre que Redis soit prêt
-
-  # Le service de la base de données PostgreSQL
+  # --- Base de données PostgreSQL (remplace Neon) ---
   db:
-    image: postgres:15 # Utilise l'image officielle de PostgreSQL
+    image: postgres:16
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DATABASE_USER}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${POSTGRES_USER:-dznutri}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dznutri_dev_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-dznutri}
     ports:
-      - "5432:5432" # Lie le port 5432 de notre PC au port 5432 du conteneur
+      - "5432:5432"   # exposé pour l'admin DB et la migration depuis l'hôte
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Sauvegarde les données de la BD
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dznutri} -d ${POSTGRES_DB:-dznutri}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Le service de Cache (Redis)
+  # --- Cache Redis (cache partagé entre les workers de l'API) ---
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- API FastAPI ---
+  backend:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env                       # secrets applicatifs (Cloudinary, JWT, MAIL...)
+    environment:
+      # Ces valeurs SURCHARGENT le .env : on pointe vers la base et le cache du compose.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-dznutri}:${POSTGRES_PASSWORD:-dznutri_dev_secret}@db:5432/${POSTGRES_DB:-dznutri}
+      REDIS_URL: redis://redis:6379
+      DB_SSL: "false"              # Postgres local : pas de SSL
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
     ports:
-      - "6379:6379"
+      - "8000:8000"
+    volumes:
+      - uploads_data:/app/uploads  # persistance des images uploadées
+      # Clé Google Vision (OCR) — décommenter et adapter si nécessaire :
+      # - ./dznutri-632fbb70c039.json:/app/dznutri-632fbb70c039.json:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # --- Interface d'administration (React build servi par nginx) ---
+  admin:
+    build:
+      context: ../admin-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
 
 volumes:
-  postgres_data: # Définit le volume pour la persistance des données
+  postgres_data:
+  redis_data:
+  uploads_data:

@@ -24,7 +24,7 @@ export const useAllergenCheck = (ingredientsText?: string) => {
         const textLower = ingredientsText.toLowerCase();
         const found: string[] = [];
 
-        profile.allergies.forEach((allergyId) => {
+        profile.allergies.forEach((allergyId: string) => {
             const keywords = ALLERGEN_KEYWORDS[allergyId];
             if (keywords) {
                 // Check if any keyword key is present in the text

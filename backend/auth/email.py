@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
@@ -6,6 +7,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger("dznutri.email")
 
 class EmailSchema(BaseModel):
     email: List[EmailStr]
@@ -35,10 +38,8 @@ async def send_password_reset_email(email: EmailStr, token: str):
     """
 
     if not os.getenv("MAIL_USERNAME") or not os.getenv("MAIL_PASSWORD"):
-        print(f"============================================")
-        print(f"user :  {email}")
-        print(f"Token: {token}")
-        print(f"============================================")
+        # Mode dev sans SMTP configuré : on logue le code pour pouvoir tester.
+        logger.warning("[DEV] Code de réinitialisation pour %s : %s", email, token)
         return
 
     message = MessageSchema(

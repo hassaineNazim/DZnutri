@@ -1,0 +1,29 @@
+# Environnements virtuels / caches Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Secrets : injectés au runtime (env_file / volumes), jamais dans l'image
+.env
+.env.*
+dz-nutri-app-*.json
+dznutri-*.json
+google-services.json
+
+# Données utilisateur (montées via volume en production)
+uploads/
+
+# Git / docs / tests
+.git/
+.gitignore
+*.md
+test/
+tests/
+
+# Divers
+.DS_Store
+node_modules/
