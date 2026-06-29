@@ -19,8 +19,8 @@ async def search_products(
     min_score: Optional[int] = Query(None, description="Minimum score"),
     max_score: Optional[int] = Query(None, description="Maximum score"),
     verified_only: bool = Query(False, description="Show only verified products"),
-    limit: int = 20,
-    offset: int = 0,
+    limit: int = Query(20, ge=1, le=100, description="Nombre de résultats (max 100)"),
+    offset: int = Query(0, ge=0, description="Décalage de pagination"),
     db: AsyncSession = Depends(get_db)
 ):
     """

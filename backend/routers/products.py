@@ -141,7 +141,9 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
             image_url=off_product_data.get('image_url'),
             ingredients_text=off_product_data.get('ingredients_text'),
 
-            nutriscore_grade=off_product_data.get('nutriscore_grade'),
+            # Lettre Nutri-Score : on privilégie celle calculée par notre moteur
+            # (cohérente avec les produits soumis), avec repli sur celle d'OFF.
+            nutri_score=scoringGlobal.get('nutri_score') or off_product_data.get('nutriscore_grade'),
             nova_group=off_product_data.get('nova_group'),
             additives_tags=off_product_data.get('additives_tags', []),
             ecoscore_grade=off_product_data.get('ecoscore_grade'),
@@ -159,20 +161,6 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
 
     # 7. Si le produit n'est trouvé nulle part
     raise HTTPException(status_code=404, detail="Produit non trouvé")
-
-@router.put("/testapi") #Juste pour voir la structure de l'API d'OpenFoodFacts
-async def test_api(barcode: str):
-    logger.debug("Test API OFF pour %s...", barcode)
-    off_api_url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
-
-    client = get_off_client()
-    try:
-        response = await client.get(off_api_url)
-    except httpx.RequestError:
-        raise HTTPException(status_code=503, detail="Erreur de communication avec Open Food Facts")
-
-    data = response.json()
-    return {"message": data}
 
 @router.get("/api/product/{barcode}/alternatives")
 @cache(expire=86400) # Cache de 24 heures pour les alternatives

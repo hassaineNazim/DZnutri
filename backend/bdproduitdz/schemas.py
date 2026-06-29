@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from enum import Enum
@@ -90,10 +90,10 @@ class AdminProductApproval(BaseModel):
 
 # --- REPORTS SCHEMAS ---
 class ReportCreate(BaseModel):
-    barcode: str
+    barcode: str = Field(max_length=50)
     type: ReportTypeEnum
-    description: Optional[str] = None
-    image_url: Optional[str] = None
+    description: Optional[str] = Field(default=None, max_length=2000)
+    image_url: Optional[str] = Field(default=None, max_length=1000)
 
 class ReportResponse(BaseModel):
     id: int

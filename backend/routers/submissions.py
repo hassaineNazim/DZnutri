@@ -21,15 +21,40 @@ from bdproduitdz import additives_parser as bd_additives
 
 router = APIRouter(tags=["Submissions"])
 
-@router.post("/api/submission", response_model=bd_schemas.SubmissionResponse) 
+# Garde-fous sur les images uploadées : on borne le type MIME et la taille AVANT
+# d'envoyer quoi que ce soit à Cloudinary (anti-abus / anti-DoS).
+MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 Mo
+ALLOWED_IMAGE_TYPES = {
+    "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif",
+}
+
+
+def _validate_image(upload: Optional[UploadFile], field: str) -> None:
+    if upload is None:
+        return
+    if upload.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=415,
+            detail=f"{field}: type non supporté ({upload.content_type}). "
+                   "Formats acceptés : JPEG, PNG, WebP, HEIC.",
+        )
+    size = getattr(upload, "size", None)
+    if size is not None and size > MAX_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"{field}: image trop volumineuse (max {MAX_IMAGE_BYTES // (1024 * 1024)} Mo).",
+        )
+
+
+@router.post("/api/submission", response_model=bd_schemas.SubmissionResponse)
 async def create_product_submission(
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_user),
-    barcode: str = Form(...),
-    typeProduct: str = Form(...),
-    productName: str = Form(None),
-    brand: str = Form(None),
-    typeSpecifique: str = Form(None), 
+    barcode: str = Form(..., max_length=50),
+    typeProduct: str = Form(..., max_length=100),
+    productName: str = Form(None, max_length=200),
+    brand: str = Form(None, max_length=200),
+    typeSpecifique: str = Form(None, max_length=100),
     image_front: UploadFile = File(...),
     image_ingredients: Optional[UploadFile] = File(None),
     image_nutrition: Optional[UploadFile] = File(None) 
@@ -44,6 +69,11 @@ async def create_product_submission(
         "Soumission reçue: barcode=%s type=%s/%s nom=%s marque=%s",
         barcode, typeProduct, typeSpecifique, productName, brand,
     )
+
+    # Validation des fichiers AVANT tout upload (type MIME + taille).
+    _validate_image(image_front, "image_front")
+    _validate_image(image_ingredients, "image_ingredients")
+    _validate_image(image_nutrition, "image_nutrition")
 
     # ==============================================================================
     # 1. UPLOAD DES IMAGES SUR CLOUDINARY (PARALLÈLE)
