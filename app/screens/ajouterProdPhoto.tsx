@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, Check, RefreshCw, X } from 'lucide-react-native';
@@ -16,8 +15,9 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import StepHeader from '../components/StepHeader';
-import { API_URL } from '../config/api';
 import { useToast } from '../context/ToastContext';
+import { api } from '../services/axios';
+import { getAccessToken } from '../services/tokenStore';
 import { useTranslation } from '../i18n';
 
 // Example images
@@ -96,7 +96,7 @@ export default function AjouterProduitPhotoPage() {
     setLoading(true);
 
     try {
-      const userToken = await AsyncStorage.getItem('userToken');
+      const userToken = await getAccessToken();
       if (!userToken) throw new Error(t('connect'));
 
       const formData = new FormData();
@@ -105,7 +105,6 @@ export default function AjouterProduitPhotoPage() {
       formData.append('typeSpecifique', params.typeSpecifique as string);
       formData.append('productName', params.productName as string);
       formData.append('brand', params.brand as string);
-      formData.append('category', params.category as string);
 
       formData.append('image_front', {
         uri: imageUri,
@@ -128,17 +127,9 @@ export default function AjouterProduitPhotoPage() {
         } as any);
       }
 
-      const response = await fetch(`${API_URL}/api/submission`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${userToken}` },
-        body: formData,
-      });
-
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Server Error');
-      }
+      // Passe par `api` : ajout automatique du token + rafraîchissement
+      // silencieux sur 401. Timeout allongé pour l'upload multipart des images.
+      await api.post('/api/submission', formData, { timeout: 60000 });
 
       showToast(t('success_message') || "Produit soumis avec succès !", 'success');
 
@@ -148,7 +139,8 @@ export default function AjouterProduitPhotoPage() {
       }, 1500);
 
     } catch (error: any) {
-      showToast(error.message || "Une erreur est survenue", 'error');
+      const msg = error?.response?.data?.detail || error?.message || "Une erreur est survenue";
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
