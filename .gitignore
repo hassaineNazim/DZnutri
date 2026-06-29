@@ -9,6 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Admin frontend (build CRA généré)
+admin-frontend/build/
+
 # Native
 .kotlin/
 *.orig.*
@@ -39,6 +42,9 @@ yarn-error.*
 .venv/
 __pycache__/
 
+# Logs applicatifs (rotation gérée par l'app)
+logs/
+
 app-example
 
 #api
@@ -46,7 +52,10 @@ app-example
 
 backend/dz-nutri-app-0903244cb317.json
 backend/dznutri-632fbb70c039.json
-.env
+
+# Secrets / fichiers d'environnement — ne JAMAIS committer (voir .env.example)
+*.env
+!*.env.example
 
 
 android/local.properties
