@@ -9,10 +9,12 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-dznutri}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dznutri_dev_secret}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (mot de passe fort dans .env)}
       POSTGRES_DB: ${POSTGRES_DB:-dznutri}
     ports:
-      - "5432:5432"   # exposé pour l'admin DB et la migration depuis l'hôte
+      # Lié à localhost UNIQUEMENT : accessible pour l'admin DB local et la
+      # migration, jamais exposé publiquement sur le réseau.
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -42,17 +44,21 @@ services:
       - .env                       # secrets applicatifs (Cloudinary, JWT, MAIL...)
     environment:
       # Ces valeurs SURCHARGENT le .env : on pointe vers la base et le cache du compose.
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-dznutri}:${POSTGRES_PASSWORD:-dznutri_dev_secret}@db:5432/${POSTGRES_DB:-dznutri}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-dznutri}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis}@db:5432/${POSTGRES_DB:-dznutri}
       REDIS_URL: redis://redis:6379
+      RATELIMIT_STORAGE_URI: redis://redis:6379   # rate limiting partagé entre workers
       DB_SSL: "false"              # Postgres local : pas de SSL
       ENVIRONMENT: production
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}        # domaines CORS autorisés (virgules)
       LOG_LEVEL: INFO
+      GOOGLE_APPLICATION_CREDENTIALS: /app/vision-key.json  # clé OCR montée ci-dessous
     ports:
       - "8000:8000"
     volumes:
       - uploads_data:/app/uploads  # persistance des images uploadées
-      # Clé Google Vision (OCR) — décommenter et adapter si nécessaire :
-      # - ./dznutri-632fbb70c039.json:/app/dznutri-632fbb70c039.json:ro
+      # Clé Google Vision (OCR), montée en lecture seule. Adapter VISION_KEY_FILE
+      # (chemin hôte) ; défaut : backend/dznutri-632fbb70c039.json.
+      - ${VISION_KEY_FILE:-./dznutri-632fbb70c039.json}:/app/vision-key.json:ro
     depends_on:
       db:
         condition: service_healthy

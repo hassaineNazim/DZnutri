@@ -29,6 +29,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# URL de la base : priorité à DATABASE_URL (injectée au runtime), convertie en
+# pilote SYNC car Alembic s'exécute en synchrone. Repli sur alembic.ini sinon.
+_db_url = os.getenv("DATABASE_URL")
+if _db_url:
+    _db_url = _db_url.replace("+asyncpg", "+psycopg2")
+    config.set_main_option("sqlalchemy.url", _db_url)
+
 target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
