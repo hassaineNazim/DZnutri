@@ -1,7 +1,25 @@
+import logging
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi_cache import FastAPICache
 
 from database import get_db
+
+logger = logging.getLogger("dznutri.admin")
+
+
+async def _invalidate_product_cache() -> None:
+    """Purge le cache produit après une écriture admin.
+
+    Les réponses produit sont mises en cache 24h. Quand un admin approuve ou
+    modifie un produit, on vide le cache pour que les utilisateurs voient
+    immédiatement les données à jour. On protège l'appel : un souci de cache ne
+    doit jamais faire échouer l'action admin.
+    """
+    try:
+        await FastAPICache.clear()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Invalidation du cache produit impossible: %s", exc)
 from auth import models as auth_models
 from auth import schemas as auth_schemas
 from auth import security as auth_security
@@ -47,7 +65,8 @@ async def approve_product_submission(
             approved_product = result
             submitting_user_id = None
 
-        print(f"--- Produit approuvé et créé : {approved_product.product_name} ---")
+        logger.info("Produit approuvé et créé : %s", approved_product.product_name)
+        await _invalidate_product_cache()
 
         # --- NOTIFICATION PUSH ---
         if submitting_user_id:
@@ -62,9 +81,9 @@ async def approve_product_submission(
                     
                     # Appel de votre fonction de push en tâche de fond
                     background_tasks.add_task(send_expo_push, submitting_user_id, token, title, body)
-                    print(f"Notification planifiée pour l'utilisateur {submitting_user_id}")
+                    logger.info("Notification planifiée pour l'utilisateur %s", submitting_user_id)
             except Exception as e:
-                print(f"⚠️ Erreur notification push : {e}")
+                logger.warning("Erreur notification push : %s", e)
         # -------------------------
 
         return {
@@ -78,8 +97,7 @@ async def approve_product_submission(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         # Gestion des erreurs imprévues (bug code, db, etc.)
-        import traceback
-        traceback.print_exc()
+        logger.exception("Erreur interne lors de l'approbation de la soumission %s", submission_id)
         raise HTTPException(status_code=500, detail=f"Erreur interne lors de l'approbation: {str(e)}")
           
 
@@ -124,8 +142,9 @@ async def update_product_admin(
     Met à jour un produit (Admin seulement) et recalcule le score.
     """
     updated_product = await bd_crud.update_product(db, barcode, product_update)
-    
+
     if not updated_product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
-        
+
+    await _invalidate_product_cache()
     return updated_product

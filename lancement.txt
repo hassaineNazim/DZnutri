@@ -1,7 +1,22 @@
+=== Lancement en LOCAL (dev) ===
+
+Frontend mobile (Expo) :
 npx expo start
 
+Backend (venv) :
 .\.venv\Scripts\activate
-
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-npm start
+Admin web :
+npm start   (dans admin-frontend/)
+
+
+=== Lancement via DOCKER (prod) ===  -> voir DOCKER.md pour le détail
+
+cd backend
+docker compose up -d --build
+# API   : http://localhost:8000/health
+# Admin : http://localhost:3000
+
+# Migrer les données Neon -> Postgres (une fois) : voir section 3 de DOCKER.md
+# Arret : docker compose down   (down -v pour supprimer aussi les donnees)

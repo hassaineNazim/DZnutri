@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text, Enum as SqlEnum, JSON
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text, Enum as SqlEnum, JSON, Index
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database import Base
@@ -32,6 +32,13 @@ class Product(Base):
     ecoscore_grade = Column(String) # La lettre de l'Eco-Score
     detail_custom_score = Column(JSON, nullable=True)
 
+    # Index composites pour la recherche par catégorie triée par score
+    # (utilisés par /api/search, /api/categories et la recherche d'alternatives).
+    __table_args__ = (
+        Index("ix_products_category_score", "category", "custom_score"),
+        Index("ix_products_subcategory_score", "subcategory", "custom_score"),
+    )
+
 
 class Submission(Base):
     __tablename__ = "submissions"
@@ -63,6 +70,13 @@ class ScanHistory(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     product_id = Column(Integer, ForeignKey("produits.id"), nullable=False)
     scanned_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        # Liste de l'historique : filtre user_id + tri par date décroissante.
+        Index("ix_scan_history_user_scanned", "user_id", "scanned_at"),
+        # add_scan_to_history / delete : recherche par (user_id, product_id).
+        Index("ix_scan_history_user_product", "user_id", "product_id"),
+    )
 
 class Additif(Base):
     __tablename__ = "additifs"
@@ -123,16 +137,20 @@ class Favorite(Base):
     # Si on lie au produit interne, il FAUT que le produit existe dans la table produits
     # Comme notre logique est "scan -> sauvegarde en DB", le produit devrait exister.
     product_id = Column(Integer, ForeignKey("produits.id"), nullable=False)
-    
+
     saved_at = Column(DateTime, server_default=func.now())
 
     product = relationship("Product")
 
+    __table_args__ = (
+        # toggle/check favori : recherche par (user_id, product_id) ;
+        # liste des favoris : filtre user_id.
+        Index("ix_favorites_user_product", "user_id", "product_id"),
+    )
 
 
 
 
-print("--- Le fichier des modèles Produit est chargé ---")
 
 class Notification(Base):
     __tablename__ = "notifications"
@@ -146,5 +164,12 @@ class Notification(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("UserTable", back_populates="notifications")
+
+    __table_args__ = (
+        # Liste des notifications : filtre user_id + tri par date.
+        Index("ix_notifications_user_created", "user_id", "created_at"),
+        # Compteur de non-lues : filtre (user_id, read).
+        Index("ix_notifications_user_read", "user_id", "read"),
+    )
 
 # Update UserTable to include relationship (Adding this comment for context, will need to update UserTable if it's in another file or same)
