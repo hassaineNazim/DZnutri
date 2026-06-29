@@ -8,8 +8,9 @@ __pycache__/
 .mypy_cache/
 
 # Secrets : injectés au runtime (env_file / volumes), jamais dans l'image
-.env
+*.env
 .env.*
+doc_*.env
 dz-nutri-app-*.json
 dznutri-*.json
 google-services.json
