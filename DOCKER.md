@@ -30,8 +30,18 @@ Services et ports :
 - API : http://localhost:8000/health
 - Admin : http://localhost:3000
 
-Au démarrage, le backend **crée automatiquement le schéma** (10 tables + index)
-sur une base vide (idempotent).
+Au démarrage, le backend **met à jour le schéma** (création idempotente des
+tables + index + patches de colonnes), sur une base vide comme existante.
+
+### Stratégie de migration
+- Par défaut (`MIGRATION_MODE=create_all`), `create_db.py` synchronise le schéma
+  de façon idempotente : il crée les tables manquantes et applique les ajouts de
+  colonnes (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`). Sûr et sans état.
+- Pour les évolutions de schéma complexes (renommages, contraintes, suppressions),
+  passer à Alembic : `MIGRATION_MODE=alembic` fait `alembic upgrade head` au
+  démarrage. Alembic lit `DATABASE_URL` automatiquement. Sur une base déjà créée
+  par `create_all`, faire d'abord un `alembic stamp head` (une fois) pour aligner
+  l'historique avant le premier `upgrade`.
 
 ## 3. Migrer les données depuis Neon (une fois)
 La base Docker démarre vide. Pour y copier les données existantes de Neon :
@@ -62,9 +72,15 @@ docker compose exec db psql -U dznutri -d dznutri   # console SQL
 ```
 
 ## 5. Notes production
-- **Changer `POSTGRES_PASSWORD`** et `JWT_SECRET_KEY`.
-- Mettre `ENVIRONMENT=production` (restreint le CORS — adapter la liste des origines dans `main.py`).
+- **Changer `POSTGRES_PASSWORD`** et `JWT_SECRET_KEY` (clé forte obligatoire :
+  l'API refuse de démarrer en production avec une clé faible/par défaut).
+- Mettre `ENVIRONMENT=production` puis définir **`ALLOWED_ORIGINS`** (origines
+  CORS autorisées, séparées par des virgules — ex. `https://admin.dznutri.com`).
 - Ajuster le nombre de workers (`--workers` dans le `Dockerfile`) selon les CPU.
+- En multi-workers, définir `RATELIMIT_STORAGE_URI=redis://redis:6379` pour que
+  le rate limiting soit partagé entre les process.
 - Sauvegardes Postgres : `docker compose exec db pg_dump -U dznutri dznutri > backup.sql`.
-- OCR (Google Vision) : monter la clé JSON via le volume commenté dans `docker-compose.yml`.
+- OCR (Google Vision) : placer la clé de compte de service au chemin `VISION_KEY_FILE`
+  (défaut `backend/dznutri-632fbb70c039.json`) ; elle est montée automatiquement
+  en lecture seule dans le conteneur (`GOOGLE_APPLICATION_CREDENTIALS`).
 - Le cache Redis est partagé entre les workers (indispensable en multi-workers).
