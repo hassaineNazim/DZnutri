@@ -1,9 +1,9 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { ChevronLeft, ChevronRight, Heart, Key, LogOut, Mail, User as UserIcon } from 'lucide-react-native';
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from "react-native";
 import { api } from "../../services/axios";
+import { clearTokens, getRefreshToken } from "../../services/tokenStore";
 
 // Types
 interface UserData {
@@ -53,10 +53,10 @@ export default function ComptePage() {
       setUser(response.data);
     } catch (error) {
       console.log('Erreur lors de la récupération du profil', error);
-      // Si erreur 401, on redirige vers le login
+      // 401 après échec du rafraîchissement auto : session terminée.
       // @ts-ignore
       if (error.response && error.response.status === 401) {
-        await AsyncStorage.removeItem('userToken');
+        await clearTokens();
         router.replace("/auth");
       }
     } finally {
@@ -84,10 +84,15 @@ export default function ComptePage() {
           style: "destructive",
           onPress: async () => {
             try {
-              await AsyncStorage.removeItem('userToken');
+              // Révoque le refresh token côté serveur (best-effort).
+              const refreshToken = await getRefreshToken();
+              if (refreshToken) {
+                try { await api.post('/auth/logout', { refresh_token: refreshToken }); } catch {}
+              }
+              await clearTokens();
               router.replace("/auth");
             } catch (error) {
-              console.log('Erreur lors de la déconnexion', error);
+              if (__DEV__) console.log('Erreur lors de la déconnexion', error);
             }
           }
         }

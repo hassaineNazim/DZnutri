@@ -1,6 +1,6 @@
 import { FontAwesome } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@react-native-google-signin/google-signin";
+import { saveTokens } from '../services/tokenStore';
 import { useRouter } from 'expo-router';
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import React, { useEffect, useState } from 'react';
@@ -70,7 +70,7 @@ export default function Login() {
           const data = await backendResponse.json();
 
           if (backendResponse.ok && data?.access_token) {
-            await AsyncStorage.setItem('userToken', data.access_token);
+            await saveTokens(data);
             await registerForPushAndSendToServer();
             router.replace('/(tabs)/historique');
           } else {
@@ -134,7 +134,7 @@ export default function Login() {
       const data = await backendResponse.json();
 
       if (backendResponse.ok && data?.access_token) {
-        await AsyncStorage.setItem('userToken', data.access_token);
+        await saveTokens(data);
         await registerForPushAndSendToServer();
         router.replace('/(tabs)/historique');
       } else {

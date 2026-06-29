@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { saveTokens } from '../services/tokenStore';
 import React, { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -33,7 +33,7 @@ export default function LoginEmail() {
             const data = await response.json();
 
             if (response.ok && data?.access_token) {
-                await AsyncStorage.setItem('userToken', data.access_token);
+                await saveTokens(data);
                 await registerForPushAndSendToServer();
                 router.replace('/(tabs)/historique');
             } else {

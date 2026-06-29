@@ -1,14 +1,13 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Settings } from 'react-native-fbsdk-next';
 import "../global.css";
-import { API_URL } from "./config/api";
+import { api } from "./services/axios";
+import { getAccessToken } from "./services/tokenStore";
 
 // Call this before your app component renders
 Settings.initializeSDK();
 
-// ... rest of your App.js
 export default function Index() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -26,42 +25,37 @@ export default function Index() {
 
     const checkLoginStatus = async (validateRemote: boolean = false) => {
         setIsLoading(true);
-        let intertIsLoggedIn = false;
+        let loggedIn = false;
         try {
-            const token = await AsyncStorage.getItem('userToken');
+            const token = await getAccessToken();
             if (!token) {
-                intertIsLoggedIn = false;
+                loggedIn = false;
             } else if (validateRemote) {
                 try {
-                    const resp = await fetch(`${API_URL}/auth/me`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-
-                    if (resp.ok) {
-                        intertIsLoggedIn = true;
-                    } else if (resp.status === 401) {
-                        // Only logout if explicitly unauthorized (expired/invalid token)
-                        await AsyncStorage.removeItem('userToken');
-                        intertIsLoggedIn = false;
+                    // Passe par l'instance `api` : l'intercepteur rafraîchit
+                    // automatiquement un access token expiré via le refresh token.
+                    await api.get('/auth/me');
+                    loggedIn = true;
+                } catch (e: any) {
+                    if (e?.response?.status === 401) {
+                        // Rafraîchissement impossible : session terminée
+                        // (tokens déjà nettoyés par l'intercepteur).
+                        loggedIn = false;
                     } else {
-                        // Server error (500) or other issues: Optimistically keep user logged in
-                        intertIsLoggedIn = true;
+                        // Erreur réseau/serveur : on reste connecté (optimiste).
+                        loggedIn = true;
                     }
-                } catch {
-                    // Network failure: keep user logged in optimistically
-                    intertIsLoggedIn = true;
                 }
             } else {
-                intertIsLoggedIn = true;
+                loggedIn = true;
             }
         } catch {
-            intertIsLoggedIn = false;
+            loggedIn = false;
         } finally {
-            setIsLoggedIn(intertIsLoggedIn);
+            setIsLoggedIn(loggedIn);
             setIsLoading(false);
         }
     };
-
 
     if (isLoading) {
         return null;
