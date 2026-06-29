@@ -52,6 +52,10 @@ async def main():
                     "additives_tags": product.additives_tags,
                     "ecoscore_grade": product.ecoscore_grade,
                     "nutriscore_grade": product.nutri_score,
+                    # Indispensable pour la détection de catégorie (boisson, gras,
+                    # fromage, eau) : sans ça tout serait scoré comme "solide".
+                    "category": product.category,
+                    "subcategory": product.subcategory,
                 }
 
                 with db.no_autoflush:
@@ -59,6 +63,8 @@ async def main():
 
                 product.custom_score = score_result.get("score")
                 product.detail_custom_score = score_result.get("details")
+                if score_result.get("nutri_score"):
+                    product.nutri_score = score_result.get("nutri_score")
                 product.updated_at = datetime.utcnow()
 
                 db.add(product)

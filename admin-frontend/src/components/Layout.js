@@ -19,6 +19,7 @@ const Layout = () => {
         { path: '/reports/auto', label: 'Signalements Auto' },
         { path: '/reports/users', label: 'Signalements Utilisateurs' },
         { path: '/additives/pending', label: 'Additifs Inconnus' },
+        { path: '/monitoring', label: 'Monitoring' },
     ];
 
     return (

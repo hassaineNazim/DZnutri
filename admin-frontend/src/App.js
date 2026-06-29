@@ -9,6 +9,7 @@ const AdditiveReports = React.lazy(() => import('./components/AdditiveReports'))
 const AutoReports = React.lazy(() => import('./components/AutoReports'));
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const Login = React.lazy(() => import('./components/Login'));
+const Monitoring = React.lazy(() => import('./components/Monitoring'));
 const UserReports = React.lazy(() => import('./components/UserReports'));
 
 // Protected Route Component
@@ -66,7 +67,7 @@ function App() {
               <Route path="/reports/auto" element={<AutoReports />} />
               <Route path="/reports/users" element={<UserReports />} />
               <Route path="/additives/pending" element={<AdditiveReports />} />
-              <Route path="/monitoring" element={<div className="p-6"><h2>Monitoring</h2><p className="text-gray-500 mt-2">Cette fonctionnalité est en cours de développement.</p></div>} />
+              <Route path="/monitoring" element={<Monitoring />} />
             </Route>
 
             {/* Catch-all */}
