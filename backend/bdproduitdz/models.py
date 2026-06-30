@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text, Enum as SqlEnum, JSON, Index
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text, Enum as SqlEnum, Index
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database import Base
@@ -12,7 +13,7 @@ class Product(Base):
     barcode = Column(String, unique=True, index=True, nullable=False)
     product_name = Column(String, nullable=False)
     brand = Column(String, nullable=True)
-    nutriments = Column(JSON, nullable=True) 
+    nutriments = Column(JSONB, nullable=True)
     ingredients_text = Column(String, nullable=True)
 
     user_id = Column(Integer, ForeignKey("users.id"))
@@ -24,19 +25,21 @@ class Product(Base):
     image_url = Column(String, nullable=True)
     category = Column(String, nullable=True)
     subcategory = Column(String, nullable=True)
-    additives_tags = Column(JSON, nullable=True)
+    additives_tags = Column(JSONB, nullable=True)
     custom_score = Column(Integer, nullable=True)
 
     nutri_score = Column(String) # La lettre du Nutri-Score (a, b, c...)
     nova_group = Column(Integer) # Le degré de transformation (1, 2, 3, ou 4)
     ecoscore_grade = Column(String) # La lettre de l'Eco-Score
-    detail_custom_score = Column(JSON, nullable=True)
+    detail_custom_score = Column(JSONB, nullable=True)
 
     # Index composites pour la recherche par catégorie triée par score
     # (utilisés par /api/search, /api/categories et la recherche d'alternatives).
     __table_args__ = (
         Index("ix_products_category_score", "category", "custom_score"),
         Index("ix_products_subcategory_score", "subcategory", "custom_score"),
+        # Tri global par score (recherche/navigation sans filtre catégorie).
+        Index("ix_products_custom_score", "custom_score"),
     )
 
 
@@ -56,8 +59,8 @@ class Submission(Base):
     typeSpecifique = Column(String, nullable=True)
     ocr_ingredients_text = Column(String, nullable=True)
     ocr_nutrition_text = Column(String, nullable=True)
-    parsed_nutriments = Column(JSON, nullable=True)
-    found_additives = Column(JSON, nullable=True) 
+    parsed_nutriments = Column(JSONB, nullable=True)
+    found_additives = Column(JSONB, nullable=True)
     
 
     submitted_by_user_id = Column(Integer, ForeignKey("users.id"))
