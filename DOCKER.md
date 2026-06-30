@@ -46,14 +46,14 @@ tables + index + patches de colonnes), sur une base vide comme existante.
 ## 3. Migrer les données depuis Neon (une fois)
 La base Docker démarre vide. Pour y copier les données existantes de Neon :
 
-```bash
-# Récupère l'URL Neon depuis .env (gère les guillemets) et lance la migration
-# DANS le conteneur (réseau Docker fiable vers db, internet vers Neon).
-NEON_URL=$(grep -E '^DATABASE_URL=' .env | head -1 | cut -d= -f2- | tr -d "\"'" | tr -d "\r")
+`DATABASE_URL` pointe désormais vers le Postgres Docker : on passe donc l'URL Neon
+**explicitement** comme source (elle est conservée commentée sous `NEON_SOURCE_URL`
+dans `.env`). À lancer DANS le conteneur (réseau fiable vers `db`, internet vers Neon) :
 
+```bash
 docker compose exec -T \
-  -e SOURCE_DATABASE_URL="$NEON_URL" \
-  -e TARGET_DATABASE_URL="postgresql+asyncpg://dznutri:${POSTGRES_PASSWORD:-dznutri_dev_secret}@db:5432/dznutri" \
+  -e SOURCE_DATABASE_URL="postgresql+asyncpg://<NEON_USER>:<NEON_PASSWORD>@<NEON_HOST>/<NEON_DB>" \
+  -e TARGET_DATABASE_URL="postgresql+asyncpg://dznutri:<POSTGRES_PASSWORD>@db:5432/dznutri" \
   backend python script/migrate_neon_to_local.py
 ```
 Le script copie schéma + données et réinitialise les séquences. Ré-exécutable
@@ -79,6 +79,11 @@ docker compose exec db psql -U dznutri -d dznutri   # console SQL
 - Ajuster le nombre de workers (`--workers` dans le `Dockerfile`) selon les CPU.
 - En multi-workers, définir `RATELIMIT_STORAGE_URI=redis://redis:6379` pour que
   le rate limiting soit partagé entre les process.
+- **Index de performance** : après le premier remplissage, lancer
+  `python script/add_indexes.py` (extension `pg_trgm` + index **trigram** pour la
+  recherche texte `ILIKE` + index de tri par score, créés en `CONCURRENTLY`).
+  Sur une base déjà remplie en type `json`, lancer aussi une fois
+  `python script/migrate_json_to_jsonb.py` (conversion JSONB). Puis `ANALYZE produits;`.
 - Sauvegardes Postgres : `docker compose exec db pg_dump -U dznutri dznutri > backup.sql`.
 - OCR (Google Vision) : placer la clé de compte de service au chemin `VISION_KEY_FILE`
   (défaut `backend/dznutri-632fbb70c039.json`) ; elle est montée automatiquement
