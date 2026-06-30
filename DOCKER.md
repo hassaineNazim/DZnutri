@@ -85,7 +85,8 @@ docker compose exec db psql -U dznutri -d dznutri   # console SQL
   Sur une base déjà remplie en type `json`, lancer aussi une fois
   `python script/migrate_json_to_jsonb.py` (conversion JSONB). Puis `ANALYZE produits;`.
 - Sauvegardes Postgres : `docker compose exec db pg_dump -U dznutri dznutri > backup.sql`.
-- OCR (Google Vision) : placer la clé de compte de service au chemin `VISION_KEY_FILE`
-  (défaut `backend/dznutri-632fbb70c039.json`) ; elle est montée automatiquement
-  en lecture seule dans le conteneur (`GOOGLE_APPLICATION_CREDENTIALS`).
+- OCR (Google Vision) : placer la clé de compte de service à
+  `backend/dznutri-632fbb70c039.json` (ou `VISION_KEY_FILE`), puis **décommenter**
+  le montage du volume + `GOOGLE_APPLICATION_CREDENTIALS` dans `docker-compose.yml`.
+  Sans clé, l'OCR est inactif et l'application démarre normalement.
 - Le cache Redis est partagé entre les workers (indispensable en multi-workers).
