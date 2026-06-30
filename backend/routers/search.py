@@ -11,7 +11,7 @@ from bdproduitdz import models, schemas
 
 router = APIRouter(tags=["Search"])
 
-@router.get("/api/search", response_model=List[schemas.Product])
+@router.get("/api/search", response_model=List[schemas.ProductSearchResult])
 async def search_products(
     q: Optional[str] = Query(None, description="Search term (product name, brand, barcode)"),
     category: Optional[str] = Query(None, description="Filter by category"),
@@ -26,7 +26,21 @@ async def search_products(
     """
     Advanced search with filters.
     """
-    stmt = select(models.Product)
+    # Sélection CIBLÉE des colonnes : on évite de charger les gros JSON
+    # (nutriments, detail_custom_score, additives_tags) pour une liste.
+    stmt = select(
+        models.Product.id,
+        models.Product.barcode,
+        models.Product.product_name,
+        models.Product.brand,
+        models.Product.image_url,
+        models.Product.category,
+        models.Product.subcategory,
+        models.Product.nutri_score,
+        models.Product.nova_group,
+        models.Product.custom_score,
+        models.Product.is_verified,
+    )
 
     # 1. Text Search
     if q:
@@ -62,9 +76,8 @@ async def search_products(
     stmt = stmt.limit(limit).offset(offset)
 
     result = await db.execute(stmt)
-    products = result.scalars().all()
-
-    return products
+    # Lignes -> dicts ; FastAPI valide ensuite via ProductSearchResult.
+    return [dict(row._mapping) for row in result.all()]
 
 @router.get("/api/categories")
 @cache(expire=3600)  # Les catégories changent rarement : cache 1h (purgé sur écriture admin)

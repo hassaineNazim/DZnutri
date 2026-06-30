@@ -35,7 +35,26 @@ class ProductUpdate(ProductBase):
 class Product(ProductBase):
     id: int
     is_verified: bool
-    
+
+    class Config:
+        from_attributes = True
+
+class ProductSearchResult(BaseModel):
+    """Schéma allégé pour les listes de recherche : on n'expose PAS les gros
+    JSON (nutriments, detail_custom_score, additifs) — inutiles dans une liste et
+    coûteux en bande passante mobile. Le détail complet vient de /api/product."""
+    id: int
+    barcode: str
+    product_name: str
+    brand: Optional[str] = None
+    image_url: Optional[str] = None
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
+    nutri_score: Optional[str] = None
+    nova_group: Optional[int] = None
+    custom_score: Optional[int] = None
+    is_verified: bool = False
+
     class Config:
         from_attributes = True
 
