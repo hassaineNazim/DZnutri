@@ -12,9 +12,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis (mot de passe fort dans .env)}
       POSTGRES_DB: ${POSTGRES_DB:-dznutri}
     ports:
-      # Lié à localhost UNIQUEMENT : accessible pour l'admin DB local et la
-      # migration, jamais exposé publiquement sur le réseau.
-      - "127.0.0.1:5432:5432"
+      # Lié à localhost UNIQUEMENT (jamais exposé publiquement). Port hôte 5433
+      # par défaut pour cohabiter avec un PostgreSQL natif éventuel sur 5432.
+      # Surchargeable via DB_HOST_PORT.
+      - "127.0.0.1:${DB_HOST_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -51,14 +52,16 @@ services:
       ENVIRONMENT: production
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}        # domaines CORS autorisés (virgules)
       LOG_LEVEL: INFO
-      GOOGLE_APPLICATION_CREDENTIALS: /app/vision-key.json  # clé OCR montée ci-dessous
+      # OCR (Google Vision) : décommenter quand la clé est montée (volume ci-dessous).
+      # GOOGLE_APPLICATION_CREDENTIALS: /app/vision-key.json
     ports:
       - "8000:8000"
     volumes:
       - uploads_data:/app/uploads  # persistance des images uploadées
-      # Clé Google Vision (OCR), montée en lecture seule. Adapter VISION_KEY_FILE
-      # (chemin hôte) ; défaut : backend/dznutri-632fbb70c039.json.
-      - ${VISION_KEY_FILE:-./dznutri-632fbb70c039.json}:/app/vision-key.json:ro
+      # OCR : pour l'activer, placer la clé de compte de service Google Vision puis
+      # décommenter (adapter VISION_KEY_FILE au besoin). Sans clé, l'OCR est
+      # simplement inactif et l'application démarre normalement.
+      # - ${VISION_KEY_FILE:-./dznutri-632fbb70c039.json}:/app/vision-key.json:ro
     depends_on:
       db:
         condition: service_healthy
