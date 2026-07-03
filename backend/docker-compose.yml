@@ -55,7 +55,10 @@ services:
       # OCR (Google Vision) : décommenter quand la clé est montée (volume ci-dessous).
       # GOOGLE_APPLICATION_CREDENTIALS: /app/vision-key.json
     ports:
-      - "8000:8000"
+      # Lié à localhost : le trafic public passe par le reverse proxy TLS
+      # (service "caddy" ci-dessous). Pour exposer directement (ex. tests LAN),
+      # surcharger via BACKEND_HOST_BIND=0.0.0.0 dans .env.
+      - "${BACKEND_HOST_BIND:-127.0.0.1}:8000:8000"
     volumes:
       - uploads_data:/app/uploads  # persistance des images uploadées
       # OCR : pour l'activer, placer la clé de compte de service Google Vision puis
@@ -74,11 +77,36 @@ services:
       context: ../admin-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
+      # Même logique que le backend : localhost par défaut, Caddy en frontal.
+      - "${ADMIN_HOST_BIND:-127.0.0.1}:3000:80"
     depends_on:
       - backend
+
+  # --- Reverse proxy TLS (HTTPS automatique via Let's Encrypt) ---
+  # Activation :  docker compose --profile proxy up -d
+  # Pré-requis : API_DOMAIN et ADMIN_DOMAIN définis dans .env et pointant (DNS)
+  # vers ce serveur, ports 80/443 ouverts. Voir DOCKER.md §"Mise en ligne HTTPS".
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    profiles: ["proxy"]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:-}      # ex: api.dznutri.com
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN:-}  # ex: admin.dznutri.com
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # certificats (à persister absolument)
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - admin
 
 volumes:
   postgres_data:
   redis_data:
   uploads_data:
+  caddy_data:
+  caddy_config:

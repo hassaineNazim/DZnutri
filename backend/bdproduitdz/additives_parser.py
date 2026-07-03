@@ -23,18 +23,23 @@ async def find_additives_in_text(db: AsyncSession, ocr_text: str):
     name_check_list = []
 
     for add in known_additives:
+        # Pour les noms, on garde la liste pour regex plus tard
+        if add.name:
+            name_check_list.append(add)
+
+        # e_number est nullable en base : sans ce garde, un additif sans code E
+        # faisait crasher toute la détection (AttributeError sur None).
+        if not add.e_number:
+            continue
+
         # Standard E-number (ex: E322)
-        code = add.e_number.upper()
+        code = str(add.e_number).upper()
         code_map[code] = add
-        
+
         # Variations standard (SIN322, INS322)
         number_part = code[1:] if code.startswith("E") else code
         code_map[f"SIN{number_part}"] = add
         code_map[f"INS{number_part}"] = add
-        
-        # Pour les noms, on garde la liste pour regex plus tard
-        if add.name:
-            name_check_list.append(add)
 
     # 2. STRATÉGIE 1 : RECHERCHE PAR PATTERN INTELLIGENT (Codes)
     # On cherche (E ou SIN ou INS) suivi éventuellement d'espace ou tiret, suivi de 3 ou 4 chiffres, suivi optionnellement d'une lettre

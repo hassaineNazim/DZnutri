@@ -18,12 +18,29 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 
+
+def _cache_key_builder(func, namespace: str = "", *, request=None, response=None, args=(), kwargs=None) -> str:
+    """Clé de cache fondée UNIQUEMENT sur les paramètres primitifs de l'endpoint.
+
+    Le key builder par défaut de fastapi-cache sérialise TOUS les kwargs, y
+    compris la session DB (objet unique par requête) : chaque appel produisait
+    une clé différente -> le cache ne servait jamais et Redis se remplissait de
+    clés mortes (TTL 24h). Ici on ignore tout ce qui n'est pas str/int/float/bool.
+    """
+    kwargs = kwargs or {}
+    primitives = sorted(
+        (k, v) for k, v in kwargs.items()
+        if v is None or isinstance(v, (str, int, float, bool))
+    )
+    raw = f"{func.__module__}:{func.__name__}:{primitives}"
+    return f"{namespace}:{hashlib.md5(raw.encode()).hexdigest()}"  # noqa: S324 - clé de cache, pas de la crypto
+
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from observability import metrics, setup_logging
 from rate_limit import limiter
-from routers import auth, products, submissions, admin, history, report, profile, search, favorites, notifications
+from routers import auth, products, submissions, admin, history, report, profile, search, favorites, notifications, cosmetics
 
 load_dotenv()
 
@@ -56,15 +73,16 @@ async def _init_cache():
         from fastapi_cache.backends.redis import RedisBackend
         from redis import asyncio as aioredis
 
+        # decode_responses DOIT rester False : le JsonCoder de fastapi-cache
+        # attend des bytes (`value.decode()`). Avec True, chaque HIT de cache
+        # levait AttributeError -> 500 sur les réponses servies depuis le cache.
         redis = aioredis.from_url(
             redis_url,
-            encoding="utf8",
-            decode_responses=True,
             socket_connect_timeout=2,
         )
         # On vérifie que Redis répond réellement avant de l'adopter.
         await redis.ping()
-        FastAPICache.init(RedisBackend(redis), prefix="dznutri-cache")
+        FastAPICache.init(RedisBackend(redis), prefix="dznutri-cache", key_builder=_cache_key_builder)
         logger.info("Cache: Redis connecté (%s)", redis_url)
         return redis
     except Exception as exc:  # noqa: BLE001 - on veut un fallback sur toute erreur
@@ -72,7 +90,7 @@ async def _init_cache():
             "Cache: Redis indisponible (%s) -> fallback cache mémoire. Détail: %s",
             redis_url, exc,
         )
-        FastAPICache.init(InMemoryBackend(), prefix="dznutri-cache")
+        FastAPICache.init(InMemoryBackend(), prefix="dznutri-cache", key_builder=_cache_key_builder)
         return None
 
 
@@ -278,3 +296,4 @@ app.include_router(profile.router)
 app.include_router(search.router)
 app.include_router(favorites.router)
 app.include_router(notifications.router)
+app.include_router(cosmetics.router)

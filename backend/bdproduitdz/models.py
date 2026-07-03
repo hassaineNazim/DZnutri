@@ -1,9 +1,13 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text, Enum as SqlEnum, Index
+from sqlalchemy import JSON, Column, Integer, String, Boolean, ForeignKey, DateTime, Text, Enum as SqlEnum, Index
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database import Base
 import enum
+
+# JSONB sur PostgreSQL (binaire, indexable GIN) ; JSON générique sur les autres
+# dialectes (les tests utilisent SQLite, qui ne sait pas compiler JSONB).
+PortableJSONB = JSONB().with_variant(JSON(), "sqlite")
 
 
 class Product(Base):
@@ -13,7 +17,7 @@ class Product(Base):
     barcode = Column(String, unique=True, index=True, nullable=False)
     product_name = Column(String, nullable=False)
     brand = Column(String, nullable=True)
-    nutriments = Column(JSONB, nullable=True)
+    nutriments = Column(PortableJSONB, nullable=True)
     ingredients_text = Column(String, nullable=True)
 
     user_id = Column(Integer, ForeignKey("users.id"))
@@ -25,13 +29,13 @@ class Product(Base):
     image_url = Column(String, nullable=True)
     category = Column(String, nullable=True)
     subcategory = Column(String, nullable=True)
-    additives_tags = Column(JSONB, nullable=True)
+    additives_tags = Column(PortableJSONB, nullable=True)
     custom_score = Column(Integer, nullable=True)
 
     nutri_score = Column(String) # La lettre du Nutri-Score (a, b, c...)
     nova_group = Column(Integer) # Le degré de transformation (1, 2, 3, ou 4)
     ecoscore_grade = Column(String) # La lettre de l'Eco-Score
-    detail_custom_score = Column(JSONB, nullable=True)
+    detail_custom_score = Column(PortableJSONB, nullable=True)
 
     # Index composites pour la recherche par catégorie triée par score
     # (utilisés par /api/search, /api/categories et la recherche d'alternatives).
@@ -59,8 +63,8 @@ class Submission(Base):
     typeSpecifique = Column(String, nullable=True)
     ocr_ingredients_text = Column(String, nullable=True)
     ocr_nutrition_text = Column(String, nullable=True)
-    parsed_nutriments = Column(JSONB, nullable=True)
-    found_additives = Column(JSONB, nullable=True)
+    parsed_nutriments = Column(PortableJSONB, nullable=True)
+    found_additives = Column(PortableJSONB, nullable=True)
     
 
     submitted_by_user_id = Column(Integer, ForeignKey("users.id"))
@@ -103,8 +107,11 @@ class AdditifPending(Base):
     sin_number = Column(String, nullable=True)
     ins_number = Column(String, nullable=True)
     source = Column(String, default="openfoodfacts")
-    count = Column(Integer, default=1) 
-    first_seen_at = Column(DateTime, default=func.now)
+    count = Column(Integer, default=1)
+    # server_default (et non `default=func.now` SANS parenthèses : l'objet
+    # fonction était envoyé comme paramètre binde -> DataError asyncpg sur
+    # chaque upsert d'additifs inconnus).
+    first_seen_at = Column(DateTime, server_default=func.now())
     reviewed = Column(Boolean, default=False)
 
 class ReportType(str, enum.Enum):
@@ -175,4 +182,65 @@ class Notification(Base):
         Index("ix_notifications_user_read", "user_id", "read"),
     )
 
-# Update UserTable to include relationship (Adding this comment for context, will need to update UserTable if it's in another file or same)
+
+# =============================================================================
+# UNIVERS COSMÉTIQUE (parallèle à l'alimentaire, façon Yuka)
+# Scan -> score par ingrédients à risque ; si absent -> soumission photo
+# avant/arrière -> validation admin. Source de repli : Open Beauty Facts.
+# =============================================================================
+
+class CosmeticProduct(Base):
+    __tablename__ = "cosmetiques"
+
+    id = Column(Integer, primary_key=True, index=True)
+    barcode = Column(String, unique=True, index=True, nullable=False)
+    product_name = Column(String, nullable=False)
+    brand = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)
+    ingredients_text = Column(String, nullable=True)  # liste INCI
+    category = Column(String, nullable=True)           # soin visage, shampoing...
+
+    cosmetic_score = Column(Integer, nullable=True)    # 0-100 (façon Yuka)
+    score_detail = Column(JSONB, nullable=True)        # {penalites, note...}
+    risky_ingredients = Column(JSONB, nullable=True)   # [{name, danger_level, concern}]
+
+    is_verified = Column(Boolean, default=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    __table_args__ = (
+        # Tri par score (liste / alternatives) et navigation par catégorie.
+        Index("ix_cosmetiques_score", "cosmetic_score"),
+        Index("ix_cosmetiques_category_score", "category", "cosmetic_score"),
+    )
+
+
+class CosmeticSubmission(Base):
+    __tablename__ = "cosmetic_submissions"
+
+    id = Column(Integer, primary_key=True)
+    barcode = Column(String, index=True, nullable=False)
+    product_name = Column(String, nullable=True)
+    brand = Column(String, nullable=True)
+    category = Column(String, nullable=True)
+
+    image_front_url = Column(String, nullable=False)   # face avant
+    image_back_url = Column(String, nullable=True)     # dos (liste INCI)
+    ocr_ingredients_text = Column(String, nullable=True)
+
+    status = Column(String, default="pending", index=True)
+    submitted_at = Column(DateTime, server_default=func.now())
+    submitted_by_user_id = Column(Integer, ForeignKey("users.id"))
+
+
+class CosmeticIngredient(Base):
+    """Référentiel des ingrédients cosmétiques à risque (base du scoring)."""
+    __tablename__ = "cosmetic_ingredients"
+
+    id = Column(Integer, primary_key=True)
+    # Nom INCI en minuscules (pour le matching insensible à la casse).
+    name = Column(String, unique=True, index=True, nullable=False)
+    danger_level = Column(Integer, default=1)          # 1 faible, 2 modéré, 3 élevé
+    concern = Column(String, nullable=True)            # ex: "perturbateur endocrinien"
+    description = Column(String, nullable=True)

@@ -52,6 +52,8 @@ async def main():
                     "additives_tags": product.additives_tags,
                     "ecoscore_grade": product.ecoscore_grade,
                     "nutriscore_grade": product.nutri_score,
+                    # Détection des édulcorants (malus boissons, Nutri-Score 2023).
+                    "ingredients_text": product.ingredients_text,
                     # Indispensable pour la détection de catégorie (boisson, gras,
                     # fromage, eau) : sans ça tout serait scoré comme "solide".
                     "category": product.category,

@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Literal, Optional, Dict, Any, List
 from datetime import datetime
 from enum import Enum
 
@@ -36,8 +36,7 @@ class Product(ProductBase):
     id: int
     is_verified: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProductSearchResult(BaseModel):
     """Schéma allégé pour les listes de recherche : on n'expose PAS les gros
@@ -55,8 +54,7 @@ class ProductSearchResult(BaseModel):
     custom_score: Optional[int] = None
     is_verified: bool = False
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- SUBMISSIONS SCHEMAS ---
 class SubmissionBase(BaseModel):
@@ -91,8 +89,7 @@ class SubmissionResponse(SubmissionBase):
     submitted_at: datetime
     submitted_by_user_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- ADMIN SCHEMAS ---
 class AdminProductApproval(BaseModel):
@@ -114,6 +111,10 @@ class ReportCreate(BaseModel):
     description: Optional[str] = Field(default=None, max_length=2000)
     image_url: Optional[str] = Field(default=None, max_length=1000)
 
+class ReportStatusUpdate(BaseModel):
+    """Changement de statut d'un signalement par l'admin."""
+    status: Literal["pending", "resolved", "ignored"]
+
 class ReportResponse(BaseModel):
     id: int
     barcode: Optional[str] = None
@@ -124,8 +125,7 @@ class ReportResponse(BaseModel):
     user_id: Optional[int] = None
     image_url: Optional[str] = None # Important pour l'affichage front
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- NOTIFICATION SCHEMAS ---
 class NotificationBase(BaseModel):
@@ -141,5 +141,67 @@ class NotificationResponse(NotificationBase):
     read: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+# --- COSMETICS SCHEMAS ---
+class CosmeticProductBase(BaseModel):
+    barcode: str
+    product_name: str
+    brand: Optional[str] = None
+    image_url: Optional[str] = None
+    ingredients_text: Optional[str] = None
+    category: Optional[str] = None
+    cosmetic_score: Optional[int] = None
+    score_detail: Optional[Dict[str, Any]] = None
+    risky_ingredients: Optional[List[Dict[str, Any]]] = []
+
+class CosmeticProductCreate(CosmeticProductBase):
+    pass
+
+class CosmeticProductUpdate(BaseModel):
+    product_name: Optional[str] = Field(default=None, max_length=300)
+    brand: Optional[str] = Field(default=None, max_length=200)
+    image_url: Optional[str] = Field(default=None, max_length=1000)
+    ingredients_text: Optional[str] = Field(default=None, max_length=10000)
+    category: Optional[str] = Field(default=None, max_length=200)
+
+class CosmeticProduct(CosmeticProductBase):
+    id: int
+    is_verified: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CosmeticSearchResult(BaseModel):
+    """Schéma allégé pour les listes de cosmétiques (sans les gros JSON)."""
+    id: int
+    barcode: str
+    product_name: str
+    brand: Optional[str] = None
+    image_url: Optional[str] = None
+    category: Optional[str] = None
+    cosmetic_score: Optional[int] = None
+    is_verified: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CosmeticSubmissionResponse(BaseModel):
+    id: int
+    barcode: str
+    product_name: Optional[str] = None
+    brand: Optional[str] = None
+    category: Optional[str] = None
+    image_front_url: Optional[str] = None
+    image_back_url: Optional[str] = None
+    ocr_ingredients_text: Optional[str] = None
+    status: str
+    submitted_at: datetime
+    submitted_by_user_id: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CosmeticApproval(BaseModel):
+    """Champs corrigés par l'admin à l'approbation d'une soumission cosmétique."""
+    product_name: str = Field(max_length=300)
+    brand: Optional[str] = Field(default=None, max_length=200)
+    category: Optional[str] = Field(default=None, max_length=200)
+    ingredients_text: Optional[str] = Field(default=None, max_length=10000)

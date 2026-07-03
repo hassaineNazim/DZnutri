@@ -135,7 +135,9 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
         # 5. On prépare les données pour les sauvegarder dans notre table 'products' 
         product_to_create = bd_schemas.ProductCreate(
             barcode=off_product_data.get('code', barcode),
-            product_name=off_product_data.get('product_name_fr', off_product_data.get('product_name')),
+            # `or` (et non get(default)) : OFF renvoie parfois la clé avec une
+            # valeur vide/None -> sans repli, la validation Pydantic échouait (500).
+            product_name=off_product_data.get('product_name_fr') or off_product_data.get('product_name') or barcode,
             brand=off_product_data.get('brands'),
             nutriments=off_product_data.get('nutriments'),
             image_url=off_product_data.get('image_url'),

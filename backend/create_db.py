@@ -16,6 +16,7 @@ from database import engine, Base
 import auth.models  # noqa: F401
 import auth.profile_models  # noqa: F401
 import bdproduitdz.models  # noqa: F401
+from bdproduitdz.cosmetic_ingredients_seed import COSMETIC_INGREDIENTS
 
 
 # Patches de colonnes ajoutées APRÈS la création initiale des tables.
@@ -24,7 +25,29 @@ import bdproduitdz.models  # noqa: F401
 # bien les nouvelles colonnes. Sûrs à rejouer à chaque démarrage.
 _COLUMN_PATCHES = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_code_attempts INTEGER NOT NULL DEFAULT 0",
+    # Date d'inscription (analytics admin). Les comptes existants sont
+    # backfillés avec la date d'application du patch.
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()",
 ]
+
+
+async def _seed_cosmetic_ingredients(conn) -> int:
+    """Remplit le référentiel d'ingrédients cosmétiques à risque s'il est vide.
+
+    Idempotent : ne fait rien si la table contient déjà des lignes.
+    """
+    count = await conn.scalar(text("SELECT count(*) FROM cosmetic_ingredients"))
+    if count and count > 0:
+        return 0
+    for name, level, concern, description in COSMETIC_INGREDIENTS:
+        await conn.execute(
+            text(
+                "INSERT INTO cosmetic_ingredients (name, danger_level, concern, description) "
+                "VALUES (:n, :l, :c, :d) ON CONFLICT (name) DO NOTHING"
+            ),
+            {"n": name, "l": level, "c": concern, "d": description},
+        )
+    return len(COSMETIC_INGREDIENTS)
 
 
 async def create_tables():
@@ -32,10 +55,11 @@ async def create_tables():
         await conn.run_sync(Base.metadata.create_all)
         for stmt in _COLUMN_PATCHES:
             await conn.execute(text(stmt))
+        seeded = await _seed_cosmetic_ingredients(conn)
     await engine.dispose()
     print(
         f"Schéma créé/vérifié : {len(Base.metadata.tables)} tables, "
-        f"{len(_COLUMN_PATCHES)} patch(es) de colonnes appliqué(s)."
+        f"{len(_COLUMN_PATCHES)} patch(es), {seeded} ingrédient(s) cosmétique(s) seedé(s)."
     )
 
 

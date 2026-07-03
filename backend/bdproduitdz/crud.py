@@ -261,7 +261,9 @@ async def get_user_history_stats(db: AsyncSession, user_id: int):
         .join(models.ScanHistory, models.Product.id == models.ScanHistory.product_id)
         .where(models.ScanHistory.user_id == user_id)
     )
-    scores = result.scalars().all()
+    # custom_score est nullable : sans ce filtre, sum() lève TypeError (-> 500)
+    # dès qu'un produit de l'historique n'a pas de score.
+    scores = [s for s in result.scalars().all() if s is not None]
 
     if not scores:
         return {
@@ -406,8 +408,10 @@ async def store_or_increment_pending_additifs(db: AsyncSession, additives: List[
         return
 
     # Préparer les données pour l'insertion
+    # NB : le modèle AdditifPending n'a pas de colonne 'status' (c'est 'reviewed',
+    # False par défaut) ; l'inclure faisait échouer TOUS les upserts en silence.
     insert_data = [
-        {'e_code': code, 'count': 1, 'status': 'pending'}
+        {'e_code': code, 'count': 1}
         for code in normalized_codes
     ]
 
@@ -423,6 +427,10 @@ async def store_or_increment_pending_additifs(db: AsyncSession, additives: List[
 
     try:
         await db.execute(update_on_conflict_stmt)
+        # Commit immédiat : cette fonction est appelée depuis des handlers GET
+        # (scan produit) qui ne committent jamais -> sans ça, les additifs
+        # inconnus n'étaient jamais persistés pour la revue admin.
+        await db.commit()
 
     except Exception as e:
         logger.error("Erreur lors de l'upsert des additifs : %s", e)
@@ -531,10 +539,21 @@ async def update_product(db: AsyncSession, barcode: str, product_update: schemas
     for key, value in update_data.items():
         setattr(db_product, key, value)
 
-    # 3. Recalculer le score avec les nouvelles données
-    # On reconstruit un dictionnaire complet pour le scoring
-    data_for_scoring = product_update.model_dump()
-    
+    # 3. Recalculer le score avec les données COMPLÈTES du produit mis à jour.
+    # (Scorer le seul payload faussait le résultat dès qu'un champ n'était pas
+    # renvoyé par l'admin : catégorie absente -> produit traité comme solide,
+    # nutriments absents -> produit "parfait".)
+    data_for_scoring = {
+        "product_name": db_product.product_name,
+        "nutriments": db_product.nutriments,
+        "additives_tags": db_product.additives_tags,
+        "ingredients_text": db_product.ingredients_text,
+        "nova_group": db_product.nova_group,
+        "ecoscore_grade": db_product.ecoscore_grade,
+        "category": db_product.category,
+        "subcategory": db_product.subcategory,
+    }
+
     logger.info("Recalcul du score pour %s", barcode)
     score_result = await scoring.calculate_score(db, data_for_scoring)
     logger.info("Nouveau score pour %s : %s", barcode, score_result.get('score'))

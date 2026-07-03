@@ -1,0 +1,14 @@
+# Reverse proxy TLS de production (service "caddy" du docker-compose, profil "proxy").
+# Les certificats Let's Encrypt sont obtenus et renouvelés automatiquement :
+# il suffit que API_DOMAIN / ADMIN_DOMAIN pointent (DNS A/AAAA) vers ce serveur
+# et que les ports 80/443 soient ouverts.
+
+{$API_DOMAIN} {
+	# API FastAPI (l'app mobile pointe ici via EXPO_PUBLIC_API_URL / expo.extra.apiUrl)
+	reverse_proxy backend:8000
+}
+
+{$ADMIN_DOMAIN} {
+	# Interface d'administration (nginx sert le build React et proxifie déjà /api)
+	reverse_proxy admin:80
+}

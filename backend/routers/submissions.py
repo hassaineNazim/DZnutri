@@ -97,8 +97,16 @@ async def create_product_submission(
     else:
         tasks_upload.append(asyncio.sleep(0)) # Renverra None
 
-    # Exécution simultanée
-    results_upload = await asyncio.gather(*tasks_upload)
+    # Exécution simultanée. Un échec Cloudinary (image corrompue, service
+    # indisponible) doit produire une erreur claire côté mobile, pas un 500 brut.
+    try:
+        results_upload = await asyncio.gather(*tasks_upload)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Upload Cloudinary en échec: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail="Impossible d'héberger les images (fichier invalide ou service indisponible). Réessayez avec une autre photo.",
+        )
 
     # Récupération sécurisée des URLs (on vérifie si le résultat est un dictionnaire Cloudinary)
     front_data = results_upload[0]

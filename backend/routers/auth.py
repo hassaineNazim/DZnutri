@@ -35,8 +35,13 @@ MAX_RESET_ATTEMPTS = 5
 
 
 async def _issue_tokens(db: AsyncSession, user) -> dict:
-    """Émet la paire de tokens : access JWT court + refresh longue durée."""
-    access_token = auth_jwt.create_access_token(data={"sub": user.username})
+    """Émet la paire de tokens : access JWT court + refresh longue durée.
+
+    Le `sub` du JWT est l'ID utilisateur (stable et unique). L'username ne l'est
+    PAS (non unique en base : deux comptes Google au même nom d'affichage se
+    retrouvaient avec le même sub -> confusion d'identité).
+    """
+    access_token = auth_jwt.create_access_token(data={"sub": str(user.id)})
     refresh_token = await auth_refresh.create_refresh_token(db, user.id)
     return {
         "access_token": access_token,
@@ -180,7 +185,13 @@ async def forgot_password(request: Request, payload: auth_schemas.ForgotPassword
     db.add(user)
     await db.commit()
     
-    await send_password_reset_email(user.email, reset_code)
+    try:
+        await send_password_reset_email(user.email, reset_code)
+    except Exception:
+        # Un échec SMTP renvoyait un 500 UNIQUEMENT pour les emails existants :
+        # cela révélait l'existence du compte (anti-énumération cassée) en plus
+        # de casser le parcours. On journalise et on garde la réponse générique.
+        logger.exception("Échec d'envoi de l'email de réinitialisation")
     return {"message": "Si cet email existe, un code de réinitialisation a été envoyé."}
 
 @router.post("/auth/reset-password")
@@ -256,7 +267,7 @@ async def refresh_tokens(
     if user is None:
         raise HTTPException(status_code=401, detail="Utilisateur introuvable")
 
-    access_token = auth_jwt.create_access_token(data={"sub": user.username})
+    access_token = auth_jwt.create_access_token(data={"sub": str(user.id)})
     return {
         "access_token": access_token,
         "refresh_token": new_refresh,

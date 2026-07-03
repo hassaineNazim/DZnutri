@@ -2,6 +2,7 @@
 from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy.sql import func
 from database import Base
 from sqlalchemy.orm import relationship
 
@@ -11,6 +12,9 @@ class UserTable(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, index=True)
+    # Date d'inscription (analytics admin). Les comptes antérieurs à l'ajout de
+    # la colonne reçoivent la date du patch (voir create_db.py).
+    created_at = Column(DateTime, server_default=func.now())
     email = Column(String, unique=True, index=True, nullable=True) # Ajout de l'email
     google_id = Column(String, unique=True, nullable=True) # Pour stocker l'ID unique de Google 
 

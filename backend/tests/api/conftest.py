@@ -3,6 +3,7 @@ import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from main import app
 from database import Base, get_db
@@ -12,9 +13,12 @@ from bdproduitdz.models import Product # Ensure models are loaded
 # Use in-memory SQLite for testing
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
+# StaticPool : une base :memory: n'existe que dans SA connexion ; on partage
+# donc une connexion unique entre le setup (create_all) et les sessions de test.
 engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
 )
 
 TestingSessionLocal = sessionmaker(
@@ -34,6 +38,9 @@ async def setup_database():
     yield
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+    # Ferme la connexion aiosqlite (thread non-daemon) : sans ce dispose,
+    # le processus pytest ne se termine jamais.
+    await engine.dispose()
 
 @pytest_asyncio.fixture
 async def client():

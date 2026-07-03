@@ -27,15 +27,21 @@ async def get_current_user(
     payload = verify_token(token)
     if payload is None:
         raise credentials_exception
-        
-    username: str = payload.get("sub")
-    if username is None:
+
+    sub = payload.get("sub")
+    if sub is None:
         raise credentials_exception
-        
-    user_in_db = await auth_crud.get_user_by_username(db, username=username)
+
+    # `sub` = ID utilisateur (stable et unique). On accepte encore, pendant la
+    # transition, les anciens tokens dont le sub était l'username (non unique) :
+    # ils expirent en moins d'une heure.
+    if str(sub).isdigit():
+        user_in_db = await auth_crud.get_user_by_id(db, int(sub))
+    else:
+        user_in_db = await auth_crud.get_user_by_username(db, username=str(sub))
     if user_in_db is None:
         raise credentials_exception
-        
+
     return user_in_db
 
 
