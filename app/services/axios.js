@@ -46,7 +46,7 @@ async function performRefresh() {
       return access_token;
     }
     return null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }

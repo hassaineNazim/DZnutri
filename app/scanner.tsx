@@ -21,6 +21,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import ScoreGauge from './components/ScoreGauge';
 import { useTranslation } from './i18n';
+import { fetchCosmetic } from './services/cosmetics';
 import { fetchProduct } from './services/openFoodFacts';
 import { saveToHistory } from './services/saveHistorique';
 
@@ -67,6 +68,7 @@ export default function Scanner() {
   const { t } = useTranslation();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanResult, setScanResult] = useState<ScanResult>({ status: 'scanning' });
+  const [mode, setMode] = useState<'food' | 'cosmetic'>('food');
   const router = useRouter();
 
   useEffect(() => {
@@ -81,12 +83,25 @@ export default function Scanner() {
     setScanResult({ status: 'loading' });
 
     try {
-      const fetchedProduct = await fetchProduct(data);
-      if (fetchedProduct) {
-        setScanResult({ status: 'found', product: fetchedProduct });
-        await saveToHistory(fetchedProduct);
+      if (mode === 'cosmetic') {
+        const cosmetic = await fetchCosmetic(data);
+        if (cosmetic) {
+          // Normalisé pour réutiliser la même modale (brands + custom_score).
+          setScanResult({
+            status: 'found',
+            product: { ...cosmetic, brands: cosmetic.brand, custom_score: cosmetic.cosmetic_score ?? undefined } as any,
+          });
+        } else {
+          setScanResult({ status: 'notFound', barcode: data });
+        }
       } else {
-        setScanResult({ status: 'notFound', barcode: data });
+        const fetchedProduct = await fetchProduct(data);
+        if (fetchedProduct) {
+          setScanResult({ status: 'found', product: fetchedProduct });
+          await saveToHistory(fetchedProduct);
+        } else {
+          setScanResult({ status: 'notFound', barcode: data });
+        }
       }
     } catch (error) {
       console.error('Erreur lors de la recherche:', error);
@@ -98,7 +113,7 @@ export default function Scanner() {
 
   const navigateToProductDetails = (product: Product) => {
     router.push({
-      pathname: './screens/productDetail',
+      pathname: mode === 'cosmetic' ? './screens/cosmeticDetail' : './screens/productDetail',
       params: { product: JSON.stringify(product) },
     });
     resetScanner();
@@ -143,6 +158,30 @@ export default function Scanner() {
           <Text className="text-white/90 text-center bg-black/40 px-6 py-3 rounded-full font-medium text-sm">
             {t('search_placeholder_text') || "Scannez un code-barres"}
           </Text>
+        </View>
+      </View>
+
+      {/* Sélecteur Aliment / Cosmétique (façon Yuka) */}
+      <View style={{ position: 'absolute', top: 50, left: 0, right: 0, alignItems: 'center' }} pointerEvents="box-none">
+        <View className="flex-row bg-black/50 rounded-full p-1">
+          <TouchableOpacity
+            onPress={() => setMode('food')}
+            className={`px-5 py-2 rounded-full ${mode === 'food' ? 'bg-emerald-500' : ''}`}
+            activeOpacity={0.8}
+          >
+            <Text className={`font-semibold text-sm ${mode === 'food' ? 'text-white' : 'text-white/70'}`}>
+              {t('food') || 'Aliment'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setMode('cosmetic')}
+            className={`px-5 py-2 rounded-full ${mode === 'cosmetic' ? 'bg-pink-500' : ''}`}
+            activeOpacity={0.8}
+          >
+            <Text className={`font-semibold text-sm ${mode === 'cosmetic' ? 'text-white' : 'text-white/70'}`}>
+              {t('cosmetic') || 'Cosmétique'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -247,10 +286,11 @@ export default function Scanner() {
                 <TouchableOpacity
                   className="w-full bg-emerald-500 py-3.5 rounded-xl items-center active:bg-emerald-600 mb-3"
                   onPress={() => {
+                    const bc = scanResult.barcode;
                     resetScanner();
                     router.push({
-                      pathname: './screens/typeProd',
-                      params: { barcode: scanResult.barcode },
+                      pathname: mode === 'cosmetic' ? './screens/ajouterCosmetique' : './screens/typeProd',
+                      params: { barcode: bc },
                     });
                   }}
                 >
