@@ -69,12 +69,10 @@ const Dashboard = () => {
     try {
       setActionLoading(true);
       await submissionsAPI.approveSubmission(submissionId, adminData);
-      // Après une action, on rafraîchit simplement toutes les données
+      // fetchData() recharge déjà tout : le window.location.reload() qui
+      // suivait rechargeait toute la SPA pour rien (flash blanc + re-login UX).
       await fetchData();
       setIsModalOpen(false);
-      // --- AJOUTEZ CETTE LIGNE ---
-      window.location.reload();
-      // --------------------------
     } catch (err) {
       setError('Failed to approve submission.');
       console.error('Error approving submission:', err);

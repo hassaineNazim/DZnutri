@@ -2,11 +2,13 @@ import React, { Suspense } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { authAPI } from './api/auth';
 import Layout from './components/Layout';
+import { ToastProvider } from './components/Toast';
 import './index.css';
 
 // Lazy loading for components
 const AdditiveReports = React.lazy(() => import('./components/AdditiveReports'));
 const AutoReports = React.lazy(() => import('./components/AutoReports'));
+const CosmeticSubmissions = React.lazy(() => import('./components/CosmeticSubmissions'));
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const Login = React.lazy(() => import('./components/Login'));
 const Monitoring = React.lazy(() => import('./components/Monitoring'));
@@ -37,6 +39,7 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <Router>
+      <ToastProvider>
       <div className="App">
         <Suspense fallback={<div className="flex h-screen items-center justify-center">Chargement...</div>}>
           <Routes>
@@ -67,6 +70,7 @@ function App() {
               <Route path="/reports/auto" element={<AutoReports />} />
               <Route path="/reports/users" element={<UserReports />} />
               <Route path="/additives/pending" element={<AdditiveReports />} />
+              <Route path="/cosmetics/submissions" element={<CosmeticSubmissions />} />
               <Route path="/monitoring" element={<Monitoring />} />
             </Route>
 
@@ -78,6 +82,7 @@ function App() {
           </Routes>
         </Suspense>
       </div>
+      </ToastProvider>
     </Router>
   );
 }

@@ -1,7 +1,5 @@
-import axios from 'axios';
-
 import { useEffect, useState } from 'react';
-import { authAPI } from '../api/auth';
+import api from '../api/auth';
 import ReportTable from './ReportTable';
 
 const AdditiveReports = () => {
@@ -12,21 +10,12 @@ const AdditiveReports = () => {
     useEffect(() => {
         const fetchAdditives = async () => {
             try {
-                const token = authAPI.getToken();
-                // Note: Using the requested endpoint. If it doesn't exist, this will fail.
-                // In a real scenario, we might need to mock this or handle 404s gracefully.
-                const response = await axios.get('/api/admin/pending-additives', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                // Instance partagée `api` : token, refresh silencieux et baseURL gérés.
+                const response = await api.get('/api/admin/pending-additives');
                 setAdditives(response.data);
             } catch (err) {
                 console.error("Error fetching additives:", err);
-                // Fallback for demo if endpoint doesn't exist yet
-                if (err.response && err.response.status === 404) {
-                    setError("L'endpoint /api/admin/pending-additives n'existe pas encore.");
-                } else {
-                    setError("Impossible de charger les additifs.");
-                }
+                setError("Impossible de charger les additifs.");
             } finally {
                 setLoading(false);
             }
