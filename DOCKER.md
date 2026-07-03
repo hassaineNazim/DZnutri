@@ -22,13 +22,18 @@ docker compose up -d --build
 Services et ports :
 | Service  | Port hôte | Rôle |
 |----------|-----------|------|
-| backend  | 8000      | API FastAPI (2 workers Uvicorn) |
-| admin    | 3000      | Interface admin (nginx + reverse-proxy API) |
-| db       | 5432      | PostgreSQL 16 (volume `postgres_data`) |
+| backend  | 127.0.0.1:8000 | API FastAPI (2 workers Uvicorn) |
+| admin    | 127.0.0.1:3000 | Interface admin (nginx + reverse-proxy API) |
+| db       | 127.0.0.1:5433 | PostgreSQL 16 (volume `postgres_data`) |
 | redis    | —         | Cache (interne, volume `redis_data`) |
+| caddy    | 80 / 443  | Reverse proxy TLS public (profil `proxy`, voir §5) |
 
 - API : http://localhost:8000/health
 - Admin : http://localhost:3000
+
+> Par défaut, backend/admin/db ne sont liés qu'à `127.0.0.1` : rien n'est
+> exposé publiquement tant que le profil `proxy` (HTTPS) n'est pas lancé.
+> Pour des tests sur le réseau local : `BACKEND_HOST_BIND=0.0.0.0` dans `.env`.
 
 Au démarrage, le backend **met à jour le schéma** (création idempotente des
 tables + index + patches de colonnes), sur une base vide comme existante.
@@ -71,7 +76,35 @@ docker compose down -v            # arrêter + SUPPRIMER les volumes (données !
 docker compose exec db psql -U dznutri -d dznutri   # console SQL
 ```
 
-## 5. Notes production
+## 5. Mise en ligne HTTPS (reverse proxy Caddy)
+
+L'app mobile **exige une URL HTTPS** en production. Le service `caddy`
+(profil `proxy` du compose) fournit le TLS automatiquement (Let's Encrypt).
+
+1. Acheter/configurer un domaine et créer deux entrées DNS **A** pointant vers
+   l'IP publique du serveur : `api.<domaine>` et `admin.<domaine>`.
+2. Ouvrir les ports **80 et 443** sur le serveur (firewall / groupe de sécurité).
+3. Dans `backend/.env` :
+   ```
+   API_DOMAIN=api.<domaine>
+   ADMIN_DOMAIN=admin.<domaine>
+   ENVIRONMENT=production
+   ALLOWED_ORIGINS=https://admin.<domaine>
+   ```
+4. Lancer la stack avec le proxy :
+   ```bash
+   docker compose --profile proxy up -d --build
+   ```
+5. Vérifier : `https://api.<domaine>/health` et `https://admin.<domaine>`.
+6. Côté mobile : renseigner l'URL dans `app.json` (`expo.extra.apiUrl`) **ou**
+   via la variable EAS `EXPO_PUBLIC_API_URL=https://api.<domaine>`, puis builder
+   (`eas build --profile production`).
+
+Les certificats sont stockés dans le volume `caddy_data` (ne pas le supprimer,
+sous peine de re-demander des certificats à chaque redéploiement — Let's
+Encrypt applique des quotas).
+
+## 6. Notes production
 - **Changer `POSTGRES_PASSWORD`** et `JWT_SECRET_KEY` (clé forte obligatoire :
   l'API refuse de démarrer en production avec une clé faible/par défaut).
 - Mettre `ENVIRONMENT=production` puis définir **`ALLOWED_ORIGINS`** (origines
