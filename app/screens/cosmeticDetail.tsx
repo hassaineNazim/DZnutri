@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProductRatings from '../components/ProductRatings';
 import ScoreGauge from '../components/ScoreGauge';
+import { useTranslation } from '../i18n';
 import { CosmeticProduct, fetchCosmetic } from '../services/cosmetics';
 
 const scoreColor = (s?: number | null) => {
@@ -15,23 +16,25 @@ const scoreColor = (s?: number | null) => {
   return '#EF4444';
 };
 
-const scoreLabel = (s?: number | null) => {
-  if (s === undefined || s === null) return 'Analyse indisponible';
-  if (s >= 75) return 'Excellent';
-  if (s >= 50) return 'Bon';
-  if (s >= 25) return 'Médiocre';
-  return 'Mauvais';
+// Renvoie une CLÉ i18n (traduite au rendu via t()).
+const scoreLabelKey = (s?: number | null) => {
+  if (s === undefined || s === null) return 'analysis_unavailable';
+  if (s >= 75) return 'excellent';
+  if (s >= 50) return 'good';
+  if (s >= 25) return 'mediocre';
+  return 'bad';
 };
 
-// 1 = faible, 2 = modéré, 3 = élevé
+// 1 = faible, 2 = modéré, 3 = élevé — labelKey est une clé i18n.
 const dangerStyle = (level: number) => {
-  if (level >= 3) return { color: '#EF4444', bg: '#FEE2E2', label: 'Risque élevé' };
-  if (level === 2) return { color: '#F97316', bg: '#FFEDD5', label: 'Risque modéré' };
-  return { color: '#F59E0B', bg: '#FEF3C7', label: 'Risque faible' };
+  if (level >= 3) return { color: '#EF4444', bg: '#FEE2E2', labelKey: 'risk_high' };
+  if (level === 2) return { color: '#F97316', bg: '#FFEDD5', labelKey: 'risk_moderate' };
+  return { color: '#F59E0B', bg: '#FEF3C7', labelKey: 'risk_low' };
 };
 
 export default function CosmeticDetail() {
   const router = useRouter();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { product: productJson } = useLocalSearchParams();
   const initial: CosmeticProduct | null = productJson ? JSON.parse(productJson as string) : null;
@@ -62,7 +65,7 @@ export default function CosmeticDetail() {
           <ArrowLeft size={22} color="#374151" />
         </TouchableOpacity>
         <Text className="flex-1 text-center text-lg font-bold text-gray-900 mr-10" numberOfLines={1}>
-          {product.product_name || 'Cosmétique'}
+          {product.product_name || t('cosmetic')}
         </Text>
       </View>
 
@@ -77,10 +80,10 @@ export default function CosmeticDetail() {
             />
             <View className="flex-1 ml-4">
               <Text className="text-xl font-bold text-gray-900" numberOfLines={2}>
-                {product.product_name || 'Sans nom'}
+                {product.product_name || t('no_name')}
               </Text>
               <Text className="text-sm text-gray-500 mt-1" numberOfLines={1}>
-                {product.brand || 'Marque inconnue'}
+                {product.brand || t('brand_unknown')}
               </Text>
               {product.category ? (
                 <Text className="text-xs text-gray-400 mt-1" numberOfLines={1}>{product.category}</Text>
@@ -91,9 +94,9 @@ export default function CosmeticDetail() {
           <View className="flex-row items-center justify-center mt-5 pt-5 border-t border-gray-100">
             <ScoreGauge score={score ?? 0} size={72} strokeWidth={7} showText={score !== null && score !== undefined} />
             <View className="ml-5">
-              <Text className="text-xs text-gray-400 uppercase tracking-widest font-bold">Score cosmétique</Text>
+              <Text className="text-xs text-gray-400 uppercase tracking-widest font-bold">{t('cosmetic_score_label')}</Text>
               <Text className="text-2xl font-extrabold mt-0.5" style={{ color: scoreColor(score) }}>
-                {scoreLabel(score)}
+                {t(scoreLabelKey(score))}
               </Text>
             </View>
           </View>
@@ -104,7 +107,7 @@ export default function CosmeticDetail() {
           <View className="flex-row items-center mb-3">
             <AlertTriangle size={18} color="#EF4444" />
             <Text className="ml-2 text-base font-bold text-gray-900">
-              Ingrédients à risque {risky.length > 0 ? `(${risky.length})` : ''}
+              {t('risky_ingredients')} {risky.length > 0 ? `(${risky.length})` : ''}
             </Text>
           </View>
 
@@ -112,7 +115,7 @@ export default function CosmeticDetail() {
             <View className="bg-white rounded-2xl p-4 flex-row items-center">
               <CheckCircle2 size={22} color="#22C55E" />
               <Text className="ml-3 text-gray-600 flex-1">
-                {score === null ? "Composition non analysée." : 'Aucun ingrédient préoccupant détecté.'}
+                {score === null || score === undefined ? t('composition_not_analyzed') : t('no_risky_ingredients')}
               </Text>
             </View>
           ) : (
@@ -128,7 +131,7 @@ export default function CosmeticDetail() {
                     {ing.concern ? <Text className="text-xs text-gray-500 mt-0.5">{ing.concern}</Text> : null}
                   </View>
                   <View style={{ backgroundColor: st.bg }} className="px-2.5 py-1 rounded-full">
-                    <Text style={{ color: st.color }} className="text-xs font-bold">{st.label}</Text>
+                    <Text style={{ color: st.color }} className="text-xs font-bold">{t(st.labelKey)}</Text>
                   </View>
                 </View>
               );
@@ -139,7 +142,7 @@ export default function CosmeticDetail() {
         {/* Composition INCI */}
         {product.ingredients_text ? (
           <View className="mx-4 mt-5">
-            <Text className="text-base font-bold text-gray-900 mb-2">Composition (INCI)</Text>
+            <Text className="text-base font-bold text-gray-900 mb-2">{t('composition_inci')}</Text>
             <View className="bg-white rounded-2xl p-4">
               <Text className="text-sm text-gray-600 leading-5">{product.ingredients_text}</Text>
             </View>

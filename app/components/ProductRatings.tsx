@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useToast } from '../context/ToastContext';
+import { useTranslation } from '../i18n';
 import { getRatings, RatingsSummary, submitRating } from '../services/ratings';
 import StarRating from './StarRating';
 
@@ -8,6 +9,7 @@ import StarRating from './StarRating';
 // moyenne + nombre d'avis, la note de l'utilisateur (modifiable), avis récents.
 export default function ProductRatings({ barcode }: { barcode?: string }) {
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [summary, setSummary] = useState<RatingsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [myRating, setMyRating] = useState(0);
@@ -39,14 +41,14 @@ export default function ProductRatings({ barcode }: { barcode?: string }) {
   const submit = async () => {
     if (!barcode) return;
     if (myRating < 1) {
-      showToast('Choisissez une note (1 à 5 étoiles)', 'error');
+      showToast(t('choose_rating'), 'error');
       return;
     }
     setSubmitting(true);
     try {
       const data = await submitRating(barcode, myRating, comment);
       setSummary(data);
-      showToast('Merci pour votre note !', 'success');
+      showToast(t('rating_thanks'), 'success');
     } catch (e: any) {
       showToast(e?.response?.data?.detail || "Erreur lors de l'envoi", 'error');
     } finally {
@@ -59,7 +61,7 @@ export default function ProductRatings({ barcode }: { barcode?: string }) {
 
   return (
     <View className="mx-4 mt-5 mb-8">
-      <Text className="text-base font-bold text-gray-900 mb-3">Notes des utilisateurs</Text>
+      <Text className="text-base font-bold text-gray-900 mb-3">{t('user_ratings')}</Text>
 
       {/* Moyenne */}
       <View className="bg-white rounded-2xl p-4 flex-row items-center shadow-sm">
@@ -72,7 +74,7 @@ export default function ProductRatings({ barcode }: { barcode?: string }) {
         <View className="flex-1">
           <StarRating value={summary?.average ?? 0} size={22} />
           <Text className="text-sm text-gray-500 mt-1">
-            {count > 0 ? `${count} avis` : 'Aucune note pour le moment'}
+            {count > 0 ? `${count} ${t('reviews')}` : t('no_ratings_yet')}
           </Text>
         </View>
       </View>
@@ -80,12 +82,12 @@ export default function ProductRatings({ barcode }: { barcode?: string }) {
       {/* Votre note */}
       <View className="bg-white rounded-2xl p-4 mt-3 shadow-sm">
         <Text className="text-sm font-semibold text-gray-700 mb-2">
-          {alreadyRated ? 'Votre note' : 'Notez ce produit'}
+          {alreadyRated ? t('your_rating') : t('rate_this_product')}
         </Text>
         <StarRating value={myRating} onChange={setMyRating} size={34} />
         <TextInput
           className="border border-gray-200 rounded-xl p-3 mt-3 text-gray-900"
-          placeholder="Votre avis (optionnel)"
+          placeholder={t('your_review_placeholder')}
           placeholderTextColor="#9CA3AF"
           value={comment}
           onChangeText={setComment}
@@ -100,7 +102,7 @@ export default function ProductRatings({ barcode }: { barcode?: string }) {
             <ActivityIndicator color="white" />
           ) : (
             <Text className="text-white font-bold">
-              {alreadyRated ? 'Mettre à jour ma note' : 'Envoyer ma note'}
+              {alreadyRated ? t('update_my_rating') : t('send_my_rating')}
             </Text>
           )}
         </TouchableOpacity>
@@ -109,12 +111,12 @@ export default function ProductRatings({ barcode }: { barcode?: string }) {
       {/* Avis récents */}
       {summary && summary.ratings.length > 0 && (
         <View className="mt-4">
-          <Text className="text-sm font-semibold text-gray-700 mb-2">Avis récents</Text>
+          <Text className="text-sm font-semibold text-gray-700 mb-2">{t('recent_reviews')}</Text>
           {summary.ratings.map((r, i) => (
             <View key={i} className="bg-white rounded-2xl p-3 mb-2 shadow-sm">
               <View className="flex-row items-center justify-between">
                 <Text className="font-semibold text-gray-800" numberOfLines={1}>
-                  {r.username || 'Utilisateur'}
+                  {r.username || t('user_fallback')}
                 </Text>
                 <StarRating value={r.rating} size={14} />
               </View>

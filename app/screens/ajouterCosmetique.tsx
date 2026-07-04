@@ -13,10 +13,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToast } from '../context/ToastContext';
+import { useTranslation } from '../i18n';
 import { api } from '../services/axios';
 
 export default function AjouterCosmetique() {
   const router = useRouter();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
   const { barcode } = useLocalSearchParams<{ barcode: string }>();
@@ -31,7 +33,7 @@ export default function AjouterCosmetique() {
   const takePhoto = async (which: 'front' | 'back') => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      showToast("Autorisation caméra nécessaire", 'error');
+      showToast(t('camera_permission_needed'), 'error');
       return;
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.6, allowsEditing: false });
@@ -43,7 +45,7 @@ export default function AjouterCosmetique() {
 
   const submit = async () => {
     if (!frontUri) {
-      showToast("La photo avant est requise", 'error');
+      showToast(t('front_photo_required'), 'error');
       return;
     }
     setLoading(true);
@@ -61,7 +63,7 @@ export default function AjouterCosmetique() {
       // Instance `api` : token + refresh auto ; timeout allongé pour l'upload.
       await api.post('/api/cosmetic/submission', formData, { timeout: 60000 });
 
-      showToast('Merci ! Cosmétique envoyé pour validation.', 'success');
+      showToast(t('cosmetic_submitted'), 'success');
       setTimeout(() => router.replace('/(tabs)/historique'), 1200);
     } catch (error: any) {
       const msg = error?.response?.data?.detail || error?.message || 'Une erreur est survenue';
@@ -98,37 +100,37 @@ export default function AjouterCosmetique() {
         <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
           <ArrowLeft size={22} color="#374151" />
         </TouchableOpacity>
-        <Text className="flex-1 text-center text-lg font-bold text-gray-900 mr-10">Ajouter un cosmétique</Text>
+        <Text className="flex-1 text-center text-lg font-bold text-gray-900 mr-10">{t('add_cosmetic_title')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <Text className="text-gray-500 mb-4">
-          Code-barres <Text className="font-bold text-gray-800">{barcode}</Text>
+          {t('barcode_label')} <Text className="font-bold text-gray-800">{barcode}</Text>
         </Text>
 
         <View className="flex-row" style={{ gap: 12 }}>
-          <PhotoCard uri={frontUri} onPress={() => takePhoto('front')} label="Face avant" hint="Le produit" />
-          <PhotoCard uri={backUri} onPress={() => takePhoto('back')} label="Dos (INCI)" hint="Liste d'ingrédients" />
+          <PhotoCard uri={frontUri} onPress={() => takePhoto('front')} label={t('front_face')} hint={t('the_product')} />
+          <PhotoCard uri={backUri} onPress={() => takePhoto('back')} label={t('back_inci')} hint={t('ingredients_list')} />
         </View>
 
         <View className="mt-6" style={{ gap: 12 }}>
           <TextInput
             className="bg-white p-4 rounded-xl border border-gray-200 text-gray-900"
-            placeholder="Nom du produit (optionnel)"
+            placeholder={t('product_name_optional')}
             placeholderTextColor="#9CA3AF"
             value={productName}
             onChangeText={setProductName}
           />
           <TextInput
             className="bg-white p-4 rounded-xl border border-gray-200 text-gray-900"
-            placeholder="Marque (optionnel)"
+            placeholder={t('brand_optional')}
             placeholderTextColor="#9CA3AF"
             value={brand}
             onChangeText={setBrand}
           />
           <TextInput
             className="bg-white p-4 rounded-xl border border-gray-200 text-gray-900"
-            placeholder="Catégorie (ex: soin visage) — optionnel"
+            placeholder={t('category_optional')}
             placeholderTextColor="#9CA3AF"
             value={category}
             onChangeText={setCategory}
@@ -144,7 +146,7 @@ export default function AjouterCosmetique() {
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-white font-bold text-base">Envoyer pour validation</Text>
+            <Text className="text-white font-bold text-base">{t('send_for_validation')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
