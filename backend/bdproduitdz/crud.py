@@ -186,9 +186,37 @@ async def add_scan_to_history(db: AsyncSession, user_id: int, product_id: int):
     
     return existing_scan if existing_scan else new_scan
 
+async def add_cosmetic_scan_to_history(db: AsyncSession, user_id: int, cosmetic_id: int):
+    """Ajoute un scan COSMÉTIQUE à l'historique (upsert : re-scan -> remonte)."""
+    result = await db.execute(
+        select(models.ScanHistory).where(
+            models.ScanHistory.user_id == user_id,
+            models.ScanHistory.cosmetic_id == cosmetic_id,
+        )
+    )
+    existing = result.scalars().first()
+    if existing:
+        existing.scanned_at = func.now()
+        db.add(existing)
+    else:
+        db.add(models.ScanHistory(user_id=user_id, cosmetic_id=cosmetic_id))
+    await db.commit()
+
+
+def _iso(dt):
+    try:
+        return dt.isoformat() if dt else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 async def get_user_history(db: AsyncSession, user_id: int):
-    # Récupère les scans et les produits associés en renvoyant un objet combiné
-    # contenant les informations du produit et la date du scan (scanned_at).
+    """Historique MIXTE (aliments + cosmétiques), trié par date de scan.
+
+    Chaque entrée porte `item_type` ('food' | 'cosmetic') pour que le mobile
+    route vers la bonne fiche. Les cosmétiques exposent leur note sous
+    `custom_score` afin de réutiliser le même rendu de liste.
+    """
     result = await db.execute(
         select(models.ScanHistory, models.Product)
         .join(models.Product, models.Product.id == models.ScanHistory.product_id)
@@ -197,31 +225,50 @@ async def get_user_history(db: AsyncSession, user_id: int):
         .limit(50)
     )
 
-    rows = result.all()
     history_list = []
-    for scan, product in rows:
-        try:
-            scanned_at = scan.scanned_at.isoformat() if getattr(scan, 'scanned_at', None) else None
-        except Exception:
-            scanned_at = None
-
+    for scan, product in result.all():
         history_list.append({
+            'item_type': 'food',
             'id': product.id,
             'barcode': product.barcode,
             'product_name': product.product_name,
             'brand': product.brand,
             'image_url': product.image_url,
-            'nutriments': product.nutriments,        
+            'nutriments': product.nutriments,
             'additives_tags': product.additives_tags,
-            'nova_group': product.nova_group,        
+            'nova_group': product.nova_group,
             'ecoscore_grade': product.ecoscore_grade,
-            'detail_custom_score': product.detail_custom_score, 
+            'detail_custom_score': product.detail_custom_score,
             'custom_score': product.custom_score,
             'nutri_score': getattr(product, 'nutri_score', None),
-            'scanned_at': scanned_at,
+            'scanned_at': _iso(getattr(scan, 'scanned_at', None)),
         })
 
-    return history_list
+    cosmetic_rows = await db.execute(
+        select(models.ScanHistory, models.CosmeticProduct)
+        .join(models.CosmeticProduct, models.CosmeticProduct.id == models.ScanHistory.cosmetic_id)
+        .where(models.ScanHistory.user_id == user_id)
+        .order_by(models.ScanHistory.scanned_at.desc())
+        .limit(50)
+    )
+    for scan, cosmetic in cosmetic_rows.all():
+        history_list.append({
+            'item_type': 'cosmetic',
+            'id': cosmetic.id,
+            'barcode': cosmetic.barcode,
+            'product_name': cosmetic.product_name,
+            'brand': cosmetic.brand,
+            'image_url': cosmetic.image_url,
+            'custom_score': cosmetic.cosmetic_score,
+            'risky_ingredients': cosmetic.risky_ingredients,
+            'ingredients_text': cosmetic.ingredients_text,
+            'category': cosmetic.category,
+            'scanned_at': _iso(getattr(scan, 'scanned_at', None)),
+        })
+
+    # Fusion des deux univers puis tri global par date (None en dernier).
+    history_list.sort(key=lambda e: e.get('scanned_at') or '', reverse=True)
+    return history_list[:50]
 
 async def delete_scan_from_history(db: AsyncSession, user_id: int, product_id: int):
     """
@@ -250,6 +297,22 @@ async def delete_scan_from_history(db: AsyncSession, user_id: int, product_id: i
     await db.commit()
     
     return True 
+
+async def delete_cosmetic_scan_from_history(db: AsyncSession, user_id: int, cosmetic_id: int):
+    """Supprime un scan cosmétique de l'historique de l'utilisateur."""
+    result = await db.execute(
+        select(models.ScanHistory).where(
+            models.ScanHistory.cosmetic_id == cosmetic_id,
+            models.ScanHistory.user_id == user_id,
+        )
+    )
+    item = result.scalars().first()
+    if not item:
+        raise ValueError("Élément d'historique non trouvé ou non autorisé")
+    await db.delete(item)
+    await db.commit()
+    return True
+
 
 async def get_user_history_stats(db: AsyncSession, user_id: int):
     """

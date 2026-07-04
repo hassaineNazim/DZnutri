@@ -28,6 +28,10 @@ _COLUMN_PATCHES = [
     # Date d'inscription (analytics admin). Les comptes existants sont
     # backfillés avec la date d'application du patch.
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()",
+    # Historique mixte aliments/cosmétiques : product_id devient optionnel et
+    # cosmetic_id référence la table cosmetiques.
+    "ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS cosmetic_id INTEGER REFERENCES cosmetiques(id)",
+    "ALTER TABLE scan_history ALTER COLUMN product_id DROP NOT NULL",
 ]
 
 

@@ -75,7 +75,10 @@ class ScanHistory(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    product_id = Column(Integer, ForeignKey("produits.id"), nullable=False)
+    # Un scan référence SOIT un produit alimentaire, SOIT un cosmétique
+    # (exactement un des deux est renseigné).
+    product_id = Column(Integer, ForeignKey("produits.id"), nullable=True)
+    cosmetic_id = Column(Integer, ForeignKey("cosmetiques.id"), nullable=True)
     scanned_at = Column(DateTime, server_default=func.now())
 
     __table_args__ = (

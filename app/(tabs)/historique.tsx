@@ -8,10 +8,11 @@ import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
 import ListItem from '../components/ListItem';
 import { useTranslation } from '../i18n';
-import { deleteFromHistory, fetchHistory } from '../services/saveHistorique';
+import { deleteCosmeticFromHistory, deleteFromHistory, fetchHistory } from '../services/saveHistorique';
 
 type Product = {
   id: number;
+  item_type?: 'food' | 'cosmetic';
   brands?: string;
   brand?: string;
   product_name?: string;
@@ -21,10 +22,14 @@ type Product = {
   scanned_at?: string | null;
 };
 
+// Clé unique par entrée : les ids alimentaires et cosmétiques peuvent se
+// chevaucher (tables différentes), on préfixe donc par l'univers.
+const itemKey = (item: Product) => `${item.item_type || 'food'}-${item.id}`;
+
 export default function HistoriquePage() {
   const [history, setHistory] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const { t } = useTranslation();
@@ -73,8 +78,8 @@ export default function HistoriquePage() {
     loadHistory(true);
   }, [loadHistory]);
 
-  const toggleSelect = (id: number) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const toggleSelect = (key: string) => {
+    setSelectedIds(prev => prev.includes(key) ? prev.filter(x => x !== key) : [...prev, key]);
   };
 
   const clearSelection = () => setSelectedIds([]);
@@ -86,8 +91,13 @@ export default function HistoriquePage() {
 
   const deleteSelected = async () => {
     try {
-      await Promise.all(selectedIds.map(id => deleteFromHistory(id)));
-      setHistory(prev => prev.filter(item => !selectedIds.includes(item.id)));
+      const selectedItems = history.filter(item => selectedIds.includes(itemKey(item)));
+      await Promise.all(selectedItems.map(item =>
+        item.item_type === 'cosmetic'
+          ? deleteCosmeticFromHistory(item.id)
+          : deleteFromHistory(item.id)
+      ));
+      setHistory(prev => prev.filter(item => !selectedIds.includes(itemKey(item))));
       clearSelection();
     } catch (e) {
       console.error(e);
@@ -96,7 +106,7 @@ export default function HistoriquePage() {
 
   const handleItemPress = (product: Product) => {
     router.push({
-      pathname: '../screens/productDetail',
+      pathname: product.item_type === 'cosmetic' ? '../screens/cosmeticDetail' : '../screens/productDetail',
       params: { product: JSON.stringify(product) },
     });
   };
@@ -130,7 +140,7 @@ export default function HistoriquePage() {
 
           <View className="flex-row items-center space-x-2">
             <Pressable
-              onPress={() => setSelectedIds(history.map(h => h.id))}
+              onPress={() => setSelectedIds(history.map(itemKey))}
               className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full mr-2"
             >
               <CheckSquare size={20} color={isDark ? "#D1D5DB" : "#4B5563"} />
@@ -168,7 +178,7 @@ export default function HistoriquePage() {
 
       <Animated.FlatList
         data={history}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={itemKey}
         contentContainerStyle={{ padding: 16, paddingTop: selectedIds.length > 0 ? 80 : 16 }}
         itemLayoutAnimation={Layout.springify()}
         // --- 3. AJOUT DU REFRESH CONTROL ICI ---
@@ -190,13 +200,13 @@ export default function HistoriquePage() {
               item={item}
               onPress={() => {
                 if (selectedIds.length > 0) {
-                  toggleSelect(item.id);
+                  toggleSelect(itemKey(item));
                 } else {
                   handleItemPress(item);
                 }
               }}
-              onLongPress={() => toggleSelect(item.id)}
-              selected={selectedIds.includes(item.id)}
+              onLongPress={() => toggleSelect(itemKey(item))}
+              selected={selectedIds.includes(itemKey(item))}
             />
           </Animated.View>
         )}

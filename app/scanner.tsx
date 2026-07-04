@@ -23,7 +23,7 @@ import ScoreGauge from './components/ScoreGauge';
 import { useTranslation } from './i18n';
 import { fetchCosmetic } from './services/cosmetics';
 import { fetchProduct } from './services/openFoodFacts';
-import { saveToHistory } from './services/saveHistorique';
+import { saveCosmeticToHistory, saveToHistory } from './services/saveHistorique';
 
 const { width, height } = Dimensions.get('window');
 const SCAN_BOX_WIDTH = width * 0.8;
@@ -91,6 +91,7 @@ export default function Scanner() {
             status: 'found',
             product: { ...cosmetic, brands: cosmetic.brand, custom_score: cosmetic.cosmetic_score ?? undefined } as any,
           });
+          await saveCosmeticToHistory(cosmetic.id);
         } else {
           setScanResult({ status: 'notFound', barcode: data });
         }

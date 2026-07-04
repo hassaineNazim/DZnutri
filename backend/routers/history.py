@@ -20,6 +20,33 @@ async def save_scan_history(
     await bd_crud.add_scan_to_history(db, user_id=current_user.id, product_id=product_id)
     return {"status": "success", "message": "Scan sauvegardé"}
 
+@router.post("/api/history/cosmetic/{cosmetic_id}")
+async def save_cosmetic_scan_history(
+    cosmetic_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_user)
+):
+    """Sauvegarde un scan COSMÉTIQUE dans l'historique (mixte avec l'alimentaire)."""
+    await bd_crud.add_cosmetic_scan_to_history(db, user_id=current_user.id, cosmetic_id=cosmetic_id)
+    return {"status": "success", "message": "Scan cosmétique sauvegardé"}
+
+
+@router.delete("/api/history/cosmetic/{cosmetic_id}")
+async def delete_cosmetic_history_item(
+    cosmetic_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_user)
+):
+    """Supprime un scan cosmétique de l'historique de l'utilisateur."""
+    try:
+        await bd_crud.delete_cosmetic_scan_from_history(
+            db, user_id=current_user.id, cosmetic_id=cosmetic_id
+        )
+        return {"status": "success", "message": "Historique supprimé"}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
 @router.get("/api/history")
 async def get_scan_history(
     db: AsyncSession = Depends(get_db),

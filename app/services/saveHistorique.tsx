@@ -1,9 +1,10 @@
 import { api } from './axios';
 
 type Product = {
-  id: number; 
+  id: number;
+  item_type?: 'food' | 'cosmetic';
   product_name?: string;
-  nutrition_grades?: string; 
+  nutrition_grades?: string;
   brands?: string;
   image_url?: string;
   custom_score?: number;
@@ -40,7 +41,27 @@ export const deleteFromHistory = async (itemId: number) => {
     await api.delete(`/api/history/product/${itemId}`);
   } catch (error) {
     console.error("Échec de la suppression de l'historique:", error);
-    throw error; 
+    throw error;
+  }
+};
+
+// --- Univers cosmétique (historique mixte) ---
+
+export const saveCosmeticToHistory = async (cosmeticId?: number): Promise<void> => {
+  if (!cosmeticId) return;
+  try {
+    await api.post(`/api/history/cosmetic/${cosmeticId}`);
+  } catch (error) {
+    console.error("Échec de la sauvegarde de l'historique cosmétique:", error);
+  }
+};
+
+export const deleteCosmeticFromHistory = async (cosmeticId: number) => {
+  try {
+    await api.delete(`/api/history/cosmetic/${cosmeticId}`);
+  } catch (error) {
+    console.error("Échec de la suppression de l'historique cosmétique:", error);
+    throw error;
   }
 };
 
