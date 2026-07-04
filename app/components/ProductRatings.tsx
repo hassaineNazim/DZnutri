@@ -61,32 +61,32 @@ export default function ProductRatings({ barcode }: { barcode?: string }) {
 
   return (
     <View className="mx-4 mt-5 mb-8">
-      <Text className="text-base font-bold text-gray-900 mb-3">{t('user_ratings')}</Text>
+      <Text className="text-base font-bold text-gray-900 dark:text-white mb-3">{t('user_ratings')}</Text>
 
       {/* Moyenne */}
-      <View className="bg-white rounded-2xl p-4 flex-row items-center shadow-sm">
+      <View className="bg-white dark:bg-[#1F2937] rounded-2xl p-4 flex-row items-center shadow-sm">
         <View className="items-center mr-5">
-          <Text className="text-4xl font-extrabold text-gray-900">
+          <Text className="text-4xl font-extrabold text-gray-900 dark:text-white">
             {summary?.average != null ? summary.average.toFixed(1) : '—'}
           </Text>
           <Text className="text-xs text-gray-400">/ 5</Text>
         </View>
         <View className="flex-1">
           <StarRating value={summary?.average ?? 0} size={22} />
-          <Text className="text-sm text-gray-500 mt-1">
+          <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {count > 0 ? `${count} ${t('reviews')}` : t('no_ratings_yet')}
           </Text>
         </View>
       </View>
 
       {/* Votre note */}
-      <View className="bg-white rounded-2xl p-4 mt-3 shadow-sm">
-        <Text className="text-sm font-semibold text-gray-700 mb-2">
+      <View className="bg-white dark:bg-[#1F2937] rounded-2xl p-4 mt-3 shadow-sm">
+        <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
           {alreadyRated ? t('your_rating') : t('rate_this_product')}
         </Text>
         <StarRating value={myRating} onChange={setMyRating} size={34} />
         <TextInput
-          className="border border-gray-200 rounded-xl p-3 mt-3 text-gray-900"
+          className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 mt-3 text-gray-900 dark:text-white"
           placeholder={t('your_review_placeholder')}
           placeholderTextColor="#9CA3AF"
           value={comment}
@@ -111,16 +111,16 @@ export default function ProductRatings({ barcode }: { barcode?: string }) {
       {/* Avis récents */}
       {summary && summary.ratings.length > 0 && (
         <View className="mt-4">
-          <Text className="text-sm font-semibold text-gray-700 mb-2">{t('recent_reviews')}</Text>
+          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('recent_reviews')}</Text>
           {summary.ratings.map((r, i) => (
-            <View key={i} className="bg-white rounded-2xl p-3 mb-2 shadow-sm">
+            <View key={i} className="bg-white dark:bg-[#1F2937] rounded-2xl p-3 mb-2 shadow-sm">
               <View className="flex-row items-center justify-between">
-                <Text className="font-semibold text-gray-800" numberOfLines={1}>
+                <Text className="font-semibold text-gray-800 dark:text-gray-200" numberOfLines={1}>
                   {r.username || t('user_fallback')}
                 </Text>
                 <StarRating value={r.rating} size={14} />
               </View>
-              {r.comment ? <Text className="text-sm text-gray-600 mt-1">{r.comment}</Text> : null}
+              {r.comment ? <Text className="text-sm text-gray-600 dark:text-gray-400 mt-1">{r.comment}</Text> : null}
             </View>
           ))}
         </View>

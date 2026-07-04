@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  Vibration,
   View
 } from 'react-native';
 import Animated, {
@@ -77,9 +78,15 @@ export default function Scanner() {
     }
   }, [permission?.granted, requestPermission]);
 
+  // Couleur d'accent selon l'univers scanné (feedback immédiat du mode actif).
+  const isCosmetic = mode === 'cosmetic';
+  const accent = isCosmetic ? '#EC4899' : '#10B981';
+  const cornerClass = isCosmetic ? 'border-pink-500' : 'border-emerald-500';
+
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     if (scanResult.status !== 'scanning') return;
 
+    Vibration.vibrate(60); // retour haptique : code détecté
     setScanResult({ status: 'loading' });
 
     try {
@@ -146,10 +153,10 @@ export default function Scanner() {
           <View style={{ width: sideMaskWidth, height: SCAN_BOX_HEIGHT, backgroundColor: MASK_COLOR }} />
 
           <View style={{ width: SCAN_BOX_WIDTH, height: SCAN_BOX_HEIGHT, overflow: 'hidden', position: 'relative' }}>
-            <View className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl" />
-            <View className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl" />
-            <View className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl" />
-            <View className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-500 rounded-br-xl" />
+            <View className={`absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-xl ${cornerClass}`} />
+            <View className={`absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-xl ${cornerClass}`} />
+            <View className={`absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 rounded-bl-xl ${cornerClass}`} />
+            <View className={`absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 rounded-br-xl ${cornerClass}`} />
           </View>
 
           <View style={{ width: sideMaskWidth, height: SCAN_BOX_HEIGHT, backgroundColor: MASK_COLOR }} />
@@ -157,7 +164,7 @@ export default function Scanner() {
 
         <View style={{ width: width, height: bottomMaskHeight, backgroundColor: MASK_COLOR, alignItems: 'center', paddingTop: 40 }}>
           <Text className="text-white/90 text-center bg-black/40 px-6 py-3 rounded-full font-medium text-sm">
-            {t('search_placeholder_text') || "Scannez un code-barres"}
+            {isCosmetic ? t('scan_cosmetic_hint') : t('scan_food_hint')}
           </Text>
         </View>
       </View>
@@ -188,7 +195,7 @@ export default function Scanner() {
 
       {scanResult.status === 'loading' && (
         <View className="absolute inset-0 bg-black/60 items-center justify-center z-50">
-          <ActivityIndicator size="large" color="#10B981" />
+          <ActivityIndicator size="large" color={accent} />
         </View>
       )}
 
@@ -256,7 +263,7 @@ export default function Scanner() {
 
                 <TouchableOpacity
                   onPress={() => navigateToProductDetails(scanResult.product)}
-                  className="w-full bg-emerald-500 py-4 rounded-2xl items-center active:bg-emerald-600"
+                  className={`w-full py-4 rounded-2xl items-center ${isCosmetic ? 'bg-pink-500 active:bg-pink-600' : 'bg-emerald-500 active:bg-emerald-600'}`}
                   activeOpacity={0.8}
                 >
                   <Text className="text-white font-bold text-base">{t('product_details')}</Text>
@@ -285,7 +292,7 @@ export default function Scanner() {
                 </Text>
 
                 <TouchableOpacity
-                  className="w-full bg-emerald-500 py-3.5 rounded-xl items-center active:bg-emerald-600 mb-3"
+                  className={`w-full py-3.5 rounded-xl items-center mb-3 ${isCosmetic ? 'bg-pink-500 active:bg-pink-600' : 'bg-emerald-500 active:bg-emerald-600'}`}
                   onPress={() => {
                     const bc = scanResult.barcode;
                     resetScanner();

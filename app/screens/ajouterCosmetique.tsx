@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft, Camera, Check } from 'lucide-react-native';
+import { useColorScheme } from 'nativewind';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,6 +22,8 @@ export default function AjouterCosmetique() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const { barcode } = useLocalSearchParams<{ barcode: string }>();
 
   const [productName, setProductName] = useState('');
@@ -75,13 +78,13 @@ export default function AjouterCosmetique() {
 
   const PhotoCard = ({ uri, onPress, label, hint }: { uri: string | null; onPress: () => void; label: string; hint: string }) => (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} className="flex-1">
-      <View className="bg-white rounded-2xl border-2 border-dashed border-gray-200 overflow-hidden" style={{ height: 160 }}>
+      <View className="bg-white dark:bg-[#1F2937] rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 overflow-hidden" style={{ height: 160 }}>
         {uri ? (
           <Image source={{ uri }} className="w-full h-full" resizeMode="cover" />
         ) : (
           <View className="flex-1 items-center justify-center p-3">
             <Camera size={28} color="#EC4899" />
-            <Text className="text-gray-700 font-semibold mt-2 text-center">{label}</Text>
+            <Text className="text-gray-700 dark:text-gray-200 font-semibold mt-2 text-center">{label}</Text>
             <Text className="text-gray-400 text-xs mt-1 text-center">{hint}</Text>
           </View>
         )}
@@ -95,17 +98,17 @@ export default function AjouterCosmetique() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-      <View style={{ paddingTop: insets.top + 8 }} className="bg-white px-4 pb-3 flex-row items-center">
-        <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
-          <ArrowLeft size={22} color="#374151" />
+    <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
+      <View style={{ paddingTop: insets.top + 8 }} className="bg-white dark:bg-[#1F2937] px-4 pb-3 flex-row items-center">
+        <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 items-center justify-center">
+          <ArrowLeft size={22} color={isDark ? '#D1D5DB' : '#374151'} />
         </TouchableOpacity>
-        <Text className="flex-1 text-center text-lg font-bold text-gray-900 mr-10">{t('add_cosmetic_title')}</Text>
+        <Text className="flex-1 text-center text-lg font-bold text-gray-900 dark:text-white mr-10">{t('add_cosmetic_title')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <Text className="text-gray-500 mb-4">
-          {t('barcode_label')} <Text className="font-bold text-gray-800">{barcode}</Text>
+        <Text className="text-gray-500 dark:text-gray-400 mb-4">
+          {t('barcode_label')} <Text className="font-bold text-gray-800 dark:text-gray-200">{barcode}</Text>
         </Text>
 
         <View className="flex-row" style={{ gap: 12 }}>
@@ -115,21 +118,21 @@ export default function AjouterCosmetique() {
 
         <View className="mt-6" style={{ gap: 12 }}>
           <TextInput
-            className="bg-white p-4 rounded-xl border border-gray-200 text-gray-900"
+            className="bg-white dark:bg-[#1F2937] p-4 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
             placeholder={t('product_name_optional')}
             placeholderTextColor="#9CA3AF"
             value={productName}
             onChangeText={setProductName}
           />
           <TextInput
-            className="bg-white p-4 rounded-xl border border-gray-200 text-gray-900"
+            className="bg-white dark:bg-[#1F2937] p-4 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
             placeholder={t('brand_optional')}
             placeholderTextColor="#9CA3AF"
             value={brand}
             onChangeText={setBrand}
           />
           <TextInput
-            className="bg-white p-4 rounded-xl border border-gray-200 text-gray-900"
+            className="bg-white dark:bg-[#1F2937] p-4 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
             placeholder={t('category_optional')}
             placeholderTextColor="#9CA3AF"
             value={category}

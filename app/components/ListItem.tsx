@@ -8,6 +8,7 @@ import { useTranslation } from '../i18n';
 export type ListItemProps = {
   item: {
     id: number;
+    item_type?: 'food' | 'cosmetic';
     product_name?: string;
     brand?: string;
     image_url?: string;
@@ -50,6 +51,7 @@ export default function ListItem({ item, onPress, onDelete, onLongPress, selecte
 
   const color = getScoreColor(score);
   const bgColor = getBackgroundColor(score);
+  const isCosmetic = item.item_type === 'cosmetic';
 
   const relativeTime = (iso?: string | null) => {
     if (!iso) return '';
@@ -80,14 +82,23 @@ export default function ListItem({ item, onPress, onDelete, onLongPress, selecte
         <Image source={{ uri: item.image_url }} className="w-16 h-16 rounded-xl mr-4 bg-gray-100 dark:bg-gray-800" resizeMode="contain" />
       ) : (
         <View className="w-16 h-16 rounded-xl mr-4 bg-gray-100 dark:bg-gray-800 justify-center items-center">
-          <MaterialIcons name="fastfood" size={24} color="#9CA3AF" />
+          <MaterialIcons name={isCosmetic ? 'spa' : 'fastfood'} size={24} color={isCosmetic ? '#EC4899' : '#9CA3AF'} />
         </View>
       )}
 
       <View className="flex-1 mr-2">
-        <Text className="text-base font-bold text-gray-900 dark:text-white" numberOfLines={1}>
-          {item.product_name || t('product_unknown')}
-        </Text>
+        <View className="flex-row items-center">
+          <Text className="text-base font-bold text-gray-900 dark:text-white flex-shrink" numberOfLines={1}>
+            {item.product_name || t('product_unknown')}
+          </Text>
+          {isCosmetic && (
+            <View className="ml-2 px-1.5 py-0.5 rounded-md bg-pink-100 dark:bg-pink-900/30">
+              <Text className="text-[10px] font-bold text-pink-600 dark:text-pink-300">
+                {t('cosmetic').toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </View>
 
         <Text className="text-sm text-gray-500 dark:text-gray-400 mt-0.5" numberOfLines={1}>
           {item.brand || t('brand_unknown')}
@@ -148,25 +159,30 @@ export default function ListItem({ item, onPress, onDelete, onLongPress, selecte
   );
 }
 
+// Échelle alignée sur le reste de l'app (scanner, recherche, fiches) :
+// >=75 excellent (vert), >=50 bon (lime), >=25 médiocre (orange), sinon mauvais.
 function getScoreColor(score?: number | null) {
   if (typeof score !== 'number') return '#9CA3AF';
-  if (score >= 70) return '#22C55E'; // Green-500
-  if (score >= 35) return '#F97316'; // Orange-500
+  if (score >= 75) return '#22C55E'; // Green-500
+  if (score >= 50) return '#84CC16'; // Lime-500
+  if (score >= 25) return '#F97316'; // Orange-500
   return '#EF4444'; // Red-500
 }
 
 function getBackgroundColor(score?: number | null) {
   if (typeof score !== 'number') return '#F3F4F6';
-  if (score >= 70) return '#DCFCE7'; // Green-100
-  if (score >= 35) return '#FFEDD5'; // Orange-100
+  if (score >= 75) return '#DCFCE7'; // Green-100
+  if (score >= 50) return '#ECFCCB'; // Lime-100
+  if (score >= 25) return '#FFEDD5'; // Orange-100
   return '#FEE2E2'; // Red-100
 }
 
 function getQualityLabel(score?: number | null, tFn?: any) {
   try {
     if (typeof score !== 'number') return tFn ? tFn('not_available') : 'N/A';
-    if (score >= 70) return tFn ? tFn('excellent') : 'Excellent';
-    if (score >= 35) return tFn ? tFn('mediocre') : 'Médiocre';
+    if (score >= 75) return tFn ? tFn('excellent') : 'Excellent';
+    if (score >= 50) return tFn ? tFn('good') : 'Bon';
+    if (score >= 25) return tFn ? tFn('mediocre') : 'Médiocre';
     return tFn ? tFn('bad') : 'Mauvais';
   } catch {
     return 'N/A';

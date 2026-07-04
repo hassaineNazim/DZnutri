@@ -83,6 +83,17 @@ export default function Rech() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  // Recherche "live" : lance automatiquement la recherche 400 ms après la fin
+  // de saisie (dès 2 caractères) — plus besoin d'appuyer sur Entrée.
+  useEffect(() => {
+    if (query.trim().length < 2) return;
+    const timer = setTimeout(() => {
+      searchProducts();
+    }, 400);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
   return (
     <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
       {/* Header Area */}

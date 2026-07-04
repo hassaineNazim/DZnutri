@@ -55,9 +55,9 @@ export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
                 <ScanButton />
               </View>
               <Pressable key={route.key} className="flex-1 items-center justify-center py-2" onPress={onPress}>
-                {getIconForRoute(route.name, isFocused ? (colorScheme === 'dark' ? 'white' : 'limegreen') : 'gray')}
+                {getIconForRoute(route.name, isFocused ? (colorScheme === 'dark' ? 'white' : '#22C55E') : 'gray')}
                 <Text className={isFocused ? 'text-green-500 text-xs mt-0.5 dark:text-white' : 'text-gray-400 text-xs mt-0.5'}>
-                  {route.name.charAt(0).toUpperCase() + route.name.slice(1)}
+                  {t(route.name)}
                 </Text>
               </Pressable>
             </React.Fragment>
@@ -66,7 +66,7 @@ export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
 
         return (
           <Pressable key={route.key} className="flex-1 items-center justify-center py-2" onPress={onPress}>
-            {getIconForRoute(route.name, isFocused ? (colorScheme === 'dark' ? 'white' : 'limegreen') : 'gray')}
+            {getIconForRoute(route.name, isFocused ? (colorScheme === 'dark' ? 'white' : '#22C55E') : 'gray')}
             <Text className={isFocused ? 'text-green-500 text-xs mt-0.5 dark:text-white' : 'text-gray-400 text-xs mt-0.5'}>
               {t(route.name)}
             </Text>
