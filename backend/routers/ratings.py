@@ -10,7 +10,7 @@ import logging
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
@@ -91,17 +91,59 @@ async def rate_product(
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_user),
 ):
-    """(Re)note un produit : upsert sur (user, barcode), puis renvoie le résumé."""
-    stmt = pg_insert(ProductRating).values(
-        barcode=barcode,
-        user_id=current_user.id,
-        rating=payload.rating,
-        comment=payload.comment,
-    )
-    stmt = stmt.on_conflict_do_update(
-        index_elements=["user_id", "barcode"],
-        set_={"rating": payload.rating, "comment": payload.comment, "updated_at": func.now()},
-    )
-    await db.execute(stmt)
-    await db.commit()
-    return await _build_summary(db, barcode, current_user.id)
+    """(Re)note un produit : upsert sur (user, barcode), puis renvoie le résumé.
+
+    Upsert PORTABLE (select -> update/insert) plutôt que l'ON CONFLICT du
+    dialecte PostgreSQL : fonctionne aussi sous SQLite (tests API). La course
+    résiduelle entre deux requêtes simultanées du même utilisateur est rattrapée
+    par la contrainte unique (IntegrityError -> update).
+    """
+    # Capturé AVANT tout commit : un commit/rollback expire les objets ORM et
+    # relire current_user.id déclencherait un rechargement hors event loop.
+    user_id = current_user.id
+
+    existing = (
+        await db.execute(
+            select(ProductRating).where(
+                ProductRating.user_id == user_id,
+                ProductRating.barcode == barcode,
+            )
+        )
+    ).scalars().first()
+
+    if existing:
+        existing.rating = payload.rating
+        existing.comment = payload.comment
+        existing.updated_at = func.now()
+        db.add(existing)
+        await db.commit()
+    else:
+        db.add(
+            ProductRating(
+                barcode=barcode,
+                user_id=user_id,
+                rating=payload.rating,
+                comment=payload.comment,
+            )
+        )
+        try:
+            await db.commit()
+        except IntegrityError:
+            # Deux votes simultanés du même utilisateur : on retombe sur l'update.
+            await db.rollback()
+            existing = (
+                await db.execute(
+                    select(ProductRating).where(
+                        ProductRating.user_id == user_id,
+                        ProductRating.barcode == barcode,
+                    )
+                )
+            ).scalars().first()
+            if existing:
+                existing.rating = payload.rating
+                existing.comment = payload.comment
+                existing.updated_at = func.now()
+                db.add(existing)
+                await db.commit()
+
+    return await _build_summary(db, barcode, user_id)
