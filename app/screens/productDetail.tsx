@@ -24,6 +24,7 @@ import {
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AlternativesList from '../components/AlternativesList';
+import ProductRatings from '../components/ProductRatings';
 import ReportModal from '../components/ReportModal';
 import { useAllergenCheck } from '../hooks/useAllergenCheck';
 import { useProductFavorite } from '../hooks/useProductFavorite';
@@ -573,6 +574,9 @@ export default function ProductDetail() {
             />
           </View>
         </View>
+
+        {/* Notes des utilisateurs */}
+        <ProductRatings barcode={fullProduct.barcode || fullProduct.id} />
       </ScrollView>
 
       <AlternativesList

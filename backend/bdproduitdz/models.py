@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Column, Integer, String, Boolean, ForeignKey, DateTime, Text, Enum as SqlEnum, Index
+from sqlalchemy import JSON, Column, Integer, String, Boolean, ForeignKey, DateTime, Text, Enum as SqlEnum, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -201,8 +201,8 @@ class CosmeticProduct(Base):
     category = Column(String, nullable=True)           # soin visage, shampoing...
 
     cosmetic_score = Column(Integer, nullable=True)    # 0-100 (façon Yuka)
-    score_detail = Column(JSONB, nullable=True)        # {penalites, note...}
-    risky_ingredients = Column(JSONB, nullable=True)   # [{name, danger_level, concern}]
+    score_detail = Column(PortableJSONB, nullable=True)        # {penalites, note...}
+    risky_ingredients = Column(PortableJSONB, nullable=True)   # [{name, danger_level, concern}]
 
     is_verified = Column(Boolean, default=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -244,3 +244,26 @@ class CosmeticIngredient(Base):
     danger_level = Column(Integer, default=1)          # 1 faible, 2 modéré, 3 élevé
     concern = Column(String, nullable=True)            # ex: "perturbateur endocrinien"
     description = Column(String, nullable=True)
+
+
+class ProductRating(Base):
+    """Note (1-5) d'un utilisateur sur un produit, avec commentaire optionnel.
+
+    Une seule note par (utilisateur, produit) : re-noter met à jour l'existante
+    (upsert). Clé par code-barres pour couvrir aliments comme cosmétiques.
+    """
+    __tablename__ = "product_ratings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    barcode = Column(String, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    rating = Column(Integer, nullable=False)           # 1..5
+    comment = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    # barcode est déjà indexé (index=True sur la colonne) ; on ajoute juste la
+    # contrainte d'unicité (une seule note par utilisateur et par produit).
+    __table_args__ = (
+        UniqueConstraint("user_id", "barcode", name="uq_rating_user_barcode"),
+    )

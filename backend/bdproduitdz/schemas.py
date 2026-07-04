@@ -205,3 +205,23 @@ class CosmeticApproval(BaseModel):
     brand: Optional[str] = Field(default=None, max_length=200)
     category: Optional[str] = Field(default=None, max_length=200)
     ingredients_text: Optional[str] = Field(default=None, max_length=10000)
+
+# --- RATINGS (notes utilisateurs) SCHEMAS ---
+class RatingCreate(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: Optional[str] = Field(default=None, max_length=1000)
+
+class RatingItem(BaseModel):
+    username: Optional[str] = None
+    rating: int
+    comment: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class RatingsSummary(BaseModel):
+    average: Optional[float] = None       # moyenne des notes (None si aucune)
+    count: int = 0                        # nombre de notes
+    my_rating: Optional[int] = None       # la note de l'utilisateur courant
+    my_comment: Optional[str] = None
+    ratings: List[RatingItem] = []        # avis récents
