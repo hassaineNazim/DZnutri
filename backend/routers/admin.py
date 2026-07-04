@@ -474,6 +474,68 @@ async def get_pending_additives(
 
 
 # =============================================================================
+# Modération des avis utilisateurs (notes + commentaires)
+# =============================================================================
+
+
+@router.get("/api/admin/ratings")
+async def get_ratings_admin(
+    with_comments_only: bool = False,
+    limit: int = 50,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_db),
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_admin),
+):
+    """Liste les avis récents pour modération (note, commentaire, auteur)."""
+    limit = max(1, min(limit, 100))
+    stmt = (
+        select(bd_models.ProductRating, auth_models.UserTable.username)
+        .join(auth_models.UserTable, auth_models.UserTable.id == bd_models.ProductRating.user_id)
+        .order_by(bd_models.ProductRating.created_at.desc())
+        .limit(limit)
+        .offset(max(offset, 0))
+    )
+    if with_comments_only:
+        stmt = stmt.where(
+            bd_models.ProductRating.comment.isnot(None),
+            bd_models.ProductRating.comment != "",
+        )
+    rows = await db.execute(stmt)
+    ratings = [
+        {
+            "id": r.id,
+            "barcode": r.barcode,
+            "rating": r.rating,
+            "comment": r.comment,
+            "username": username,
+            "user_id": r.user_id,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r, username in rows
+    ]
+    return {"ratings": ratings, "count": len(ratings)}
+
+
+@router.delete("/api/admin/ratings/{rating_id}")
+async def delete_rating_admin(
+    rating_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_admin),
+):
+    """Supprime un avis abusif (modération)."""
+    result = await db.execute(
+        select(bd_models.ProductRating).where(bd_models.ProductRating.id == rating_id)
+    )
+    rating = result.scalars().first()
+    if not rating:
+        raise HTTPException(status_code=404, detail="Avis non trouvé")
+    await db.delete(rating)
+    await db.commit()
+    logger.info("Avis %s supprimé par l'admin %s", rating_id, current_user.username)
+    return {"message": "Avis supprimé", "id": rating_id}
+
+
+# =============================================================================
 # Soumissions COSMÉTIQUES (revue admin, mirror de l'alimentaire)
 # =============================================================================
 

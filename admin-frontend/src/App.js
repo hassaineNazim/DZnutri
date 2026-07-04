@@ -12,6 +12,7 @@ const CosmeticSubmissions = React.lazy(() => import('./components/CosmeticSubmis
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const Login = React.lazy(() => import('./components/Login'));
 const Monitoring = React.lazy(() => import('./components/Monitoring'));
+const RatingsModeration = React.lazy(() => import('./components/RatingsModeration'));
 const UserReports = React.lazy(() => import('./components/UserReports'));
 
 // Protected Route Component
@@ -71,6 +72,7 @@ function App() {
               <Route path="/reports/users" element={<UserReports />} />
               <Route path="/additives/pending" element={<AdditiveReports />} />
               <Route path="/cosmetics/submissions" element={<CosmeticSubmissions />} />
+              <Route path="/ratings" element={<RatingsModeration />} />
               <Route path="/monitoring" element={<Monitoring />} />
             </Route>
 

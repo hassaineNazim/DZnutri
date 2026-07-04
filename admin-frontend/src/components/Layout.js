@@ -9,6 +9,7 @@ const navItems = [
     { path: '/reports/users', label: 'Signalements Utilisateurs' },
     { path: '/additives/pending', label: 'Additifs Inconnus' },
     { path: '/cosmetics/submissions', label: 'Cosmétiques' },
+    { path: '/ratings', label: 'Avis' },
     { path: '/monitoring', label: 'Monitoring' },
 ];
 
