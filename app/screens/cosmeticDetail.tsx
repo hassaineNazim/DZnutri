@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, FlaskConical } from 'lucide-rea
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ProductRatings from '../components/ProductRatings';
 import ScoreGauge from '../components/ScoreGauge';
 import { CosmeticProduct, fetchCosmetic } from '../services/cosmetics';
 
@@ -150,6 +151,9 @@ export default function CosmeticDetail() {
             <ActivityIndicator color="#EC4899" />
           </View>
         ) : null}
+
+        {/* Notes des utilisateurs (même système que l'alimentaire, keyé par barcode) */}
+        <ProductRatings barcode={product.barcode} />
       </ScrollView>
     </View>
   );

@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List, Dict, Any
 import cloudinary
@@ -17,7 +17,8 @@ from bdproduitdz import crud as bd_crud
 from bdproduitdz import schemas as bd_schemas
 from bdproduitdz import ocr as bd_ocr
 from bdproduitdz import parser as bd_parser
-from bdproduitdz import additives_parser as bd_additives 
+from bdproduitdz import additives_parser as bd_additives
+from rate_limit import limiter
 
 router = APIRouter(tags=["Submissions"])
 
@@ -47,7 +48,9 @@ def _validate_image(upload: Optional[UploadFile], field: str) -> None:
 
 
 @router.post("/api/submission", response_model=bd_schemas.SubmissionResponse)
+@limiter.limit("5/minute")  # uploads Cloudinary + OCR : coûteux, on borne le débit
 async def create_product_submission(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_user),
     barcode: str = Form(..., max_length=50),

@@ -15,11 +15,12 @@ from typing import List, Optional
 import cloudinary
 import cloudinary.uploader
 import httpx
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi_cache.decorator import cache
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
+from rate_limit import limiter
 from auth import models as auth_models
 from auth import security as auth_security
 from bdproduitdz import cosmetic_crud, cosmetic_scoring
@@ -108,7 +109,9 @@ async def search_cosmetics(
 
 
 @router.post("/api/cosmetic/submission", response_model=bd_schemas.CosmeticSubmissionResponse)
+@limiter.limit("5/minute")  # uploads Cloudinary + OCR : coûteux, on borne le débit
 async def create_cosmetic_submission(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_user),
     barcode: str = Form(..., max_length=50),

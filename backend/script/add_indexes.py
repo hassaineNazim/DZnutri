@@ -32,6 +32,10 @@ INDEXES = [
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_products_name_trgm ON produits USING gin (product_name gin_trgm_ops)",
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_products_brand_trgm ON produits USING gin (brand gin_trgm_ops)",
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_products_barcode_trgm ON produits USING gin (barcode gin_trgm_ops)",
+    # --- Recherche texte cosmétiques (ILIKE '%q%') : index GIN trigram ---
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_cosmetiques_name_trgm ON cosmetiques USING gin (product_name gin_trgm_ops)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_cosmetiques_brand_trgm ON cosmetiques USING gin (brand gin_trgm_ops)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_cosmetiques_barcode_trgm ON cosmetiques USING gin (barcode gin_trgm_ops)",
     # --- Tri global par score (recherche/navigation sans filtre catégorie) ---
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_products_custom_score ON produits (custom_score)",
     # --- Navigation par catégorie triée par score ---
