@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Wheat,
 } from 'lucide-react-native';
+import { useColorScheme } from 'nativewind';
 import React, { useEffect, useState } from 'react';
 import {
   Image,
@@ -50,6 +51,25 @@ type Product = {
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+// Palette claire/sombre partagée par l'écran et ses sous-composants.
+// (Les styles de cet écran sont des objets inline : on résout les couleurs ici
+// plutôt que via des classes dark: de NativeWind.)
+const usePalette = () => {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  return {
+    isDark,
+    bg: isDark ? '#181A20' : '#F9FAFB',
+    card: isDark ? '#1F2937' : '#FFFFFF',
+    cardAlt: isDark ? '#374151' : '#F3F4F6',   // tuile nutrition dans la carte
+    divider: isDark ? '#374151' : '#F9FAFB',
+    textStrong: isDark ? '#F9FAFB' : '#111827',
+    textBody: isDark ? '#D1D5DB' : '#374151',
+    textMuted: isDark ? '#9CA3AF' : '#6B7280',
+    icon: isDark ? '#D1D5DB' : '#374151',
+  };
+};
 
 const getScoreColor = (score?: number) => {
   if (score === undefined) return '#9CA3AF';
@@ -183,22 +203,25 @@ const NutritionCard = ({
   value: string;
   badgeText: string;
   badgeColor: string;
-}) => (
-  <View
-    style={{
-      width: '48%',
-      backgroundColor: '#F3F4F6',
-      borderRadius: 14,
-      padding: 12,
-      marginBottom: 10,
-    }}
-  >
-    <View style={{ marginBottom: 4 }}>{icon}</View>
-    <Text style={{ color: '#9CA3AF', fontSize: 12, marginBottom: 1 }}>{label}</Text>
-    <Text style={{ color: '#111827', fontSize: 20, fontWeight: 'bold' }}>{value}</Text>
-    <Badge text={badgeText} color={badgeColor} />
-  </View>
-);
+}) => {
+  const p = usePalette();
+  return (
+    <View
+      style={{
+        width: '48%',
+        backgroundColor: p.cardAlt,
+        borderRadius: 14,
+        padding: 12,
+        marginBottom: 10,
+      }}
+    >
+      <View style={{ marginBottom: 4 }}>{icon}</View>
+      <Text style={{ color: '#9CA3AF', fontSize: 12, marginBottom: 1 }}>{label}</Text>
+      <Text style={{ color: p.textStrong, fontSize: 20, fontWeight: 'bold' }}>{value}</Text>
+      <Badge text={badgeText} color={badgeColor} />
+    </View>
+  );
+};
 
 // ─── Simple nutrient row ─────────────────────────────────────────────────────
 
@@ -210,35 +233,45 @@ const NutriRow = ({
   icon: React.ReactNode;
   label: string;
   value: string;
-}) => (
-  <View
-    style={{
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 9,
-      borderTopWidth: 1,
-      borderTopColor: '#F3F4F6',
-    }}
-  >
-    <View style={{ marginRight: 8 }}>{icon}</View>
-    <Text style={{ flex: 1, color: '#374151', fontSize: 14 }}>{label}</Text>
-    <Text style={{ color: '#6B7280', fontSize: 14 }}>{value}</Text>
-  </View>
-);
+}) => {
+  const p = usePalette();
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 9,
+        borderTopWidth: 1,
+        borderTopColor: p.cardAlt,
+      }}
+    >
+      <View style={{ marginRight: 8 }}>{icon}</View>
+      <Text style={{ flex: 1, color: p.textBody, fontSize: 14 }}>{label}</Text>
+      <Text style={{ color: p.textMuted, fontSize: 14 }}>{value}</Text>
+    </View>
+  );
+};
 
 // ─── Allergen warning ────────────────────────────────────────────────────────
 
 const AllergenWarning = ({ ingredients }: { ingredients?: string }) => {
   const { detectedAllergens, hasAllergies } = useAllergenCheck(ingredients);
   const { t } = useTranslation();
+  const p = usePalette();
   if (!hasAllergies) return null;
+  // Déclinaison sombre du rouge pastel (fond translucide + textes éclaircis).
+  const boxBg = p.isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2';
+  const boxBorder = p.isDark ? '#7F1D1D' : '#FECACA';
+  const chipBg = p.isDark ? 'rgba(239, 68, 68, 0.18)' : '#FEE2E2';
+  const titleColor = p.isDark ? '#FCA5A5' : '#B91C1C';
+  const descColor = p.isDark ? '#F87171' : '#DC2626';
   return (
     <View style={{ marginHorizontal: 16, marginTop: 12 }}>
       <View
         style={{
-          backgroundColor: '#FEF2F2',
+          backgroundColor: boxBg,
           borderWidth: 1,
-          borderColor: '#FECACA',
+          borderColor: boxBorder,
           borderRadius: 16,
           padding: 14,
           flexDirection: 'row',
@@ -247,7 +280,7 @@ const AllergenWarning = ({ ingredients }: { ingredients?: string }) => {
       >
         <View
           style={{
-            backgroundColor: '#FEE2E2',
+            backgroundColor: chipBg,
             padding: 8,
             borderRadius: 50,
             marginRight: 12,
@@ -257,10 +290,10 @@ const AllergenWarning = ({ ingredients }: { ingredients?: string }) => {
           <AlertTriangle size={18} color="#EF4444" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: '#B91C1C', fontWeight: 'bold', fontSize: 14, marginBottom: 4 }}>
+          <Text style={{ color: titleColor, fontWeight: 'bold', fontSize: 14, marginBottom: 4 }}>
             {t('allergen_warning_title') || 'Attention : Allergènes détectés'}
           </Text>
-          <Text style={{ color: '#DC2626', fontSize: 13, lineHeight: 18 }}>
+          <Text style={{ color: descColor, fontSize: 13, lineHeight: 18 }}>
             {t('allergen_warning_desc') ||
               'Ce produit contient des ingrédients que vous avez signalés dans votre profil santé.'}
           </Text>
@@ -269,9 +302,9 @@ const AllergenWarning = ({ ingredients }: { ingredients?: string }) => {
               <View
                 key={a}
                 style={{
-                  backgroundColor: '#FEE2E2',
+                  backgroundColor: chipBg,
                   borderWidth: 1,
-                  borderColor: '#FECACA',
+                  borderColor: boxBorder,
                   paddingHorizontal: 8,
                   paddingVertical: 3,
                   borderRadius: 8,
@@ -279,7 +312,7 @@ const AllergenWarning = ({ ingredients }: { ingredients?: string }) => {
               >
                 <Text
                   style={{
-                    color: '#B91C1C',
+                    color: titleColor,
                     fontWeight: 'bold',
                     fontSize: 11,
                     textTransform: 'uppercase',
@@ -303,6 +336,7 @@ export default function ProductDetail() {
   const { product: productJson } = useLocalSearchParams();
   const product: Product | null = productJson ? JSON.parse(productJson as string) : null;
   const insets = useSafeAreaInsets();
+  const p = usePalette();
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [fullProduct, setFullProduct] = useState<Product>(product!);
 
@@ -338,13 +372,13 @@ export default function ProductDetail() {
   const is = 15;        // icon size
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <View style={{ flex: 1, backgroundColor: p.bg }}>
+      <StatusBar barStyle={p.isDark ? 'light-content' : 'dark-content'} backgroundColor={p.card} />
 
       {/* ── Header ── */}
       <View
         style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: p.card,
           paddingTop: insets.top,
           flexDirection: 'row',
           alignItems: 'center',
@@ -352,25 +386,25 @@ export default function ProductDetail() {
           paddingHorizontal: 16,
           paddingBottom: 12,
           borderBottomWidth: 1,
-          borderBottomColor: '#F9FAFB',
+          borderBottomColor: p.divider,
         }}
       >
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
-          <ArrowLeft size={22} color="#374151" />
+          <ArrowLeft size={22} color={p.icon} />
         </TouchableOpacity>
 
-        <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827' }}>remo</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: p.textStrong }}>remo</Text>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <TouchableOpacity onPress={() => toggleFavorite()}>
             <Heart
               size={20}
-              color={isFavorite ? '#EC4899' : '#374151'}
+              color={isFavorite ? '#EC4899' : p.icon}
               fill={isFavorite ? '#EC4899' : 'none'}
             />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setReportModalVisible(true)}>
-            <MoreHorizontal size={22} color="#374151" />
+            <MoreHorizontal size={22} color={p.icon} />
           </TouchableOpacity>
         </View>
       </View>
@@ -380,7 +414,7 @@ export default function ProductDetail() {
         {/* ── Product card ── */}
         <View
           style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: p.card,
             marginHorizontal: 16,
             marginTop: 16,
             borderRadius: 16,
@@ -396,12 +430,12 @@ export default function ProductDetail() {
         >
           <Image
             source={{ uri: fullProduct.image_url }}
-            style={{ width: 80, height: 80, borderRadius: 10, backgroundColor: '#F9FAFB' }}
+            style={{ width: 80, height: 80, borderRadius: 10, backgroundColor: p.cardAlt }}
             resizeMode="contain"
           />
           <View style={{ flex: 1, paddingHorizontal: 12 }}>
             <Text
-              style={{ fontSize: 17, fontWeight: 'bold', color: '#111827', lineHeight: 24 }}
+              style={{ fontSize: 17, fontWeight: 'bold', color: p.textStrong, lineHeight: 24 }}
               numberOfLines={2}
             >
               {fullProduct.product_name}
@@ -419,7 +453,7 @@ export default function ProductDetail() {
         {/* ── Additives card ── */}
         <View
           style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: p.card,
             marginHorizontal: 16,
             marginTop: 12,
             borderRadius: 16,
@@ -439,11 +473,11 @@ export default function ProductDetail() {
               paddingHorizontal: 14,
               paddingVertical: 13,
               borderBottomWidth: 1,
-              borderBottomColor: '#F9FAFB',
+              borderBottomColor: p.divider,
             }}
           >
-            <FlaskConical size={17} color="#6B7280" style={{ marginRight: 8 }} />
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>Additives</Text>
+            <FlaskConical size={17} color={p.textMuted} style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: p.textStrong }}>Additives</Text>
           </View>
 
           {/* Additive rows */}
@@ -464,7 +498,7 @@ export default function ProductDetail() {
                     paddingHorizontal: 14,
                     paddingVertical: 12,
                     borderBottomWidth: isLast ? 0 : 1,
-                    borderBottomColor: '#F9FAFB',
+                    borderBottomColor: p.divider,
                   }}
                 >
                   <View
@@ -476,7 +510,7 @@ export default function ProductDetail() {
                       marginRight: 10,
                     }}
                   />
-                  <Text style={{ flex: 1, fontSize: 14, color: '#374151' }}>
+                  <Text style={{ flex: 1, fontSize: 14, color: p.textBody }}>
                     {code}
                     {name ? ` (${name})` : ''}
                   </Text>
@@ -500,7 +534,7 @@ export default function ProductDetail() {
         {/* ── Nutritional Information card ── */}
         <View
           style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: p.card,
             marginHorizontal: 16,
             marginTop: 12,
             borderRadius: 16,
@@ -520,11 +554,11 @@ export default function ProductDetail() {
               paddingHorizontal: 14,
               paddingVertical: 13,
               borderBottomWidth: 1,
-              borderBottomColor: '#F9FAFB',
+              borderBottomColor: p.divider,
             }}
           >
-            <Heart size={17} color="#6B7280" style={{ marginRight: 8 }} />
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>
+            <Heart size={17} color={p.textMuted} style={{ marginRight: 8 }} />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: p.textStrong }}>
               Nutritional Information
             </Text>
           </View>
