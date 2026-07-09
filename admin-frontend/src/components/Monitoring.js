@@ -10,6 +10,7 @@ import {
   RefreshCw,
   ScanLine,
   Server,
+  Sparkles,
   Trophy,
   UserPlus,
   Users,
@@ -310,18 +311,22 @@ const Monitoring = () => {
   const ocrHistory = data?.ocr_history || {};
   const alerts = runtime.alerts || [];
   const topScanned = data?.top_scanned_products || [];
+  const topScannedCosmetics = data?.top_scanned_cosmetics || [];
   const slowest = runtime.slowest_endpoints || [];
   const topEndpoints = runtime.top_endpoints || [];
   const recentErrors = runtime.recent_errors || [];
   const submissions = totals.submissions_by_status || {};
+  const cosmeticSubmissions = totals.cosmetic_submissions_by_status || {};
 
   const analytics = data?.analytics || {};
   const usersAnalytics = analytics.users || {};
   const productsAnalytics = analytics.products || {};
+  const cosmeticsAnalytics = analytics.cosmetics || {};
   const scansPerDay = analytics.scans_per_day || [];
   const contributors = analytics.top_contributors || [];
   const reportsSummary = analytics.reports || {};
   const worstProducts = productsAnalytics.worst_products || [];
+  const worstCosmetics = cosmeticsAnalytics.worst_cosmetics || [];
   const topCategories = productsAnalytics.top_categories || [];
 
   const reportRows = Object.entries(reportsSummary).map(([type, byStatus]) => ({
@@ -404,7 +409,7 @@ const Monitoring = () => {
           label="Scans (24 h)"
           value={totals.scans_last_24h ?? 0}
           accent="blue"
-          sub={`${totals.products ?? 0} produits en base`}
+          sub={`${totals.products ?? 0} aliments · ${totals.cosmetics ?? 0} cosmétiques en base`}
         />
         <StatCard
           icon={Clock}
@@ -415,7 +420,7 @@ const Monitoring = () => {
         />
       </div>
 
-      {/* Activité : scans & inscriptions par jour */}
+      {/* Activité : scans, inscriptions & ajouts par jour */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-medium text-gray-900 flex items-center mb-4">
@@ -430,6 +435,20 @@ const Monitoring = () => {
             Inscriptions par jour (14 j)
           </h2>
           <DailyBarChart series={usersAnalytics.signups_per_day || []} color="bg-emerald-500" />
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-medium text-gray-900 flex items-center mb-4">
+            <Package className="h-5 w-5 text-lime-600 mr-2" />
+            Produits alimentaires ajoutés / jour (14 j)
+          </h2>
+          <DailyBarChart series={productsAnalytics.added_per_day || []} color="bg-lime-500" />
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-medium text-gray-900 flex items-center mb-4">
+            <Sparkles className="h-5 w-5 text-pink-500 mr-2" />
+            Cosmétiques ajoutés / jour (14 j)
+          </h2>
+          <DailyBarChart series={cosmeticsAnalytics.added_per_day || []} color="bg-pink-500" />
         </div>
       </div>
 
@@ -493,6 +512,51 @@ const Monitoring = () => {
                 </li>
               ))}
             </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Cosmétiques : qualité + soumissions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-medium text-gray-900 flex items-center mb-4">
+            <Sparkles className="h-5 w-5 text-pink-500 mr-2" />
+            Qualité des cosmétiques en base
+          </h2>
+          <ScoreDistribution distribution={cosmeticsAnalytics.score_distribution} />
+          <div className="mt-6 pt-4 border-t border-gray-100">
+            <h3 className="text-xs font-semibold uppercase text-gray-400 mb-2">
+              Pires cosmétiques (score le plus bas)
+            </h3>
+            {worstCosmetics.length === 0 ? (
+              <p className="text-sm text-gray-400">Pas encore de données.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {worstCosmetics.map((p) => (
+                  <li key={p.barcode} className="flex justify-between text-sm">
+                    <span className="text-gray-600 truncate mr-3">{p.product_name || p.barcode}</span>
+                    <span className="font-semibold text-red-600 flex-shrink-0">
+                      {p.cosmetic_score}/100
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-medium text-gray-900 flex items-center mb-4">
+            <Package className="h-5 w-5 text-pink-500 mr-2" />
+            Soumissions cosmétiques par statut
+          </h2>
+          <div className="flex space-x-6">
+            {['pending', 'approved', 'rejected'].map((status) => (
+              <div key={status}>
+                <div className="text-lg font-bold text-gray-900">{cosmeticSubmissions[status] ?? 0}</div>
+                <div className="text-xs capitalize text-gray-500">{status}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -658,6 +722,51 @@ const Monitoring = () => {
                   </p>
                 </div>
                 <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {p.scan_count} scans
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Top cosmétiques scannés */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900 flex items-center">
+            <Sparkles className="h-5 w-5 text-pink-500 mr-2" />
+            Top cosmétiques scannés (30 jours)
+          </h2>
+        </div>
+        {topScannedCosmetics.length === 0 ? (
+          <p className="px-6 py-8 text-center text-gray-400 text-sm">
+            Aucun scan enregistré sur la période.
+          </p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {topScannedCosmetics.map((p, i) => (
+              <li key={p.barcode} className="flex items-center px-6 py-3">
+                <span className="w-6 text-sm font-semibold text-gray-400">{i + 1}</span>
+                {p.image_url ? (
+                  <img
+                    src={p.image_url}
+                    alt=""
+                    className="h-10 w-10 rounded object-cover bg-gray-100 mr-3"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center mr-3">
+                    <Sparkles className="h-5 w-5 text-gray-300" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {p.product_name || 'Sans nom'}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {p.brand || '—'} · {p.barcode}
+                  </p>
+                </div>
+                <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
                   {p.scan_count} scans
                 </span>
               </li>

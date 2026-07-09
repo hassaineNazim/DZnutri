@@ -120,3 +120,4 @@ def detect_text_from_url(image_url: str) -> str:
         metrics.record_ocr(success=False, duration_ms=duration_ms)
     logger.error("OCR définitivement en échec pour %s : %s", image_url, last_error)
     return f"Erreur OCR : {last_error}"
+

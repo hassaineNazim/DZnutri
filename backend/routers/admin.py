@@ -83,19 +83,29 @@ async def get_monitoring_dashboard(
     # --- Totaux de base (requêtes COUNT, pas de chargement de lignes) -------
     total_users = await db.scalar(select(func.count(auth_models.UserTable.id))) or 0
     total_products = await db.scalar(select(func.count(bd_models.Product.id))) or 0
+    total_cosmetics = await db.scalar(select(func.count(bd_models.CosmeticProduct.id))) or 0
     scans_24h = await db.scalar(
         select(func.count(bd_models.ScanHistory.id)).where(
             bd_models.ScanHistory.scanned_at >= last_24h
         )
     ) or 0
 
-    # --- Soumissions par statut --------------------------------------------
+    # --- Soumissions par statut (alimentaire + cosmétique) ------------------
     status_rows = await db.execute(
         select(bd_models.Submission.status, func.count(bd_models.Submission.id)).group_by(
             bd_models.Submission.status
         )
     )
     submissions_by_status = {status or "unknown": count for status, count in status_rows}
+
+    cosmetic_status_rows = await db.execute(
+        select(
+            bd_models.CosmeticSubmission.status, func.count(bd_models.CosmeticSubmission.id)
+        ).group_by(bd_models.CosmeticSubmission.status)
+    )
+    cosmetic_submissions_by_status = {
+        status or "unknown": count for status, count in cosmetic_status_rows
+    }
 
     # --- Top produits scannés (30 derniers jours) --------------------------
     top_rows = await db.execute(
@@ -127,6 +137,38 @@ async def get_monitoring_dashboard(
             "scan_count": scan_count,
         }
         for barcode, product_name, brand, image_url, scan_count in top_rows
+    ]
+
+    # --- Top cosmétiques scannés (30 derniers jours) ------------------------
+    top_cosmetic_rows = await db.execute(
+        select(
+            bd_models.CosmeticProduct.barcode,
+            bd_models.CosmeticProduct.product_name,
+            bd_models.CosmeticProduct.brand,
+            bd_models.CosmeticProduct.image_url,
+            func.count(bd_models.ScanHistory.id).label("scan_count"),
+        )
+        .join(bd_models.ScanHistory, bd_models.ScanHistory.cosmetic_id == bd_models.CosmeticProduct.id)
+        .where(bd_models.ScanHistory.scanned_at >= last_30d)
+        .group_by(
+            bd_models.CosmeticProduct.id,
+            bd_models.CosmeticProduct.barcode,
+            bd_models.CosmeticProduct.product_name,
+            bd_models.CosmeticProduct.brand,
+            bd_models.CosmeticProduct.image_url,
+        )
+        .order_by(func.count(bd_models.ScanHistory.id).desc())
+        .limit(10)
+    )
+    top_scanned_cosmetics = [
+        {
+            "barcode": barcode,
+            "product_name": product_name,
+            "brand": brand,
+            "image_url": image_url,
+            "scan_count": scan_count,
+        }
+        for barcode, product_name, brand, image_url, scan_count in top_cosmetic_rows
     ]
 
     # --- Taux de succès OCR historique (sur les soumissions) ---------------
@@ -239,6 +281,47 @@ async def get_monitoring_dashboard(
         for b, n, s, g in worst_rows
     ]
 
+    # --- Cosmétiques : ajoutés / jour (14 j) + distribution des scores ---------
+    cosmetic_day = func.date_trunc("day", bd_models.CosmeticProduct.created_at)
+    cosmetic_added_rows = await db.execute(
+        select(cosmetic_day, func.count(bd_models.CosmeticProduct.id))
+        .where(bd_models.CosmeticProduct.created_at >= last_14d)
+        .group_by(cosmetic_day)
+    )
+
+    cosmetic_score_bucket = case(
+        (bd_models.CosmeticProduct.cosmetic_score >= 75, "excellent"),
+        (bd_models.CosmeticProduct.cosmetic_score >= 50, "bon"),
+        (bd_models.CosmeticProduct.cosmetic_score >= 25, "mediocre"),
+        (bd_models.CosmeticProduct.cosmetic_score.isnot(None), "mauvais"),
+        else_="sans_score",
+    )
+    cosmetic_bucket_rows = await db.execute(
+        select(cosmetic_score_bucket, func.count(bd_models.CosmeticProduct.id)).group_by(
+            cosmetic_score_bucket
+        )
+    )
+    cosmetic_score_distribution = {
+        "excellent": 0, "bon": 0, "mediocre": 0, "mauvais": 0, "sans_score": 0
+    }
+    for bucket, count in cosmetic_bucket_rows:
+        cosmetic_score_distribution[bucket] = count
+
+    worst_cosmetic_rows = await db.execute(
+        select(
+            bd_models.CosmeticProduct.barcode,
+            bd_models.CosmeticProduct.product_name,
+            bd_models.CosmeticProduct.cosmetic_score,
+        )
+        .where(bd_models.CosmeticProduct.cosmetic_score.isnot(None))
+        .order_by(bd_models.CosmeticProduct.cosmetic_score.asc())
+        .limit(5)
+    )
+    worst_cosmetics = [
+        {"barcode": b, "product_name": n, "cosmetic_score": s}
+        for b, n, s in worst_cosmetic_rows
+    ]
+
     # --- Contributeurs les plus actifs (soumissions) ---------------------------
     contrib_rows = await db.execute(
         select(
@@ -279,16 +362,24 @@ async def get_monitoring_dashboard(
                 "top_categories": top_categories,
                 "worst_products": worst_products,
             },
+            "cosmetics": {
+                "added_per_day": _daily_series(cosmetic_added_rows.all(), 14),
+                "score_distribution": cosmetic_score_distribution,
+                "worst_cosmetics": worst_cosmetics,
+            },
             "top_contributors": top_contributors,
             "reports": reports_summary,
         },
         "totals": {
             "users": total_users,
             "products": total_products,
+            "cosmetics": total_cosmetics,
             "scans_last_24h": scans_24h,
             "submissions_by_status": submissions_by_status,
+            "cosmetic_submissions_by_status": cosmetic_submissions_by_status,
         },
         "top_scanned_products": top_scanned,
+        "top_scanned_cosmetics": top_scanned_cosmetics,
         "ocr_history": {
             "attempted": ocr_attempted,
             "success": ocr_success,
