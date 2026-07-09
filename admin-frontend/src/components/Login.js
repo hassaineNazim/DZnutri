@@ -18,15 +18,16 @@ const Login = () => {
     
 
     try {
-      const response = await authAPI.login(username, password);
-      
-      // Check if user is admin
-      if (!response.user.is_admin) {
+      await authAPI.login(username, password);
+
+      // authAPI.login() a déjà récupéré et mis en cache le profil (is_admin).
+      const user = authAPI.getUser();
+      if (!user || !user.is_admin) {
         authAPI.logout(); // Clear the token
         setError('Access denied. Admin privileges required.');
         return;
       }
-      
+
       navigate('/dashboard');
     } catch (err) {
       if (err.response?.status === 401) {
@@ -34,7 +35,6 @@ const Login = () => {
       } else if (err.response?.status === 403) {
         setError('Access denied. Admin privileges required.');
       } else {
-        window.location.reload();
         setError(err.response?.data?.detail || 'Login failed. Please try again.');
       }
     } finally {
