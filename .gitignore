@@ -59,3 +59,5 @@ backend/dznutri-632fbb70c039.json
 
 
 android/local.properties
+# Dossier de référence design (prototypes HTML, non code app)
+/Redesign app scan alimentaire/
