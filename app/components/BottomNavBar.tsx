@@ -1,78 +1,94 @@
-// Dans components/BottomNavBar.tsx
-
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-
-import { ChartLine, Clock, Search, Settings } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { BookMarked, Home, ScanLine, Search, User } from 'lucide-react-native';
 import React from 'react';
-import { Pressable, Text, useColorScheme, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useTranslation } from '../i18n';
-import { ScanButton } from './ScanButton';
+import { colors, radius, shadows } from '../theme/tokens';
+import Txt from './ui/Txt';
 
-
-// Un petit helper pour choisir la bonne icône
-
-const getIconForRoute = (routeName: string, color: string) => {
-  switch (routeName) {
-    case 'rech':
-      return <Search color={color} strokeWidth={1.5} />;
-    case 'historique':
-      return <Clock color={color} strokeWidth={1.5} />;
-    case 'analyse':
-      return <ChartLine color={color} strokeWidth={1.5} />;
-    case 'reglage':
-      return <Settings color={color} strokeWidth={1.5} />;
-    default:
-      return null;
-  }
+// Mapping route -> icône + libellé (design : Accueil, Rechercher, Carnet, Moi).
+const ROUTE_META: Record<string, { icon: any; labelKey: string; fallback: string }> = {
+  historique: { icon: Home, labelKey: 'home', fallback: 'Accueil' },
+  rech: { icon: Search, labelKey: 'search', fallback: 'Rechercher' },
+  analyse: { icon: BookMarked, labelKey: 'carnet', fallback: 'Carnet' },
+  reglage: { icon: User, labelKey: 'me', fallback: 'Moi' },
 };
- 
- 
-// On accepte les props ici
+
 export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
-  const colorScheme = useColorScheme();
+  const { t } = useTranslation();
+  const router = useRouter();
 
- const { t } = useTranslation();
   return (
-    <View className="flex-row justify-around items-center h-[70px] bg-slate-100 dark:bg-[#181A20] rounded-t-2xl absolute left-0 right-0 bottom-0 shadow-lg z-10">
-      
-      {/* On génère les boutons en bouclant sur les routes */}
-      {state.routes.map((route, index) => {
-        // 1. Déterminer si l'onglet est actif
-        const isFocused = state.index === index;
+    <View style={{ backgroundColor: colors.cream, paddingHorizontal: 18, paddingTop: 6, paddingBottom: 16 }}>
+      <View
+        style={[
+          {
+            flexDirection: 'row',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            backgroundColor: colors.navBordeaux,
+            borderRadius: radius.pill + 2,
+            paddingHorizontal: 14,
+            paddingVertical: 14,
+          },
+          shadows.nav,
+        ]}
+      >
+        {state.routes.map((route, index) => {
+          const isFocused = state.index === index;
+          const meta = ROUTE_META[route.name];
+          if (!meta) return null;
+          const Icon = meta.icon;
+          const color = isFocused ? colors.yellow : '#ecdcc4';
 
-        // 2. Définir l'action au clic
-        const onPress = () => {
-          if (!isFocused) {
-            navigation.navigate(route.name);
-          }
-        };
+          const onPress = () => {
+            if (!isFocused) navigation.navigate(route.name);
+          };
 
-        // On insère le bouton Scan au milieu
-        if (index === 2) {
-          return (
-            <React.Fragment key="scan-fragment">
-              <View className="flex-1 items-center justify-center py-2" pointerEvents="box-none">
-                <ScanButton />
-              </View>
-              <Pressable key={route.key} className="flex-1 items-center justify-center py-2" onPress={onPress}>
-                {getIconForRoute(route.name, isFocused ? (colorScheme === 'dark' ? 'white' : '#22C55E') : 'gray')}
-                <Text className={isFocused ? 'text-green-500 text-xs mt-0.5 dark:text-white' : 'text-gray-400 text-xs mt-0.5'}>
-                  {t(route.name)}
-                </Text>
-              </Pressable>
-            </React.Fragment>
+          const tab = (
+            <Pressable key={route.key} onPress={onPress} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+              <Icon size={24} color={color} strokeWidth={1.8} />
+              <Txt variant={isFocused ? 'bold' : 'medium'} size={11} color={color}>
+                {t(meta.labelKey) || meta.fallback}
+              </Txt>
+            </Pressable>
           );
-        }
 
-        return (
-          <Pressable key={route.key} className="flex-1 items-center justify-center py-2" onPress={onPress}>
-            {getIconForRoute(route.name, isFocused ? (colorScheme === 'dark' ? 'white' : '#22C55E') : 'gray')}
-            <Text className={isFocused ? 'text-green-500 text-xs mt-0.5 dark:text-white' : 'text-gray-400 text-xs mt-0.5'}>
-              {t(route.name)}
-            </Text>
-          </Pressable>
-        );
-      })}
+          // Bouton Scanner central surélevé, inséré au milieu (après 2 onglets).
+          if (index === 1) {
+            return (
+              <React.Fragment key="scan-fragment">
+                {tab}
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
+                  <Pressable
+                    onPress={() => router.push('/scanner')}
+                    style={[
+                      {
+                        width: 62,
+                        height: 62,
+                        borderRadius: 31,
+                        backgroundColor: colors.yellow,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginTop: -34,
+                      },
+                      shadows.scanButton,
+                    ]}
+                  >
+                    <ScanLine size={27} color={colors.navBordeaux} strokeWidth={2} />
+                  </Pressable>
+                  <Txt variant="bold" size={11} color={colors.yellow} style={{ marginTop: 6 }}>
+                    {t('scan') || 'Scanner'}
+                  </Txt>
+                </View>
+              </React.Fragment>
+            );
+          }
+
+          return tab;
+        })}
+      </View>
     </View>
   );
 }

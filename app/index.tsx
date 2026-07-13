@@ -1,7 +1,9 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Settings } from 'react-native-fbsdk-next';
 import "../global.css";
+import { ONBOARDING_KEY } from "./onboarding";
 import { api } from "./services/axios";
 import { getAccessToken } from "./services/tokenStore";
 
@@ -11,6 +13,7 @@ Settings.initializeSDK();
 export default function Index() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [seenOnboarding, setSeenOnboarding] = useState(true);
 
     useEffect(() => {
         checkLoginStatus();
@@ -27,6 +30,12 @@ export default function Index() {
         setIsLoading(true);
         let loggedIn = false;
         try {
+            try {
+                const seen = await AsyncStorage.getItem(ONBOARDING_KEY);
+                setSeenOnboarding(seen === '1');
+            } catch {
+                setSeenOnboarding(true);
+            }
             const token = await getAccessToken();
             if (!token) {
                 loggedIn = false;
@@ -63,6 +72,10 @@ export default function Index() {
 
     if (isLoggedIn) {
         return <Redirect href="/(tabs)/historique" />;
+    } else if (!seenOnboarding) {
+        // Cast : les types de routes typées d'expo-router se régénèrent au
+        // lancement (expo start / build) ; /onboarding existe bien.
+        return <Redirect href={"/onboarding" as any} />;
     } else {
         return <Redirect href="/auth" />;
     }

@@ -1,30 +1,55 @@
-
 import { useRouter } from 'expo-router';
-import { CheckSquare, HelpCircle, MoreVertical, Trash2, User, X } from 'lucide-react-native'; // Ajout des icônes pour le menu
-import { useColorScheme } from 'nativewind';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, RefreshControl, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
+import { HelpCircle, ScanLine, Trash2, User, X } from 'lucide-react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  RefreshControl,
+  SectionList,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
-import ListItem from '../components/ListItem';
+import ProductCard, { ProductCardItem } from '../components/ui/ProductCard';
+import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
+import { colors, radius, shadows } from '../theme/tokens';
 import { deleteCosmeticFromHistory, deleteFromHistory, fetchHistory } from '../services/saveHistorique';
 
-type Product = {
-  id: number;
-  item_type?: 'food' | 'cosmetic';
-  brands?: string;
-  brand?: string;
-  product_name?: string;
-  image_url?: string;
-  custom_score?: number;
-  nutrition_grades?: string;
-  scanned_at?: string | null;
-};
+type Product = ProductCardItem & { nutrition_grades?: string };
 
-// Clé unique par entrée : les ids alimentaires et cosmétiques peuvent se
-// chevaucher (tables différentes), on préfixe donc par l'univers.
+// Clé unique par entrée : ids alimentaires et cosmétiques peuvent se chevaucher.
 const itemKey = (item: Product) => `${item.item_type || 'food'}-${item.id}`;
+
+// Regroupe l'historique par jour (Aujourd'hui / Hier / Plus tôt).
+function buildSections(history: Product[], t: (k: string) => string) {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const today = startOfDay(new Date());
+  const yesterday = today - 86400000;
+
+  const groups: Record<string, Product[]> = { today: [], yesterday: [], earlier: [] };
+  for (const item of history) {
+    let bucket = 'earlier';
+    if (item.scanned_at) {
+      const day = startOfDay(new Date(item.scanned_at));
+      if (day === today) bucket = 'today';
+      else if (day === yesterday) bucket = 'yesterday';
+    }
+    groups[bucket].push(item);
+  }
+
+  const titles: Record<string, string> = {
+    today: t('today') || "Aujourd'hui",
+    yesterday: t('yesterday') || 'Hier',
+    earlier: t('earlier') || 'Plus tôt',
+  };
+  return (['today', 'yesterday', 'earlier'] as const)
+    .filter((k) => groups[k].length > 0)
+    .map((k) => ({ key: k, title: titles[k], data: groups[k] }));
+}
 
 export default function HistoriquePage() {
   const [history, setHistory] = useState<Product[]>([]);
@@ -32,39 +57,20 @@ export default function HistoriquePage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const { t } = useTranslation();
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
 
-
-  // --- NOUVEAUX ÉTATS POUR LE MENU ---
-  const [menuVisible, setMenuVisible] = useState(false);
-
-  const handleReportProblem = () => {
-    setMenuVisible(false);
-    router.push('../screens/reportUser');
-  };
-
-  const handleAccount = () => {
-    setMenuVisible(false);
-    router.push('/reglage/compte');
-  };
-  // 1. Chargement initial (Une seule fois au montage)
-  // Fonction de chargement centralisée. `isRefresh` évite le spinner plein écran
-  // lors d'un pull-to-refresh. La fonction est stable (deps vides) pour ne pas
-  // relancer l'effet — et donc des fetchs en double — à chaque setRefreshing.
   const loadHistory = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
-
       const serverHistory = await fetchHistory();
       setHistory(serverHistory);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
-      setRefreshing(false); // Important : arrêter l'animation de refresh
+      setRefreshing(false);
     }
   }, []);
 
@@ -72,32 +78,36 @@ export default function HistoriquePage() {
     loadHistory();
   }, [loadHistory]);
 
-  // 2. Fonction appelée lors du swipe vers le bas
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadHistory(true);
   }, [loadHistory]);
 
-  const toggleSelect = (key: string) => {
-    setSelectedIds(prev => prev.includes(key) ? prev.filter(x => x !== key) : [...prev, key]);
-  };
+  // --- Statistiques du bandeau ---
+  const stats = useMemo(() => {
+    const scored = history.filter((h) => typeof h.custom_score === 'number');
+    const avg = scored.length
+      ? Math.round(scored.reduce((s, h) => s + (h.custom_score as number), 0) / scored.length)
+      : 0;
+    const alertes = history.filter((h) => typeof h.custom_score === 'number' && (h.custom_score as number) < 25).length;
+    return { scans: history.length, avg, alertes };
+  }, [history]);
 
+  const sections = useMemo(() => buildSections(history, t), [history, t]);
+
+  const toggleSelect = (key: string) =>
+    setSelectedIds((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]));
   const clearSelection = () => setSelectedIds([]);
-
-  const confirmDeleteSelected = () => {
-    if (selectedIds.length === 0) return;
-    setConfirmVisible(true);
-  };
 
   const deleteSelected = async () => {
     try {
-      const selectedItems = history.filter(item => selectedIds.includes(itemKey(item)));
-      await Promise.all(selectedItems.map(item =>
-        item.item_type === 'cosmetic'
-          ? deleteCosmeticFromHistory(item.id)
-          : deleteFromHistory(item.id)
-      ));
-      setHistory(prev => prev.filter(item => !selectedIds.includes(itemKey(item))));
+      const selectedItems = history.filter((item) => selectedIds.includes(itemKey(item)));
+      await Promise.all(
+        selectedItems.map((item) =>
+          item.item_type === 'cosmetic' ? deleteCosmeticFromHistory(item.id) : deleteFromHistory(item.id),
+        ),
+      );
+      setHistory((prev) => prev.filter((item) => !selectedIds.includes(itemKey(item))));
       clearSelection();
     } catch (e) {
       console.error(e);
@@ -111,161 +121,194 @@ export default function HistoriquePage() {
     });
   };
 
+  const todayLabel = useMemo(
+    () =>
+      new Date()
+        .toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' })
+        .toUpperCase()
+        .replace('.', ''),
+    [],
+  );
+
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center bg-gray-50 dark:bg-[#181A20]">
-        <ActivityIndicator size="large" color="#84CC16" />
+      <View style={{ flex: 1, backgroundColor: colors.bordeaux, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={colors.yellow} />
       </View>
     );
   }
 
+  const selecting = selectedIds.length > 0;
+
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
-
-      {/* Header / Selection Bar */}
-      {selectedIds.length > 0 ? (
-        <Animated.View
-          entering={FadeInDown.duration(300)}
-          layout={Layout.springify()}
-          className="absolute top-4 left-4 right-4 z-10 bg-white dark:bg-[#1F2937] rounded-2xl shadow-lg p-4 flex-row items-center justify-between"
-        >
-          <View className="flex-row items-center space-x-3">
-            <Pressable onPress={clearSelection} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full">
-              <X size={20} color={isDark ? "#D1D5DB" : "#4B5563"} />
-            </Pressable>
-            <Text className="text-lg font-bold text-gray-900 dark:text-white">
-              {selectedIds.length} {t('selected') || 'sélectionné(s)'}
-            </Text>
-          </View>
-
-          <View className="flex-row items-center space-x-2">
+    <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+      {/* ---- Entête bordeaux ---- */}
+      <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 18 }}>
+        {selecting ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 46 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Pressable onPress={clearSelection} style={styles.roundBtnCream}>
+                <X size={20} color={colors.bordeaux} />
+              </Pressable>
+              <Txt variant="displayXBold" size={22} color={colors.creamTitle}>
+                {selectedIds.length} {t('selected') || 'sélectionné(s)'}
+              </Txt>
+            </View>
             <Pressable
-              onPress={() => setSelectedIds(history.map(itemKey))}
-              className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full mr-2"
+              onPress={() => selectedIds.length && setConfirmVisible(true)}
+              style={[styles.roundBtnCream, { backgroundColor: colors.redAlt }]}
             >
-              <CheckSquare size={20} color={isDark ? "#D1D5DB" : "#4B5563"} />
-            </Pressable>
-            <Pressable
-              onPress={confirmDeleteSelected}
-              className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full"
-            >
-              <Trash2 size={20} color={isDark ? "#F87171" : "#DC2626"} />
+              <Trash2 size={20} color={colors.white} />
             </Pressable>
           </View>
-        </Animated.View>
-      ) : (
-        // --- HEADER NORMAL AVEC MENU ---
-        <View className="px-6 pt-6 pb-2 flex-row justify-between items-start">
-          <View>
-            <Text className="text-3xl font-bold text-gray-900 dark:text-white">
-              {t('history') || "Historique"}
-            </Text>
-            <Text className="text-base text-gray-500 dark:text-gray-400 mt-1">
-              {t('history_subtitle')}
-            </Text>
-          </View>
+        ) : (
+          <>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Pressable onPress={() => setMenuVisible(true)} style={styles.roundBtnCream}>
+                <User size={22} color={colors.bordeaux} />
+              </Pressable>
+              <TouchableOpacity
+                onPress={() => router.push('/scanner')}
+                activeOpacity={0.85}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  backgroundColor: colors.yellow,
+                  paddingVertical: 11,
+                  paddingLeft: 15,
+                  paddingRight: 18,
+                  borderRadius: radius.pill,
+                }}
+              >
+                <ScanLine size={19} color={colors.inkOnYellow} />
+                <Txt variant="bold" size={15} color={colors.inkOnYellow}>
+                  {t('scan') || 'Scanner'}
+                </Txt>
+              </TouchableOpacity>
+            </View>
 
-          {/* BOUTON 3 POINTS */}
-          <TouchableOpacity
-            onPress={() => setMenuVisible(true)}
-            className="p-2 rounded-full active:bg-gray-200 dark:active:bg-gray-700"
-          >
-            <MoreVertical size={24} color={isDark ? "white" : "black"} />
-          </TouchableOpacity>
-        </View>
-        // -----------------------------
-      )}
+            <Txt variant="bold" size={12} color={colors.yellow} style={{ letterSpacing: 1.2, marginTop: 20 }}>
+              {todayLabel}
+            </Txt>
+            <Txt variant="display" size={46} color={colors.creamTitle} style={{ marginTop: 4, letterSpacing: -0.5 }}>
+              {t('history') || 'Historique'}
+            </Txt>
 
-      <Animated.FlatList
-        data={history}
-        keyExtractor={itemKey}
-        contentContainerStyle={{ padding: 16, paddingTop: selectedIds.length > 0 ? 80 : 16 }}
-        itemLayoutAnimation={Layout.springify()}
-        // --- 3. AJOUT DU REFRESH CONTROL ICI ---
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#84CC16"]} // Couleur du spinner (Android)
-            tintColor={isDark ? "#84CC16" : "#84CC16"} // Couleur du spinner (iOS)
-          />
-        }
-        // ---------------------------------------
-        renderItem={({ item, index }) => (
-          <Animated.View
-            entering={FadeInDown.delay(Math.min(index, 10) * 50).springify()}
-            layout={Layout.springify()}
-          >
-            <ListItem
-              item={item}
-              onPress={() => {
-                if (selectedIds.length > 0) {
-                  toggleSelect(itemKey(item));
-                } else {
-                  handleItemPress(item);
-                }
-              }}
-              onLongPress={() => toggleSelect(itemKey(item))}
-              selected={selectedIds.includes(itemKey(item))}
-            />
-          </Animated.View>
+            {/* 3 stats */}
+            <View style={{ flexDirection: 'row', gap: 11, marginTop: 20 }}>
+              <StatCard label={t('scans') || 'SCANS'} value={stats.scans} />
+              <StatCard label={t('avg_score') || 'SCORE MOY.'} value={stats.avg} />
+              <StatCard label={t('alerts') || 'ALERTES'} value={stats.alertes} alert />
+            </View>
+          </>
         )}
-        ListEmptyComponent={
-          <View className="flex-1 items-center justify-center mt-20 opacity-50">
-            <Trash2 size={64} color="#9CA3AF" />
-            <Text className="text-gray-500 text-lg mt-4 text-center">
-              {t('history_empty')}
-            </Text>
-          </View>
-        }
-      />
+      </View>
+
+      {/* ---- Feuille crème ---- */}
+      <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+        <SectionList
+          sections={sections}
+          keyExtractor={itemKey}
+          contentContainerStyle={{ padding: 22, paddingBottom: 120 }}
+          stickySectionHeadersEnabled={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />
+          }
+          renderSectionHeader={({ section }) => (
+            <Txt variant="displayXBold" size={20} color={colors.ink} style={{ marginBottom: 12, marginTop: section.key === 'today' ? 0 : 10 }}>
+              {section.title}
+            </Txt>
+          )}
+          renderItem={({ item, index }) => (
+            <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 45).springify()} style={{ marginBottom: 12 }}>
+              <ProductCard
+                item={item}
+                selected={selectedIds.includes(itemKey(item))}
+                onPress={() => (selecting ? toggleSelect(itemKey(item)) : handleItemPress(item))}
+                onLongPress={() => toggleSelect(itemKey(item))}
+              />
+            </Animated.View>
+          )}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', marginTop: 70, opacity: 0.5 }}>
+              <Trash2 size={56} color={colors.inkSoft} />
+              <Txt variant="medium" size={16} color={colors.inkSoft} style={{ marginTop: 16, textAlign: 'center' }}>
+                {t('history_empty')}
+              </Txt>
+            </View>
+          }
+        />
+      </View>
 
       <ConfirmModal
         visible={confirmVisible}
-        title={t('confirm_delete_title') || "Supprimer ?"}
-        message={t('confirm_delete_message') || "Voulez-vous vraiment supprimer ces éléments ?"}
+        title={t('confirm_delete_title') || 'Supprimer ?'}
+        message={t('confirm_delete_message') || 'Voulez-vous vraiment supprimer ces éléments ?'}
         onCancel={() => setConfirmVisible(false)}
-        onConfirm={async () => { setConfirmVisible(false); await deleteSelected(); }}
-        confirmLabel={t('confirm') || "Supprimer"}
-        cancelLabel={t('cancel') || "Annuler"}
+        onConfirm={async () => {
+          setConfirmVisible(false);
+          await deleteSelected();
+        }}
+        confirmLabel={t('confirm') || 'Supprimer'}
+        cancelLabel={t('cancel') || 'Annuler'}
       />
 
-      {/* --- MENU DÉROULANT (MODAL) --- */}
-      <Modal
-        transparent={true}
-        visible={menuVisible}
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
+      {/* Menu (Compte / Problème) */}
+      <Modal transparent visible={menuVisible} animationType="fade" onRequestClose={() => setMenuVisible(false)}>
         <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
-          <View className="flex-1 bg-black/10">
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.12)' }}>
             <TouchableWithoutFeedback>
-              <View
-                className="absolute top-16 right-6 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 w-48 py-2"
-                style={{ elevation: 5 }}
-              >
+              <View style={[{ position: 'absolute', top: 70, left: 26, backgroundColor: colors.white, borderRadius: 16, width: 200, paddingVertical: 8 }, shadows.listCard]}>
                 <TouchableOpacity
-                  onPress={handleAccount}
-                  className="flex-row items-center px-4 py-3 active:bg-gray-50 dark:active:bg-gray-700"
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push('/reglage/compte');
+                  }}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, gap: 12 }}
                 >
-                  <User size={18} color={isDark ? "#D1D5DB" : "#4B5563"} style={{ marginRight: 12 }} />
-                  <Text className="text-gray-700 dark:text-gray-200 font-medium">Compte</Text>
+                  <User size={18} color={colors.inkSoft} />
+                  <Txt variant="semibold" size={15} color={colors.ink}>{t('account') || 'Compte'}</Txt>
                 </TouchableOpacity>
-
                 <TouchableOpacity
-                  onPress={handleReportProblem}
-                  className="flex-row items-center px-4 py-3 active:bg-gray-50 dark:active:bg-gray-700"
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push('../screens/reportUser');
+                  }}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, gap: 12 }}
                 >
-                  <HelpCircle size={18} color={isDark ? "#D1D5DB" : "#4B5563"} style={{ marginRight: 12 }} />
-                  <Text className="text-gray-700 dark:text-gray-200 font-medium">Un problème ?</Text>
+                  <HelpCircle size={18} color={colors.inkSoft} />
+                  <Txt variant="semibold" size={15} color={colors.ink}>{t('a_problem') || 'Un problème ?'}</Txt>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-      {/* ----------------------------- */}
-
     </View>
   );
 }
+
+function StatCard({ label, value, alert = false }: { label: string; value: number; alert?: boolean }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: alert ? colors.redAlt : colors.yellow, borderRadius: radius.cardSm, padding: 14 }}>
+      <Txt variant="bold" size={10.5} color={alert ? '#fbd9d1' : '#8a6b12'} style={{ letterSpacing: 0.5 }}>
+        {label}
+      </Txt>
+      <Txt variant="display" size={34} color={alert ? colors.white : colors.inkOnYellow} style={{ marginTop: 8 }}>
+        {String(value).padStart(2, '0')}
+      </Txt>
+    </View>
+  );
+}
+
+const styles = {
+  roundBtnCream: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: colors.cream,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+};

@@ -14,10 +14,13 @@ export default function TabLayout() {
                     tabBarStyle: { display: 'none' },
                     tabBarShowLabel: false,
                 }}>
+                {/* Ordre = ordre d'affichage dans la barre (le bouton Scan central
+                    est inséré au milieu par BottomNavBar) : Accueil, Rechercher,
+                    [Scan], Carnet, Moi. */}
                 <Tabs.Screen name="historique" options={{ title: t('historique') }} />
-                <Tabs.Screen name="reglage" options={{ title: t('reglage') }} />
-                <Tabs.Screen name="analyse" options={{ title: t('analyse') }} />
                 <Tabs.Screen name="rech" options={{ title: t('rech') }} />
+                <Tabs.Screen name="analyse" options={{ title: t('analyse') }} />
+                <Tabs.Screen name="reglage" options={{ title: t('reglage') }} />
 
             </Tabs>
 

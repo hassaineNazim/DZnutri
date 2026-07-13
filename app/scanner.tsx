@@ -1,39 +1,38 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import { Plus, X } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import { Check, Plus, Search, X, Zap } from 'lucide-react-native';
+import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
-  Button,
   Dimensions,
   Image,
   Modal,
   Pressable,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   Vibration,
-  View
+  View,
 } from 'react-native';
 import Animated, {
+  Easing,
   SlideInDown,
-  ZoomIn
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  ZoomIn,
 } from 'react-native-reanimated';
-import ScoreGauge from './components/ScoreGauge';
+import Txt from './components/ui/Txt';
+import ScoreRing from './components/ui/ScoreRing';
 import { useTranslation } from './i18n';
 import { fetchCosmetic } from './services/cosmetics';
 import { fetchProduct } from './services/openFoodFacts';
 import { saveCosmeticToHistory, saveToHistory } from './services/saveHistorique';
+import { colors, radius, scoreBand, shadows } from './theme/tokens';
 
-const { width, height } = Dimensions.get('window');
-const SCAN_BOX_WIDTH = width * 0.8;
-const SCAN_BOX_HEIGHT = 200;
-const MASK_COLOR = 'rgba(0, 0, 0, 0.6)';
-
-const topMaskHeight = (height - SCAN_BOX_HEIGHT) / 2;
-const bottomMaskHeight = (height - SCAN_BOX_HEIGHT) / 2;
-const sideMaskWidth = (width - SCAN_BOX_WIDTH) / 2;
+const { width } = Dimensions.get('window');
+const VIEWFINDER = Math.min(260, width * 0.68);
 
 type Product = {
   id: string;
@@ -46,54 +45,78 @@ type Product = {
 type ScanResult =
   | { status: 'scanning' }
   | { status: 'loading' }
-  | { status: 'found', product: Product }
-  | { status: 'notFound', barcode: string };
+  | { status: 'found'; product: Product }
+  | { status: 'notFound'; barcode: string };
 
-const getScoreDescription = (score?: number) => {
-  if (score === undefined || score === null) return 'Inconnu';
-  if (score >= 75) return 'Excellent';
-  if (score >= 50) return 'Bon';
-  if (score >= 25) return 'Médiocre';
-  return 'Mauvais';
+// Laser rouge animé (keyframe dz-scan : translateY -70 → 70 → -70, 2.6s boucle).
+function ScanLaser({ color }: { color: string }) {
+  const y = useSharedValue(-VIEWFINDER / 2 + 20);
+  useEffect(() => {
+    y.value = withRepeat(
+      withTiming(VIEWFINDER / 2 - 20, { duration: 1300, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const style = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
+  return (
+    <Animated.View
+      style={[
+        {
+          position: 'absolute',
+          left: -6,
+          right: -6,
+          height: 3,
+          top: '50%',
+          backgroundColor: color,
+          shadowColor: color,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.6,
+          shadowRadius: 8,
+        },
+        style,
+      ]}
+    />
+  );
 }
 
-const getScoreColor = (score?: number) => {
-  if (score === undefined || score === null) return '#6B7280';
-  if (score >= 75) return '#22C55E';
-  if (score >= 50) return '#84CC16';
-  if (score >= 25) return '#F97316';
-  return '#EF4444';
-};
+// Coins jaunes/verts du viseur.
+function Corner({ pos, color }: { pos: 'tl' | 'tr' | 'bl' | 'br'; color: string }) {
+  const S = 42;
+  const base: any = { position: 'absolute', width: S, height: S, borderColor: color };
+  const map: Record<string, any> = {
+    tl: { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 14 },
+    tr: { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 14 },
+    bl: { bottom: 0, left: 0, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 14 },
+    br: { bottom: 0, right: 0, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 14 },
+  };
+  return <View style={[base, map[pos]]} />;
+}
 
 export default function Scanner() {
   const { t } = useTranslation();
   const [permission, requestPermission] = useCameraPermissions();
-  const [scanResult, setScanResult] = useState<ScanResult>({ status: 'scanning' });
-  const [mode, setMode] = useState<'food' | 'cosmetic'>('food');
+  const [scanResult, setScanResult] = React.useState<ScanResult>({ status: 'scanning' });
+  const [mode, setMode] = React.useState<'food' | 'cosmetic'>('food');
+  const [torch, setTorch] = React.useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    if (!permission?.granted) {
-      requestPermission();
-    }
+    if (!permission?.granted) requestPermission();
   }, [permission?.granted, requestPermission]);
 
-  // Couleur d'accent selon l'univers scanné (feedback immédiat du mode actif).
   const isCosmetic = mode === 'cosmetic';
-  const accent = isCosmetic ? '#EC4899' : '#10B981';
-  const cornerClass = isCosmetic ? 'border-pink-500' : 'border-emerald-500';
+  const accent = isCosmetic ? '#EC4899' : colors.yellow;
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     if (scanResult.status !== 'scanning') return;
-
-    Vibration.vibrate(60); // retour haptique : code détecté
+    Vibration.vibrate(60);
     setScanResult({ status: 'loading' });
-
     try {
       if (mode === 'cosmetic') {
         const cosmetic = await fetchCosmetic(data);
         if (cosmetic) {
-          // Normalisé pour réutiliser la même modale (brands + custom_score).
           setScanResult({
             status: 'found',
             product: { ...cosmetic, brands: cosmetic.brand, custom_score: cosmetic.cosmetic_score ?? undefined } as any,
@@ -127,193 +150,218 @@ export default function Scanner() {
     resetScanner();
   };
 
+  const goToAddFlow = (barcode?: string) => {
+    resetScanner();
+    router.push({
+      pathname: mode === 'cosmetic' ? './screens/ajouterCosmetique' : './screens/typeProd',
+      params: barcode ? { barcode } : {},
+    });
+  };
+
   if (!permission?.granted) {
     return (
-      <View className="flex-1 justify-center items-center bg-black">
-        <Text className="text-white mb-4">{t('camera_permission_needed')}</Text>
-        <Button onPress={requestPermission} title={t('give_camera_permission')} />
+      <View style={{ flex: 1, backgroundColor: colors.dark, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <Txt variant="medium" size={16} color={colors.cream} style={{ marginBottom: 16, textAlign: 'center' }}>
+          {t('camera_permission_needed')}
+        </Txt>
+        <TouchableOpacity onPress={requestPermission} style={{ backgroundColor: colors.yellow, paddingHorizontal: 24, paddingVertical: 14, borderRadius: radius.cta }}>
+          <Txt variant="bold" size={15} color={colors.inkOnYellow}>{t('give_camera_permission')}</Txt>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-black">
+    <View style={{ flex: 1, backgroundColor: colors.dark }}>
       <StatusBar barStyle="light-content" />
 
       <CameraView
         style={StyleSheet.absoluteFill}
+        enableTorch={torch}
         onBarcodeScanned={scanResult.status === 'scanning' ? handleBarCodeScanned : undefined}
         barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8'] }}
       />
 
+      {/* Voile sombre pour faire ressortir le viseur */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(20,17,16,0.55)' }]} pointerEvents="none" />
+
       <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-        <View style={{ width: width, height: topMaskHeight, backgroundColor: MASK_COLOR }} />
+        {/* Entête : fermer + flash */}
+        <View style={{ paddingHorizontal: 22, paddingTop: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Pressable onPress={() => router.back()} style={styles.roundGlass}>
+            <X size={20} color={colors.cream} strokeWidth={2.2} />
+          </Pressable>
+          <Pressable onPress={() => setTorch((v) => !v)} style={[styles.roundGlass, torch && { backgroundColor: 'rgba(240,138,60,0.35)' }]}>
+            <Zap size={20} color={colors.orangeAlt} fill={torch ? colors.orangeAlt : 'none'} />
+          </Pressable>
+        </View>
 
-        <View style={{ flexDirection: 'row', height: SCAN_BOX_HEIGHT }}>
-          <View style={{ width: sideMaskWidth, height: SCAN_BOX_HEIGHT, backgroundColor: MASK_COLOR }} />
+        {/* Titre */}
+        <View style={{ alignItems: 'center', marginTop: 18 }}>
+          <Txt variant="bold" size={12} color={accent} style={{ letterSpacing: 2 }}>
+            {(t('scan_in_progress') || 'SCAN EN COURS').toUpperCase()}
+          </Txt>
+          <Txt variant="display" size={30} color={colors.creamTitle} style={{ marginTop: 8, textAlign: 'center' }}>
+            {isCosmetic ? t('cosmetic') || 'Cosmétique' : t('scan_frame_title') || 'Cadrez le code-barres'}
+          </Txt>
+        </View>
 
-          <View style={{ width: SCAN_BOX_WIDTH, height: SCAN_BOX_HEIGHT, overflow: 'hidden', position: 'relative' }}>
-            <View className={`absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-xl ${cornerClass}`} />
-            <View className={`absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-xl ${cornerClass}`} />
-            <View className={`absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 rounded-bl-xl ${cornerClass}`} />
-            <View className={`absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 rounded-br-xl ${cornerClass}`} />
+        {/* Viseur */}
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: VIEWFINDER, height: VIEWFINDER }}>
+            <Corner pos="tl" color={accent} />
+            <Corner pos="tr" color={accent} />
+            <Corner pos="bl" color={accent} />
+            <Corner pos="br" color={accent} />
+            <ScanLaser color={colors.laser} />
           </View>
-
-          <View style={{ width: sideMaskWidth, height: SCAN_BOX_HEIGHT, backgroundColor: MASK_COLOR }} />
         </View>
 
-        <View style={{ width: width, height: bottomMaskHeight, backgroundColor: MASK_COLOR, alignItems: 'center', paddingTop: 40 }}>
-          <Text className="text-white/90 text-center bg-black/40 px-6 py-3 rounded-full font-medium text-sm">
-            {isCosmetic ? t('scan_cosmetic_hint') : t('scan_food_hint')}
-          </Text>
+        {/* Sélecteur Aliment / Cosmétique */}
+        <View style={{ alignItems: 'center', marginBottom: 14 }}>
+          <View style={{ flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: radius.pill, padding: 4 }}>
+            <TouchableOpacity
+              onPress={() => setMode('food')}
+              style={{ paddingHorizontal: 20, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: mode === 'food' ? colors.yellow : 'transparent' }}
+              activeOpacity={0.85}
+            >
+              <Txt variant="bold" size={13} color={mode === 'food' ? colors.inkOnYellow : 'rgba(244,234,214,0.7)'}>
+                {t('food') || 'Aliment'}
+              </Txt>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setMode('cosmetic')}
+              style={{ paddingHorizontal: 20, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: mode === 'cosmetic' ? '#EC4899' : 'transparent' }}
+              activeOpacity={0.85}
+            >
+              <Txt variant="bold" size={13} color={mode === 'cosmetic' ? colors.white : 'rgba(244,234,214,0.7)'}>
+                {t('cosmetic') || 'Cosmétique'}
+              </Txt>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Carte crème : produit introuvable → ajouter */}
+        <View style={{ paddingHorizontal: 20, paddingBottom: 40 }}>
+          <View style={[{ backgroundColor: colors.cream, borderRadius: 24, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }, shadows.resultCard]}>
+            <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center' }}>
+              <Search size={24} color={colors.inkOnYellow} strokeWidth={2.2} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Txt variant="displayXBold" size={18} color={colors.ink}>{t('unknown_product') || 'Produit introuvable ?'}</Txt>
+              <Txt variant="body" size={12.5} color={colors.inkSoft} style={{ marginTop: 4 }}>{t('add_in_30s') || 'Ajoutez-le à la base en 30 s.'}</Txt>
+            </View>
+            <TouchableOpacity onPress={() => goToAddFlow()} style={{ backgroundColor: colors.dark, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 24 }} activeOpacity={0.85}>
+              <Txt variant="bold" size={14} color={colors.cream}>{t('add') || 'Ajouter'}</Txt>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
-      {/* Sélecteur Aliment / Cosmétique (façon Yuka) */}
-      <View style={{ position: 'absolute', top: 50, left: 0, right: 0, alignItems: 'center' }} pointerEvents="box-none">
-        <View className="flex-row bg-black/50 rounded-full p-1">
-          <TouchableOpacity
-            onPress={() => setMode('food')}
-            className={`px-5 py-2 rounded-full ${mode === 'food' ? 'bg-emerald-500' : ''}`}
-            activeOpacity={0.8}
-          >
-            <Text className={`font-semibold text-sm ${mode === 'food' ? 'text-white' : 'text-white/70'}`}>
-              {t('food') || 'Aliment'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setMode('cosmetic')}
-            className={`px-5 py-2 rounded-full ${mode === 'cosmetic' ? 'bg-pink-500' : ''}`}
-            activeOpacity={0.8}
-          >
-            <Text className={`font-semibold text-sm ${mode === 'cosmetic' ? 'text-white' : 'text-white/70'}`}>
-              {t('cosmetic') || 'Cosmétique'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
+      {/* Chargement */}
       {scanResult.status === 'loading' && (
-        <View className="absolute inset-0 bg-black/60 items-center justify-center z-50">
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(20,17,16,0.6)', alignItems: 'center', justifyContent: 'center' }]}>
           <ActivityIndicator size="large" color={accent} />
         </View>
       )}
 
+      {/* Modale résultat */}
       <Modal
         visible={scanResult.status === 'found' || scanResult.status === 'notFound'}
-        transparent={true}
+        transparent
         animationType="fade"
         onRequestClose={resetScanner}
       >
         <Pressable
-          className={`flex-1 bg-black/60 ${scanResult.status === 'found' ? 'justify-center items-center px-6' : 'justify-end'}`}
+          style={{ flex: 1, backgroundColor: 'rgba(20,17,16,0.6)', justifyContent: scanResult.status === 'found' ? 'center' : 'flex-end', alignItems: scanResult.status === 'found' ? 'center' : 'stretch', padding: scanResult.status === 'found' ? 24 : 0 }}
           onPress={resetScanner}
         >
-
           {scanResult.status === 'found' && (
-            <Pressable onPress={(e) => e.stopPropagation()} className="w-full max-w-sm">
-              <Animated.View
-                entering={ZoomIn.duration(200)}
-                className="bg-white dark:bg-[#1F2937] rounded-3xl p-6 shadow-2xl"
-              >
-                <View className="flex-row justify-between items-center mb-5">
-                  <Text className="text-2xl font-bold text-gray-900 dark:text-white flex-1 mr-3" numberOfLines={1}>
-                    {scanResult.product.product_name || t('no_name')}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={resetScanner}
-                    className="bg-white/90 w-10 h-10 rounded-full items-center justify-center shadow-lg"
-                    activeOpacity={0.7}
-                  >
-                    <X size={22} color="#1F2937" strokeWidth={2.5} />
-                  </TouchableOpacity>
+            <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 380 }}>
+              <Animated.View entering={ZoomIn.duration(200)} style={[{ backgroundColor: colors.cream, borderRadius: radius.sheet, padding: 20 }, shadows.resultCard]}>
+                {/* Bandeau succès */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' }}>
+                    <Check size={16} color={colors.white} strokeWidth={3} />
+                  </View>
+                  <Txt variant="bold" size={12} color={colors.green} style={{ letterSpacing: 1.5 }}>
+                    {(t('product_detected') || 'PRODUIT DÉTECTÉ').toUpperCase()}
+                  </Txt>
                 </View>
 
-                <Text className="text-sm text-gray-500 dark:text-gray-400 mb-5" numberOfLines={1}>
-                  {scanResult.product.brands || t('brand_unknown')}
-                </Text>
-
-                <View className="flex-row items-center mb-6 bg-gray-50 dark:bg-gray-800/40 rounded-2xl p-4">
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
                   <Image
                     source={{ uri: scanResult.product.image_url || 'https://via.placeholder.com/100' }}
-                    className="w-20 h-20 rounded-xl bg-white dark:bg-gray-700"
+                    style={{ width: 64, height: 64, borderRadius: 15, backgroundColor: '#e9dfc8' }}
                     resizeMode="contain"
                   />
-
-                  <View className="flex-1 ml-4 flex-row items-center">
-                    <ScoreGauge
-                      score={scanResult.product.custom_score ?? 0}
-                      size={60}
-                      strokeWidth={6}
-                      showText={true}
-                    />
-                    <View className="ml-4 flex-1">
-                      <Text className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold mb-1">
-                        SCORE
-                      </Text>
-                      <Text
-                        className="text-xl font-extrabold"
-                        style={{ color: getScoreColor(scanResult.product.custom_score) }}
-                      >
-                        {getScoreDescription(scanResult.product.custom_score)}
-                      </Text>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Txt variant="displayXBold" size={20} color={colors.ink} numberOfLines={1}>
+                      {scanResult.product.product_name || t('no_name')}
+                    </Txt>
+                    <Txt variant="body" size={13} color={colors.inkSoft} numberOfLines={1} style={{ marginTop: 3 }}>
+                      {scanResult.product.brands || t('brand_unknown')}
+                    </Txt>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 7 }}>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: scoreBand(scanResult.product.custom_score).color }} />
+                      <Txt variant="semibold" size={12.5} color={scoreBand(scanResult.product.custom_score).color}>
+                        {t(scoreBand(scanResult.product.custom_score).labelKey) || scoreBand(scanResult.product.custom_score).label}
+                      </Txt>
                     </View>
                   </View>
+                  <ScoreRing score={scanResult.product.custom_score} size={58} fontSize={18} />
                 </View>
 
                 <TouchableOpacity
                   onPress={() => navigateToProductDetails(scanResult.product)}
-                  className={`w-full py-4 rounded-2xl items-center ${isCosmetic ? 'bg-pink-500 active:bg-pink-600' : 'bg-emerald-500 active:bg-emerald-600'}`}
-                  activeOpacity={0.8}
+                  style={{ marginTop: 18, backgroundColor: colors.dark, borderRadius: radius.cta, paddingVertical: 18, alignItems: 'center' }}
+                  activeOpacity={0.85}
                 >
-                  <Text className="text-white font-bold text-base">{t('product_details')}</Text>
+                  <Txt variant="bold" size={16} color={colors.cream}>{t('product_details')}</Txt>
                 </TouchableOpacity>
               </Animated.View>
             </Pressable>
           )}
 
           {scanResult.status === 'notFound' && (
-            <Pressable onPress={(e) => e.stopPropagation()} className="w-full">
-              <Animated.View
-                entering={SlideInDown.duration(200)}
-                className="bg-white dark:bg-[#1F2937] rounded-t-[32px] p-6 items-center"
-              >
-                <View className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mb-6" />
-
-                <View className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full items-center justify-center mb-4">
-                  <Plus size={32} color="#9CA3AF" />
+            <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%' }}>
+              <Animated.View entering={SlideInDown.duration(220)} style={{ backgroundColor: colors.cream, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, alignItems: 'center' }}>
+                <View style={{ width: 48, height: 6, borderRadius: 3, backgroundColor: '#d8ccb4', marginBottom: 22 }} />
+                <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                  <Plus size={32} color={colors.inkOnYellow} />
                 </View>
-
-                <Text className="text-xl font-bold text-gray-900 dark:text-white mb-2 text-center">
-                  {t('unknown_product')}
-                </Text>
-                <Text className="text-gray-500 dark:text-gray-400 text-center mb-6 px-4 text-sm">
+                <Txt variant="displayXBold" size={22} color={colors.ink} style={{ marginBottom: 6, textAlign: 'center' }}>
+                  {t('unknown_product') || 'Produit introuvable ?'}
+                </Txt>
+                <Txt variant="body" size={14} color={colors.inkSoft} style={{ marginBottom: 22, textAlign: 'center', paddingHorizontal: 16 }}>
                   {t('help_add_product')}
-                </Text>
-
+                </Txt>
                 <TouchableOpacity
-                  className={`w-full py-3.5 rounded-xl items-center mb-3 ${isCosmetic ? 'bg-pink-500 active:bg-pink-600' : 'bg-emerald-500 active:bg-emerald-600'}`}
-                  onPress={() => {
-                    const bc = scanResult.barcode;
-                    resetScanner();
-                    router.push({
-                      pathname: mode === 'cosmetic' ? './screens/ajouterCosmetique' : './screens/typeProd',
-                      params: { barcode: bc },
-                    });
-                  }}
+                  style={{ width: '100%', backgroundColor: colors.dark, borderRadius: radius.cta, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }}
+                  onPress={() => goToAddFlow(scanResult.barcode)}
+                  activeOpacity={0.85}
                 >
-                  <Text className="text-white font-bold text-base">{t('add_product')}</Text>
+                  <Txt variant="bold" size={16} color={colors.cream}>{t('add_product')}</Txt>
                 </TouchableOpacity>
-
-                <TouchableOpacity onPress={resetScanner} className="p-3">
-                  <Text className="text-gray-400 dark:text-gray-500 font-medium text-sm">{t('cancel')}</Text>
+                <TouchableOpacity onPress={resetScanner} style={{ padding: 12 }}>
+                  <Txt variant="semibold" size={14} color={colors.inkSoft}>{t('cancel')}</Txt>
                 </TouchableOpacity>
               </Animated.View>
             </Pressable>
           )}
-
         </Pressable>
       </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  roundGlass: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

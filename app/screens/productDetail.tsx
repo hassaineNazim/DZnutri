@@ -1,35 +1,16 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  AlertTriangle,
-  ArrowLeft,
-  ChevronRight,
-  Droplets,
-  Dumbbell,
-  Flame,
-  FlaskConical,
-  Heart,
-  Leaf,
-  MoreHorizontal,
-  Wheat,
-} from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
+import { AlertTriangle, ArrowLeft, Heart, MoreHorizontal } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import {
-  Image,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import Svg, { Path } from 'react-native-svg';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image, ScrollView, StatusBar, TouchableOpacity, View } from 'react-native';
 import AlternativesList from '../components/AlternativesList';
 import ProductRatings from '../components/ProductRatings';
 import ReportModal from '../components/ReportModal';
+import ScoreRing from '../components/ui/ScoreRing';
+import Txt from '../components/ui/Txt';
 import { useAllergenCheck } from '../hooks/useAllergenCheck';
 import { useProductFavorite } from '../hooks/useProductFavorite';
 import { useTranslation } from '../i18n';
+import { colors, gradeColors, radius, scoreBand, scoreGrade } from '../theme/tokens';
 
 type Product = {
   id: string;
@@ -50,54 +31,7 @@ type Product = {
   ingredients_text?: string;
 };
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-// Palette claire/sombre partagée par l'écran et ses sous-composants.
-// (Les styles de cet écran sont des objets inline : on résout les couleurs ici
-// plutôt que via des classes dark: de NativeWind.)
-const usePalette = () => {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  return {
-    isDark,
-    bg: isDark ? '#181A20' : '#F9FAFB',
-    card: isDark ? '#1F2937' : '#FFFFFF',
-    cardAlt: isDark ? '#374151' : '#F3F4F6',   // tuile nutrition dans la carte
-    divider: isDark ? '#374151' : '#F9FAFB',
-    textStrong: isDark ? '#F9FAFB' : '#111827',
-    textBody: isDark ? '#D1D5DB' : '#374151',
-    textMuted: isDark ? '#9CA3AF' : '#6B7280',
-    icon: isDark ? '#D1D5DB' : '#374151',
-  };
-};
-
-const getScoreColor = (score?: number) => {
-  if (score === undefined) return '#9CA3AF';
-  if (score >= 70) return '#22C55E';  // vert  (≥70)
-  if (score >= 35) return '#F97316';  // orange (≥35)
-  return '#EF4444';                   // rouge  (<35)
-};
-
-const getScoreBgColor = (score?: number) => {
-  if (score === undefined) return '#F3F4F6';
-  if (score >= 70) return '#DCFCE7';  // green-100
-  if (score >= 35) return '#FFEDD5';  // orange-100
-  return '#FEE2E2';                   // red-100
-};
-
-const getLevelColor = (value: number, high: number, moderate: number) => {
-  if (value > high) return '#EF4444';
-  if (value > moderate) return '#F97316';
-  return '#22C55E';
-};
-
-const getPositiveLevelColor = (value: number, high: number, moderate: number) => {
-  if (value > high) return '#22C55E';
-  if (value > moderate) return '#F97316';
-  return '#EF4444';
-};
-
-/** "en:e322-lecithins" → { code: "E322", name: "Lecithins" } */
+// "en:e322-lecithins" → { code: "E322", name: "Lecithins" }
 const parseAdditive = (tag: string) => {
   const clean = tag.replace(/^[a-z]{2}:/, '');
   const dash = clean.indexOf('-');
@@ -106,237 +40,100 @@ const parseAdditive = (tag: string) => {
   const name = clean
     .slice(dash + 1)
     .split('-')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
   return { code, name };
 };
 
-const getAdditiveColor = (index: number, riskLevel?: string) => {
-  if (riskLevel === 'high' || riskLevel === 'danger') return '#EF4444';
-  if (riskLevel === 'moderate') return '#F97316';
-  if (riskLevel === 'low') return '#22C55E';
-  return index % 3 === 0 ? '#22C55E' : index % 3 === 1 ? '#F97316' : '#22C55E';
-};
+const isRisky = (risk?: string) => risk === 'high' || risk === 'danger' || risk === 'moderate';
 
-// ─── Semi-circle gauge (speedometer style) ──────────────────────────────────
+// Niveau nutritionnel → { label, color } (échelle « négative » : plus c'est haut, pire).
+function level(value: number, high: number, moderate: number, positive = false) {
+  const bad = colors.redAlt;
+  const mid = colors.orangeAlt;
+  const good = colors.greenAlt;
+  if (positive) {
+    if (value > high) return { label: 'Faible', color: good };
+    if (value > moderate) return { label: 'Moyen', color: mid };
+    return { label: 'Faible', color: good };
+  }
+  if (value > high) return { label: 'Élevé', color: bad };
+  if (value > moderate) return { label: 'Moyen', color: mid };
+  return { label: 'Faible', color: good };
+}
 
-const SemiCircleGauge = ({ score = 0, size = 120 }: { score: number; size?: number }) => {
-  const sw = 11; // strokeWidth
-  const r = (size - sw) / 2;
-  const cx = size / 2;
-  const cy = size / 2;
-  const color = getScoreColor(score);
-
-  // Convert "math angle" (y-up) to SVG point (y-down)
-  const pt = (deg: number) => ({
-    x: +(cx + r * Math.cos((deg * Math.PI) / 180)).toFixed(3),
-    y: +(cy - r * Math.sin((deg * Math.PI) / 180)).toFixed(3),
-  });
-
-  const L = pt(180); // left
-  const R = pt(0);   // right
-  const scoreAngle = 180 - (score / 100) * 180;
-  const S = pt(scoreAngle);
-
-  // sweep=1 (clockwise in SVG, y-down) traces the TOP arc from left → through top → right
-  const bgArc = `M ${L.x} ${L.y} A ${r} ${r} 0 0 1 ${R.x} ${R.y}`;
-  const scoreArc =
-    score > 0 ? `M ${L.x} ${L.y} A ${r} ${r} 0 0 1 ${S.x} ${S.y}` : '';
-
-  // SVG shows only the top half; text is overlaid at the bottom-center of the arc
-  const svgH = cy + sw;
-
+// ─── Barre de note A→E ───────────────────────────────────────────────────────
+function NoteBar({ score }: { score?: number }) {
+  const active = scoreGrade(score);
+  const grades: ('A' | 'B' | 'C' | 'D' | 'E')[] = ['A', 'B', 'C', 'D', 'E'];
   return (
-    <View style={{ width: size, height: svgH, alignItems: 'center' }}>
-      <Svg width={size} height={svgH}>
-        <Path d={bgArc} stroke={getScoreBgColor(score)} strokeWidth={sw} fill="none" strokeLinecap="round" />
-        {scoreArc ? (
-          <Path d={scoreArc} stroke={color} strokeWidth={sw} fill="none" strokeLinecap="round" />
-        ) : null}
-      </Svg>
-      {/* Overlay score text centered at the bottom of the arc */}
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          alignItems: 'center',
-          paddingBottom: 2,
-        }}
-      >
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color, lineHeight: 28 }}>{score}</Text>
-        <Text style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 13 }}>Score : {score}</Text>
+    <View style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-end' }}>
+      {grades.map((g) => {
+        const on = g === active;
+        return (
+          <View key={g} style={{ flex: on ? 1.15 : 1, alignItems: 'center', gap: 4 }}>
+            {on && <Txt variant="display" size={15} color={colors.ink}>{g}</Txt>}
+            <View style={{ width: '100%', height: on ? 11 : 9, borderRadius: 6, backgroundColor: gradeColors[g] }} />
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+// ─── Carte nutrition ─────────────────────────────────────────────────────────
+function NutritionCard({ letter, label, value, lvl }: { letter: string; label: string; value: string; lvl: { label: string; color: string } }) {
+  return (
+    <View style={{ width: '48.5%', backgroundColor: colors.white, borderRadius: radius.cardSm, padding: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: lvl.color + '26', alignItems: 'center', justifyContent: 'center' }}>
+          <Txt variant="display" size={15} color={lvl.color}>{letter}</Txt>
+        </View>
+        <Txt variant="body" size={12.5} color={colors.inkSoft}>{label}</Txt>
+      </View>
+      <Txt variant="displayXBold" size={20} color={colors.ink} style={{ marginTop: 10 }}>{value}</Txt>
+      <View style={{ alignSelf: 'flex-start', marginTop: 8, backgroundColor: lvl.color, borderRadius: radius.pill, paddingHorizontal: 11, paddingVertical: 4 }}>
+        <Txt variant="bold" size={11} color={colors.white}>{lvl.label}</Txt>
       </View>
     </View>
   );
-};
+}
 
-// ─── Nutrition badge pill ────────────────────────────────────────────────────
-
-const Badge = ({ text, color }: { text: string; color: string }) => (
-  <View
-    style={{
-      backgroundColor: color,
-      borderRadius: 20,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      alignSelf: 'flex-start',
-      marginTop: 5,
-    }}
-  >
-    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{text}</Text>
-  </View>
-);
-
-// ─── Nutrition 2×2 card ──────────────────────────────────────────────────────
-
-const NutritionCard = ({
-  icon,
-  label,
-  value,
-  badgeText,
-  badgeColor,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  badgeText: string;
-  badgeColor: string;
-}) => {
-  const p = usePalette();
-  return (
-    <View
-      style={{
-        width: '48%',
-        backgroundColor: p.cardAlt,
-        borderRadius: 14,
-        padding: 12,
-        marginBottom: 10,
-      }}
-    >
-      <View style={{ marginBottom: 4 }}>{icon}</View>
-      <Text style={{ color: '#9CA3AF', fontSize: 12, marginBottom: 1 }}>{label}</Text>
-      <Text style={{ color: p.textStrong, fontSize: 20, fontWeight: 'bold' }}>{value}</Text>
-      <Badge text={badgeText} color={badgeColor} />
-    </View>
-  );
-};
-
-// ─── Simple nutrient row ─────────────────────────────────────────────────────
-
-const NutriRow = ({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) => {
-  const p = usePalette();
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 9,
-        borderTopWidth: 1,
-        borderTopColor: p.cardAlt,
-      }}
-    >
-      <View style={{ marginRight: 8 }}>{icon}</View>
-      <Text style={{ flex: 1, color: p.textBody, fontSize: 14 }}>{label}</Text>
-      <Text style={{ color: p.textMuted, fontSize: 14 }}>{value}</Text>
-    </View>
-  );
-};
-
-// ─── Allergen warning ────────────────────────────────────────────────────────
-
-const AllergenWarning = ({ ingredients }: { ingredients?: string }) => {
+// ─── Alerte allergènes (version crème) ───────────────────────────────────────
+function AllergenWarning({ ingredients }: { ingredients?: string }) {
   const { detectedAllergens, hasAllergies } = useAllergenCheck(ingredients);
   const { t } = useTranslation();
-  const p = usePalette();
   if (!hasAllergies) return null;
-  // Déclinaison sombre du rouge pastel (fond translucide + textes éclaircis).
-  const boxBg = p.isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2';
-  const boxBorder = p.isDark ? '#7F1D1D' : '#FECACA';
-  const chipBg = p.isDark ? 'rgba(239, 68, 68, 0.18)' : '#FEE2E2';
-  const titleColor = p.isDark ? '#FCA5A5' : '#B91C1C';
-  const descColor = p.isDark ? '#F87171' : '#DC2626';
   return (
-    <View style={{ marginHorizontal: 16, marginTop: 12 }}>
-      <View
-        style={{
-          backgroundColor: boxBg,
-          borderWidth: 1,
-          borderColor: boxBorder,
-          borderRadius: 16,
-          padding: 14,
-          flexDirection: 'row',
-          alignItems: 'flex-start',
-        }}
-      >
-        <View
-          style={{
-            backgroundColor: chipBg,
-            padding: 8,
-            borderRadius: 50,
-            marginRight: 12,
-            marginTop: 2,
-          }}
-        >
-          <AlertTriangle size={18} color="#EF4444" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: titleColor, fontWeight: 'bold', fontSize: 14, marginBottom: 4 }}>
-            {t('allergen_warning_title') || 'Attention : Allergènes détectés'}
-          </Text>
-          <Text style={{ color: descColor, fontSize: 13, lineHeight: 18 }}>
-            {t('allergen_warning_desc') ||
-              'Ce produit contient des ingrédients que vous avez signalés dans votre profil santé.'}
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 6 }}>
-            {detectedAllergens.map(a => (
-              <View
-                key={a}
-                style={{
-                  backgroundColor: chipBg,
-                  borderWidth: 1,
-                  borderColor: boxBorder,
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                  borderRadius: 8,
-                }}
-              >
-                <Text
-                  style={{
-                    color: titleColor,
-                    fontWeight: 'bold',
-                    fontSize: 11,
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {t(a) || a}
-                </Text>
-              </View>
-            ))}
-          </View>
+    <View style={{ backgroundColor: '#FDECEA', borderWidth: 1, borderColor: '#f3c6bf', borderRadius: radius.cardSm, padding: 14, flexDirection: 'row', alignItems: 'flex-start', marginTop: 16 }}>
+      <View style={{ backgroundColor: 'rgba(210,75,51,0.14)', padding: 8, borderRadius: 20, marginRight: 12, marginTop: 2 }}>
+        <AlertTriangle size={18} color={colors.red} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Txt variant="bold" size={14} color={colors.red} style={{ marginBottom: 4 }}>
+          {t('allergen_warning_title') || 'Attention : Allergènes détectés'}
+        </Txt>
+        <Txt variant="body" size={13} color="#b5503f" style={{ lineHeight: 18 }}>
+          {t('allergen_warning_desc') || 'Ce produit contient des ingrédients signalés dans votre profil santé.'}
+        </Txt>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 6 }}>
+          {detectedAllergens.map((a) => (
+            <View key={a} style={{ backgroundColor: 'rgba(210,75,51,0.12)', borderWidth: 1, borderColor: '#f3c6bf', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+              <Txt variant="bold" size={11} color={colors.red} style={{ textTransform: 'uppercase' }}>{t(a) || a}</Txt>
+            </View>
+          ))}
         </View>
       </View>
     </View>
   );
-};
+}
 
-// ─── Main screen ─────────────────────────────────────────────────────────────
-
+// ─── Écran ───────────────────────────────────────────────────────────────────
 export default function ProductDetail() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { product: productJson } = useLocalSearchParams();
   const product: Product | null = productJson ? JSON.parse(productJson as string) : null;
-  const insets = useSafeAreaInsets();
-  const p = usePalette();
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [fullProduct, setFullProduct] = useState<Product>(product!);
 
@@ -357,272 +154,156 @@ export default function ProductDetail() {
 
   if (!product || !fullProduct) return null;
 
-  const nv = (key: string) =>
-    Math.round(Number(fullProduct.nutriments?.[key + '_100g'] ?? 0) * 10) / 10;
-
+  const nv = (key: string) => Math.round(Number(fullProduct.nutriments?.[key + '_100g'] ?? 0) * 10) / 10;
   const energy = Math.round(nv('energy-kcal'));
   const proteins = nv('proteins');
   const sugars = nv('sugars');
   const saturatedFat = nv('saturated-fat');
   const fiber = nv('fiber');
   const salt = nv('salt');
-  const calcium = (nv('calcium') * 1000).toFixed(1);
 
-  const ic = '#9CA3AF'; // icon color
-  const is = 15;        // icon size
+  const band = scoreBand(fullProduct.custom_score);
+  const additives = fullProduct.additives_tags || [];
+  const riskyCount = additives.filter((tag) => {
+    const info = fullProduct.additives_info?.find((a) => a.code?.toLowerCase() === tag.replace(/^[a-z]{2}:/, '').split('-')[0]);
+    return isRisky(info?.risk_level);
+  }).length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <StatusBar barStyle={p.isDark ? 'light-content' : 'dark-content'} backgroundColor={p.card} />
+    <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+      <StatusBar barStyle="light-content" />
 
-      {/* ── Header ── */}
-      <View
-        style={{
-          backgroundColor: p.card,
-          paddingTop: insets.top,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: 16,
-          paddingBottom: 12,
-          borderBottomWidth: 1,
-          borderBottomColor: p.divider,
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
-          <ArrowLeft size={22} color={p.icon} />
-        </TouchableOpacity>
+      {/* Entête bordeaux */}
+      <View style={{ paddingHorizontal: 22, paddingTop: 14 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <RoundBtn onPress={() => router.back()}>
+            <ArrowLeft size={20} color={colors.bordeaux} />
+          </RoundBtn>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <RoundBtn onPress={() => toggleFavorite()}>
+              <Heart size={20} color={isFavorite ? colors.red : colors.bordeaux} fill={isFavorite ? colors.red : 'none'} />
+            </RoundBtn>
+            <RoundBtn onPress={() => setReportModalVisible(true)}>
+              <MoreHorizontal size={20} color={colors.bordeaux} />
+            </RoundBtn>
+          </View>
+        </View>
 
-        <Text style={{ fontSize: 17, fontWeight: '700', color: p.textStrong }}>remo</Text>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <TouchableOpacity onPress={() => toggleFavorite()}>
-            <Heart
-              size={20}
-              color={isFavorite ? '#EC4899' : p.icon}
-              fill={isFavorite ? '#EC4899' : 'none'}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setReportModalVisible(true)}>
-            <MoreHorizontal size={22} color={p.icon} />
-          </TouchableOpacity>
+        {/* Bandeau produit */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 20, marginBottom: 4 }}>
+          {fullProduct.image_url ? (
+            <Image source={{ uri: fullProduct.image_url }} style={{ width: 104, height: 104, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)' }} resizeMode="contain" />
+          ) : (
+            <View style={{ width: 104, height: 104, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)' }} />
+          )}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            {!!(fullProduct.category || fullProduct.subcategory) && (
+              <Txt variant="bold" size={11} color={colors.rose3} style={{ letterSpacing: 1.2, textTransform: 'uppercase' }} numberOfLines={1}>
+                {fullProduct.subcategory || fullProduct.category}
+              </Txt>
+            )}
+            <Txt variant="display" size={26} color={colors.creamTitle} style={{ marginTop: 4, lineHeight: 30 }} numberOfLines={2}>
+              {fullProduct.product_name}
+            </Txt>
+            <Txt variant="body" size={12.5} color={colors.rose2} style={{ marginTop: 5 }} numberOfLines={1}>
+              {fullProduct.brand}
+            </Txt>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
+              <ScoreRing score={fullProduct.custom_score} size={38} discColor={colors.cream} discRatio={0.78} fontSize={13} trackColor="rgba(244,234,214,0.25)" />
+              <View style={{ backgroundColor: band.color + '29', borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 5 }}>
+                <Txt variant="bold" size={12} color={band.color}>{t(band.labelKey) || band.label}</Txt>
+              </View>
+            </View>
+          </View>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* Feuille crème */}
+      <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, marginTop: 16, overflow: 'hidden' }}>
+        <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 120 }}>
+          {/* Barre de note A→E */}
+          <NoteBar score={fullProduct.custom_score} />
 
-        {/* ── Product card ── */}
-        <View
-          style={{
-            backgroundColor: p.card,
-            marginHorizontal: 16,
-            marginTop: 16,
-            borderRadius: 16,
-            padding: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.07,
-            shadowRadius: 8,
-            elevation: 3,
-          }}
-        >
-          <Image
-            source={{ uri: fullProduct.image_url }}
-            style={{ width: 80, height: 80, borderRadius: 10, backgroundColor: p.cardAlt }}
-            resizeMode="contain"
-          />
-          <View style={{ flex: 1, paddingHorizontal: 12 }}>
-            <Text
-              style={{ fontSize: 17, fontWeight: 'bold', color: p.textStrong, lineHeight: 24 }}
-              numberOfLines={2}
-            >
-              {fullProduct.product_name}
-            </Text>
-            <Text style={{ fontSize: 13, color: '#9CA3AF', marginTop: 2 }}>
-              {fullProduct.brand}
-            </Text>
+          {/* Allergènes */}
+          <AllergenWarning ingredients={fullProduct.ingredients_text} />
+
+          {/* Additifs */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 24 }}>
+            <Txt variant="displayXBold" size={22} color={colors.ink}>{t('additives') || 'Additifs'}</Txt>
+            <Txt variant="bold" size={12.5} color={riskyCount > 0 ? colors.redAlt : colors.inkSoft}>
+              {additives.length > 0 ? `${riskyCount} ${t('detected') || 'détectés'}` : t('none') || 'Aucun'}
+            </Txt>
           </View>
-          <SemiCircleGauge score={fullProduct.custom_score ?? 0} size={110} />
-        </View>
-
-        {/* ── Allergen warning ── */}
-        <AllergenWarning ingredients={fullProduct.ingredients_text} />
-
-        {/* ── Additives card ── */}
-        <View
-          style={{
-            backgroundColor: p.card,
-            marginHorizontal: 16,
-            marginTop: 12,
-            borderRadius: 16,
-            overflow: 'hidden',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.07,
-            shadowRadius: 8,
-            elevation: 3,
-          }}
-        >
-          {/* Card header */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingHorizontal: 14,
-              paddingVertical: 13,
-              borderBottomWidth: 1,
-              borderBottomColor: p.divider,
-            }}
-          >
-            <FlaskConical size={17} color={p.textMuted} style={{ marginRight: 8 }} />
-            <Text style={{ fontSize: 15, fontWeight: '700', color: p.textStrong }}>Additives</Text>
+          <View style={{ gap: 10, marginTop: 12 }}>
+            {additives.length > 0 ? (
+              additives.map((tag, idx) => {
+                const info = fullProduct.additives_info?.find((a) => a.code?.toLowerCase() === tag.replace(/^[a-z]{2}:/, '').split('-')[0]);
+                const { code, name } = parseAdditive(tag);
+                const risky = isRisky(info?.risk_level);
+                return (
+                  <View key={idx} style={{ backgroundColor: colors.white, borderRadius: radius.cardSm, padding: 13, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={{ backgroundColor: risky ? colors.redAlt : colors.greenAlt, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 6 }}>
+                      <Txt variant="bold" size={12.5} color={colors.white}>{code}</Txt>
+                    </View>
+                    <Txt variant="semibold" size={14.5} color={colors.ink} style={{ flex: 1 }} numberOfLines={1}>
+                      {name || info?.name || info?.function || '—'}
+                    </Txt>
+                    <Txt variant="bold" size={12} color={risky ? colors.redAlt : colors.greenAlt}>
+                      {risky ? t('risk') || 'Risque' : t('safe') || 'Sûr'}
+                    </Txt>
+                  </View>
+                );
+              })
+            ) : (
+              <View style={{ backgroundColor: colors.white, borderRadius: radius.cardSm, padding: 16 }}>
+                <Txt variant="body" size={13} color={colors.inkSoft} style={{ fontStyle: 'italic' }}>
+                  {t('no_additives') || 'Aucun additif à déclarer.'}
+                </Txt>
+              </View>
+            )}
           </View>
 
-          {/* Additive rows */}
-          {fullProduct.additives_tags && fullProduct.additives_tags.length > 0 ? (
-            fullProduct.additives_tags.map((tag, idx) => {
-              const info = fullProduct.additives_info?.find(
-                a => a.code?.toLowerCase() === tag.replace(/^[a-z]{2}:/, '').split('-')[0],
-              );
-              const { code, name } = parseAdditive(tag);
-              const dotColor = getAdditiveColor(idx, info?.risk_level);
-              const isLast = idx === fullProduct.additives_tags!.length - 1;
-              return (
-                <View
-                  key={idx}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingHorizontal: 14,
-                    paddingVertical: 12,
-                    borderBottomWidth: isLast ? 0 : 1,
-                    borderBottomColor: p.divider,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: 5,
-                      backgroundColor: dotColor,
-                      marginRight: 10,
-                    }}
-                  />
-                  <Text style={{ flex: 1, fontSize: 14, color: p.textBody }}>
-                    {code}
-                    {name ? ` (${name})` : ''}
-                  </Text>
-                  <FlaskConical size={13} color="#C4B5A0" style={{ marginRight: 4 }} />
-                  <Text style={{ fontSize: 12, color: '#9CA3AF', marginRight: 2 }}>
-                    {info?.function || 'Fonction'}
-                  </Text>
-                  <ChevronRight size={14} color="#D1D5DB" />
-                </View>
-              );
-            })
-          ) : (
-            <View style={{ padding: 14 }}>
-              <Text style={{ color: '#9CA3AF', fontStyle: 'italic' }}>
-                Aucun additif à déclarer.
-              </Text>
+          {/* Nutrition */}
+          <Txt variant="displayXBold" size={22} color={colors.ink} style={{ marginTop: 24 }}>
+            {t('nutritional_info') || 'Informations nutritionnelles'}
+          </Txt>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginTop: 12 }}>
+            <NutritionCard letter="É" label={t('energy') || 'Énergie'} value={`${energy} kcal`} lvl={level(energy, 500, 300)} />
+            <NutritionCard letter="G" label={t('carbs') || 'Glucides'} value={`${sugars} g`} lvl={level(sugars, 20, 10)} />
+            <NutritionCard letter="P" label={t('proteins') || 'Protéines'} value={`${proteins} g`} lvl={level(proteins, 10, 5, true)} />
+            <NutritionCard letter="L" label={t('sat_fat') || 'Gras saturés'} value={`${saturatedFat} g`} lvl={level(saturatedFat, 5, 1.5)} />
+          </View>
+          <View style={{ backgroundColor: colors.white, borderRadius: radius.cardSm, marginTop: 10 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#f1e9d8' }}>
+              <Txt variant="semibold" size={14.5} color={colors.ink}>{t('fiber') || 'Fibres'}</Txt>
+              <Txt variant="displayXBold" size={14.5} color={colors.ink}>{fiber} g</Txt>
             </View>
-          )}
-        </View>
-
-        {/* ── Nutritional Information card ── */}
-        <View
-          style={{
-            backgroundColor: p.card,
-            marginHorizontal: 16,
-            marginTop: 12,
-            borderRadius: 16,
-            overflow: 'hidden',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.07,
-            shadowRadius: 8,
-            elevation: 3,
-          }}
-        >
-          {/* Card header */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingHorizontal: 14,
-              paddingVertical: 13,
-              borderBottomWidth: 1,
-              borderBottomColor: p.divider,
-            }}
-          >
-            <Heart size={17} color={p.textMuted} style={{ marginRight: 8 }} />
-            <Text style={{ fontSize: 15, fontWeight: '700', color: p.textStrong }}>
-              Nutritional Information
-            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, paddingHorizontal: 16 }}>
+              <Txt variant="semibold" size={14.5} color={colors.ink}>{t('salt') || 'Sel'}</Txt>
+              <Txt variant="displayXBold" size={14.5} color={colors.ink}>{salt} g</Txt>
+            </View>
           </View>
 
-          <View style={{ padding: 12 }}>
-            {/* 2 × 2 grid */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <NutritionCard
-                icon={<Flame size={is} color={ic} />}
-                label="Energy"
-                value={`${energy} Kcal`}
-                badgeText={energy > 300 ? 'Forte teneur' : 'Faible teneur'}
-                badgeColor={getLevelColor(energy, 500, 300)}
-              />
-              <NutritionCard
-                icon={<Dumbbell size={is} color={ic} />}
-                label="Proteines"
-                value={`${proteins} g`}
-                badgeText={proteins > 10 ? 'Excellente source' : 'Faible teneur'}
-                badgeColor={getPositiveLevelColor(proteins, 10, 5)}
-              />
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <NutritionCard
-                icon={<Wheat size={is} color={ic} />}
-                label="Glucides"
-                value={`${sugars} g`}
-                badgeText="Teneur"
-                badgeColor={getLevelColor(sugars, 20, 10)}
-              />
-              <NutritionCard
-                icon={<Droplets size={is} color={ic} />}
-                label="Gras saturés"
-                value={`${saturatedFat} g`}
-                badgeText="Gras saturés"
-                badgeColor={getLevelColor(saturatedFat, 5, 1.5)}
-              />
-            </View>
+          {/* Notes utilisateurs */}
+          <ProductRatings barcode={fullProduct.barcode || fullProduct.id} />
+        </ScrollView>
 
-            {/* Simple rows */}
-            <NutriRow icon={<Leaf size={is} color={ic} />} label="Fibre" value={`${fiber} g`} />
-            <NutriRow icon={<Flame size={is} color={ic} />} label="Sel" value={`${salt} g`} />
-            <NutriRow
-              icon={<Droplets size={is} color={ic} />}
-              label="Calcium"
-              value={`${calcium} mg`}
-            />
-          </View>
-        </View>
+        <AlternativesList barcode={fullProduct.barcode || fullProduct.id} currentScore={fullProduct.custom_score} />
+      </View>
 
-        {/* Notes des utilisateurs */}
-        <ProductRatings barcode={fullProduct.barcode || fullProduct.id} />
-      </ScrollView>
-
-      <AlternativesList
-        barcode={fullProduct.barcode || fullProduct.id}
-        currentScore={fullProduct.custom_score}
-      />
-
-      <ReportModal
-        visible={reportModalVisible}
-        onClose={() => setReportModalVisible(false)}
-        barcode={fullProduct.barcode || fullProduct.id}
-      />
+      <ReportModal visible={reportModalVisible} onClose={() => setReportModalVisible(false)} barcode={fullProduct.barcode || fullProduct.id} />
     </View>
+  );
+}
+
+function RoundBtn({ children, onPress }: { children: React.ReactNode; onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.75}
+      style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }}
+    >
+      {children}
+    </TouchableOpacity>
   );
 }
