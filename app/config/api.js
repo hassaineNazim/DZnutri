@@ -1,13 +1,14 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-// URL de l'API de PRODUCTION.
-// Définie en priorité par la variable d'env EAS `EXPO_PUBLIC_API_URL` (au build),
-// sinon par `expo.extra.apiUrl` dans app.json. DOIT être en HTTPS.
-const PROD_API_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  Constants.expoConfig?.extra?.apiUrl ||
-  null;
+// URL explicite fournie AU BUILD via la variable d'env EAS `EXPO_PUBLIC_API_URL`
+// (profils preview/production). C'est la seule qui doit court-circuiter
+// l'auto-détection en développement.
+const EXPLICIT_API_URL = process.env.EXPO_PUBLIC_API_URL || null;
+
+// URL de l'API de PRODUCTION : l'explicite, sinon le placeholder `extra.apiUrl`
+// d'app.config.js (utilisé uniquement pour les builds autonomes non-dev).
+const PROD_API_URL = EXPLICIT_API_URL || Constants.expoConfig?.extra?.apiUrl || null;
 
 // Détection automatique de l'hôte en développement uniquement.
 const getDevApiUrl = () => {
@@ -41,8 +42,11 @@ const getApiUrl = () => {
     return PROD_API_URL;
   }
 
-  // Développement : URL explicite si fournie, sinon auto-détection.
-  return PROD_API_URL || getDevApiUrl();
+  // Développement : URL explicite (EXPO_PUBLIC_API_URL) si fournie, sinon
+  // AUTO-DÉTECTION de l'IP du PC via le manifest Metro. On ignore volontairement
+  // le placeholder `extra.apiUrl` ici, pour que le dev client suive l'IP tout
+  // seul (aucun rebuild quand l'IP/box change).
+  return EXPLICIT_API_URL || getDevApiUrl();
 };
 
 export const API_URL = getApiUrl();
