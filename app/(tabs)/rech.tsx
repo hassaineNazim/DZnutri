@@ -1,33 +1,25 @@
-
 import { useRouter } from 'expo-router';
-import { ScanBarcode, Search, SlidersHorizontal, X } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
-import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Search, SlidersHorizontal, X } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
-import "../../global.css";
 import FilterModal from '../components/FilterModal';
-import { useTranslation } from "../i18n";
+import ProductCard from '../components/ui/ProductCard';
+import Txt from '../components/ui/Txt';
+import { useTranslation } from '../i18n';
 import { api } from '../services/axios';
+import { colors, fonts, radius, shadows } from '../theme/tokens';
 
 type Product = {
   id: string;
   barcode: string;
   product_name?: string;
   brands?: string;
-  brand?: string; // Backend uses 'brand'
+  brand?: string;
   image_url?: string;
-  grade?: string; // Backend might send nutriscore_grade
+  grade?: string;
   nutriscore_grade?: string;
   custom_score?: number;
-};
-
-const getScoreColor = (score?: number) => {
-  if (score === undefined || score === null) return '#6B7280';
-  if (score >= 75) return '#22C55E';
-  if (score >= 50) return '#84CC16';
-  if (score >= 25) return '#F97316';
-  return '#EF4444';
 };
 
 export default function Rech() {
@@ -44,21 +36,18 @@ export default function Rech() {
     minScore?: number;
     verifiedOnly: boolean;
   }>({
-    verifiedOnly: false
+    verifiedOnly: false,
   });
 
   const inputRef = useRef<TextInput | null>(null);
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const filtersActive = Object.keys(filters).length > 1 || filters.verifiedOnly;
 
   const searchProducts = async () => {
-    // Permettre la recherche vide si des filtres sont appliqués
     if (!query.trim() && Object.keys(filters).length === 1 && !filters.verifiedOnly) return;
 
     setLoading(true);
     setHasSearched(true);
     try {
-      // Construction des paramètres
       const params = new URLSearchParams();
       if (query.trim()) params.append('q', query);
       if (filters.category) params.append('category', filters.category);
@@ -75,198 +64,145 @@ export default function Rech() {
     }
   };
 
-  // Petite astuce : si on change les filtres, on relance la recherche
+  // Relance la recherche quand les filtres changent.
   useEffect(() => {
     if (hasSearched) {
       searchProducts();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  // Recherche "live" : lance automatiquement la recherche 400 ms après la fin
-  // de saisie (dès 2 caractères) — plus besoin d'appuyer sur Entrée.
+  // Recherche « live » : 400 ms après la fin de saisie (dès 2 caractères).
   useEffect(() => {
     if (query.trim().length < 2) return;
     const timer = setTimeout(() => {
       searchProducts();
     }, 400);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
+  const clearFilter = (patch: Partial<typeof filters>) => setFilters((prev) => ({ ...prev, ...patch }));
+
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
-      {/* Header Area */}
-      <View className="px-6 pt-6 pb-2">
-        <Text className="text-3xl font-bold text-gray-900 dark:text-white">
-          {t('search') || "Recherche"}
-        </Text>
-        <Text className="text-base text-gray-500 dark:text-gray-400 mt-1">
-          {t('search_subtitle') || "Trouvez des produits sains"}
-        </Text>
+    <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+      {/* ---- Entête bordeaux ---- */}
+      <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 18 }}>
+        <Txt variant="bold" size={12} color={colors.yellow} style={{ letterSpacing: 1.2 }}>
+          {(t('search_subtitle') || 'Trouvez des produits sains').toUpperCase()}
+        </Txt>
+        <Txt variant="display" size={46} color={colors.creamTitle} style={{ marginTop: 4, letterSpacing: -0.5 }}>
+          {t('search') || 'Recherche'}
+        </Txt>
+
+        {/* Barre de recherche + filtre */}
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 18 }}>
+          <View style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: radius.cardSm, paddingHorizontal: 14, paddingVertical: 12 }, shadows.listCard]}>
+            <TouchableOpacity onPress={searchProducts}>
+              <Search size={20} color={colors.inkSoft} />
+            </TouchableOpacity>
+            <TextInput
+              ref={inputRef}
+              style={{ marginLeft: 10, flex: 1, fontSize: 15, color: colors.ink, fontFamily: fonts.sans }}
+              placeholder={t('search_products')}
+              placeholderTextColor={colors.inkMeta}
+              value={query}
+              onChangeText={setQuery}
+              onSubmitEditing={searchProducts}
+              returnKeyType="search"
+            />
+            {query.length > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  setQuery('');
+                  if (!filters.category) {
+                    setHasSearched(false);
+                    setResults([]);
+                  }
+                  inputRef.current?.focus();
+                }}
+                style={{ padding: 4, backgroundColor: '#efe6d3', borderRadius: 20 }}
+              >
+                <X size={15} color={colors.inkSoft} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity
+            onPress={() => setFilterModalVisible(true)}
+            style={[
+              { width: 48, height: 48, borderRadius: radius.cardSm, alignItems: 'center', justifyContent: 'center', backgroundColor: filtersActive ? colors.yellow : colors.white },
+              shadows.listCard,
+            ]}
+          >
+            <SlidersHorizontal size={20} color={filtersActive ? colors.inkOnYellow : colors.inkSoft} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Chips de filtres actifs */}
+        {(filters.category || filters.subcategory || filters.minScore || filters.verifiedOnly) && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+            {filters.category && (
+              <FilterChip label={filters.category} onRemove={() => clearFilter({ category: undefined, subcategory: undefined })} />
+            )}
+            {filters.subcategory && (
+              <FilterChip label={filters.subcategory} onRemove={() => clearFilter({ subcategory: undefined })} />
+            )}
+            {filters.minScore !== undefined && (
+              <FilterChip label={`${t('score') || 'Score'} > ${filters.minScore}`} onRemove={() => clearFilter({ minScore: undefined })} />
+            )}
+            {filters.verifiedOnly && (
+              <FilterChip label={t('verified_only') || 'Vérifiés'} onRemove={() => clearFilter({ verifiedOnly: false })} />
+            )}
+          </View>
+        )}
       </View>
 
-      {/* Search Bar + Filter Button */}
-      <Animated.View
-        entering={FadeInDown.duration(500)}
-        className="mx-4 mt-4 mb-2 flex-row gap-3"
-      >
-        <View className="flex-1 flex-row items-center bg-white dark:bg-[#1F2937] rounded-2xl px-4 py-3 shadow-sm border border-gray-100 dark:border-gray-800">
-          <TouchableOpacity onPress={searchProducts}>
-            <Search size={20} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
-          </TouchableOpacity>
-
-          <TextInput
-            ref={inputRef}
-            className="ml-3 text-base flex-1 text-gray-900 dark:text-white"
-            placeholder={t('search_products')}
-            placeholderTextColor="#9CA3AF"
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={searchProducts}
-            returnKeyType="search"
-          />
-
-          {query.length > 0 && (
-            <TouchableOpacity
-              onPress={() => {
-                setQuery('');
-                if (!filters.category) { // Si pas de filtre, on reset tout
-                  setHasSearched(false);
-                  setResults([]);
-                }
-                inputRef.current?.focus();
-              }}
-              className="p-1 bg-gray-100 dark:bg-gray-700 rounded-full"
-            >
-              <X size={16} color={isDark ? "#D1D5DB" : "#4B5563"} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <TouchableOpacity
-          onPress={() => setFilterModalVisible(true)}
-          className={`w-12 h-13 rounded-2xl items-center justify-center shadow-sm border ${Object.keys(filters).length > 1 || filters.verifiedOnly
-            ? 'bg-emerald-500 border-emerald-500'
-            : 'bg-white dark:bg-[#1F2937] border-gray-100 dark:border-gray-800'
-            }`}
-        >
-          <SlidersHorizontal
-            size={20}
-            color={Object.keys(filters).length > 1 || filters.verifiedOnly ? "white" : (isDark ? "#9CA3AF" : "#4B5563")}
-          />
-        </TouchableOpacity>
-      </Animated.View>
-
-      {/* Filters Summary (Chips) */}
-      {(filters.category || filters.subcategory || filters.minScore || filters.verifiedOnly) && (
-        <View className="mx-6 flex-row gap-2 mb-2 flex-wrap">
-          {filters.category && (
-            <View className="bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 rounded-full flex-row items-center">
-              <Text className="text-emerald-700 dark:text-emerald-400 text-xs font-medium mr-1">{filters.category}</Text>
-              <TouchableOpacity onPress={() => setFilters(prev => ({ ...prev, category: undefined, subcategory: undefined }))}>
-                <X size={12} color="#047857" />
-              </TouchableOpacity>
-            </View>
-          )}
-          {filters.subcategory && (
-            <View className="bg-teal-100 dark:bg-teal-900/30 px-3 py-1 rounded-full flex-row items-center">
-              <Text className="text-teal-700 dark:text-teal-400 text-xs font-medium mr-1">{filters.subcategory}</Text>
-              <TouchableOpacity onPress={() => setFilters(prev => ({ ...prev, subcategory: undefined }))}>
-                <X size={12} color="#0d9488" />
-              </TouchableOpacity>
-            </View>
-          )}
-          {filters.minScore !== undefined && (
-            <View className="bg-orange-100 dark:bg-orange-900/30 px-3 py-1 rounded-full">
-              <Text className="text-orange-700 dark:text-orange-400 text-xs font-medium">Score {'>'} {filters.minScore}</Text>
-              <TouchableOpacity onPress={() => setFilters(prev => ({ ...prev, minScore: undefined }))} className="ml-1">
-                <X size={12} color="#c2410c" />
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Results */}
-      {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#10B981" />
-        </View>
-      ) : (
-        <Animated.FlatList
-          data={results}
-          keyExtractor={(item) => item.barcode || item.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-          itemLayoutAnimation={Layout.springify()}
-          renderItem={({ item, index }) => (
-            <Animated.View
-              entering={FadeInDown.delay(index * 50).springify()}
-            >
-              <TouchableOpacity
-                className="flex-row items-center mb-3 bg-white dark:bg-[#1F2937] rounded-2xl p-3 shadow-sm border border-gray-50 dark:border-gray-800"
-                onPress={() => router.push({
-                  pathname: '../screens/productDetail', // Path correction depending on structure
-                  params: { product: JSON.stringify(item) }
-                })}
-              >
-                {item.image_url ? (
-                  <Image
-                    source={{ uri: item.image_url }}
-                    className="w-16 h-16 rounded-xl mr-4 bg-gray-100 dark:bg-gray-800"
-                    resizeMode="contain"
-                  />
-                ) : (
-                  <View className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 mr-4 items-center justify-center">
-                    <ScanBarcode size={24} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
-                  </View>
-                )}
-
-                <View className="flex-1 mr-2">
-                  <Text numberOfLines={1} className="text-base font-bold text-gray-900 dark:text-white">
-                    {item.product_name || t('no_name')}
-                  </Text>
-                  <Text numberOfLines={1} className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                    {item.brand || item.brands || t('brand_unknown')}
-                  </Text>
+      {/* ---- Feuille crème : résultats ---- */}
+      <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+        {loading ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color={colors.green} />
+          </View>
+        ) : (
+          <Animated.FlatList
+            data={results}
+            keyExtractor={(item) => item.barcode || item.id}
+            contentContainerStyle={{ padding: 22, paddingBottom: 120 }}
+            itemLayoutAnimation={Layout.springify()}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item, index }) => (
+              <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 45).springify()} style={{ marginBottom: 12 }}>
+                <ProductCard
+                  item={item as any}
+                  onPress={() =>
+                    router.push({
+                      pathname: '../screens/productDetail',
+                      params: { product: JSON.stringify(item) },
+                    })
+                  }
+                />
+              </Animated.View>
+            )}
+            ListEmptyComponent={
+              hasSearched ? (
+                <View style={{ marginTop: 50, alignItems: 'center' }}>
+                  <Txt variant="medium" size={15} color={colors.inkSoft} style={{ textAlign: 'center' }}>
+                    {t('no_products_found')}
+                  </Txt>
                 </View>
-
-                {item.custom_score !== undefined && (
-                  <View className="items-end">
-                    <View
-                      className="w-10 h-10 rounded-xl items-center justify-center mb-1"
-                      style={{ backgroundColor: getScoreColor(item.custom_score) + '20' }}
-                    >
-                      <Text
-                        className="font-bold text-sm"
-                        style={{ color: getScoreColor(item.custom_score) }}
-                      >
-                        {item.custom_score}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </Animated.View>
-          )}
-          ListEmptyComponent={
-            hasSearched ? (
-              <View className="mt-10 items-center">
-                <Text className="text-gray-500 dark:text-gray-400 text-center">
-                  {t('no_products_found')}
-                </Text>
-              </View>
-            ) : (
-              <View className="mt-20 items-center opacity-50">
-                <Search size={64} color="#9CA3AF" />
-                <Text className="text-gray-500 dark:text-gray-400 text-center mt-4 max-w-[200px]">
-                  {t('search_placeholder_text')}
-                </Text>
-              </View>
-            )
-          }
-        />
-      )}
+              ) : (
+                <View style={{ marginTop: 70, alignItems: 'center', opacity: 0.5 }}>
+                  <Search size={60} color={colors.inkSoft} />
+                  <Txt variant="medium" size={15} color={colors.inkSoft} style={{ textAlign: 'center', marginTop: 16, maxWidth: 220 }}>
+                    {t('search_placeholder_text')}
+                  </Txt>
+                </View>
+              )
+            }
+          />
+        )}
+      </View>
 
       <FilterModal
         visible={filterModalVisible}
@@ -277,6 +213,17 @@ export default function Rech() {
           setFilterModalVisible(false);
         }}
       />
+    </View>
+  );
+}
+
+function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(244,234,214,0.16)', paddingLeft: 12, paddingRight: 8, paddingVertical: 6, borderRadius: radius.pill }}>
+      <Txt variant="semibold" size={12} color={colors.cream}>{label}</Txt>
+      <TouchableOpacity onPress={onRemove}>
+        <X size={13} color={colors.rose2} />
+      </TouchableOpacity>
     </View>
   );
 }

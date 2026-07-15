@@ -1,9 +1,12 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { BackButton, Field, FormError, FormSuccess, LinkButton, PrimaryButton } from '../components/ui/FormKit';
+import Txt from '../components/ui/Txt';
 import { API_URL } from '../config/api';
 import { useTranslation } from '../i18n';
+import { colors } from '../theme/tokens';
 
 export default function ForgotPassword() {
     const router = useRouter();
@@ -15,7 +18,7 @@ export default function ForgotPassword() {
 
     const handleResetRequest = async () => {
         if (!email) {
-            setError("Veuillez entrer votre email");
+            setError('Veuillez entrer votre email');
             return;
         }
 
@@ -33,92 +36,61 @@ export default function ForgotPassword() {
             const data = await response.json();
 
             if (response.ok) {
-                setMessage(data.message || "Si cet email existe, un lien a été envoyé.");
-                // Optionnel : rediriger vers l'écran de reset après un délai
+                setMessage(data.message || 'Si cet email existe, un lien a été envoyé.');
                 setTimeout(() => {
                     router.push({ pathname: '/auth/reset-password', params: { email } });
                 }, 3000);
             } else {
-                setError(data?.detail || "Une erreur est survenue");
+                setError(data?.detail || 'Une erreur est survenue');
             }
         } catch {
-            setError("Erreur de connexion au serveur");
+            setError('Erreur de connexion au serveur');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <View className="flex-1 bg-white dark:bg-[#181A20]">
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                className="flex-1"
-            >
-                <View className="flex-1 justify-center px-8">
-                    <Animated.View entering={FadeInUp.duration(1000).springify()} className="items-center mb-8">
-                        <Text className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                            {t('forgot_password') || "Mot de passe oublié"}
-                        </Text>
-                        <Text className="text-gray-500 dark:text-gray-400 text-center">
-                            {t('enter_email_reset') || "Entrez votre email pour recevoir un lien de réinitialisation"}
-                        </Text>
+        <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+            <StatusBar barStyle="light-content" />
+            <View style={{ position: 'absolute', top: 14, left: 26, zIndex: 10 }}>
+                <BackButton onPress={() => router.back()} />
+            </View>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                <ScrollView
+                    contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 26, paddingTop: 80, paddingBottom: 40 }}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
+                    <Animated.View entering={FadeInUp.duration(700).springify()} style={{ marginBottom: 24 }}>
+                        <Txt variant="display" size={34} color={colors.creamTitle} style={{ letterSpacing: -0.5 }}>
+                            {t('forgot_password') || 'Mot de passe oublié'}
+                        </Txt>
+                        <Txt variant="body" size={14} color={colors.rose} style={{ marginTop: 8, lineHeight: 21 }}>
+                            {t('enter_email_reset') || 'Entrez votre email pour recevoir un lien de réinitialisation.'}
+                        </Txt>
                     </Animated.View>
 
-                    <Animated.View entering={FadeInDown.delay(200).duration(1000).springify()} className="space-y-4">
-                        <View>
-                            <Text className="text-gray-700 dark:text-gray-300 mb-2 ml-1 font-medium">Email</Text>
-                            <TextInput
-                                className="bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white p-4 rounded-xl border border-gray-200 dark:border-gray-700"
-                                placeholder="exemple@email.com"
-                                placeholderTextColor="#9CA3AF"
-                                value={email}
-                                onChangeText={setEmail}
-                                autoCapitalize="none"
-                                keyboardType="email-address"
-                            />
-                        </View>
-
-                        {message && (
-                            <Text className="text-green-500 text-center font-medium">{message}</Text>
-                        )}
-
-                        {error && (
-                            <Text className="text-red-500 text-center font-medium">{error}</Text>
-                        )}
-
-                        <TouchableOpacity
-                            disabled={loading}
-                            onPress={handleResetRequest}
-                            className="bg-green-500 py-4 rounded-xl items-center shadow-lg shadow-green-500/30 mt-4"
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <Text className="text-white text-lg font-bold">
-                                    {t('send_link') || "Envoyer le lien"}
-                                </Text>
-                            )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={() => router.back()}
-                            className="py-4 items-center"
-                        >
-                            <Text className="text-gray-500 dark:text-gray-400 font-medium">
-                                {t('cancel') || "Annuler"}
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
+                    <Animated.View entering={FadeInDown.delay(150).duration(700).springify()}>
+                        <Field
+                            label="Email"
+                            placeholder="exemple@email.com"
+                            value={email}
+                            onChangeText={setEmail}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                        />
+                        {message ? <FormSuccess>{message}</FormSuccess> : null}
+                        {error ? <FormError>{error}</FormError> : null}
+                        <PrimaryButton label={t('send_link') || 'Envoyer le lien'} loading={loading} onPress={handleResetRequest} style={{ marginTop: 8 }} />
+                        <LinkButton label={t('cancel') || 'Annuler'} onPress={() => router.back()} />
+                        <LinkButton
+                            label={t('have_code') || "J'ai déjà un code"}
+                            color={colors.yellow}
                             onPress={() => router.push({ pathname: '/auth/reset-password', params: { email } })}
-                            className="py-2 items-center"
-                        >
-                            <Text className="text-green-600 dark:text-green-400 font-medium text-sm">
-                                {t('have_code') || "J'ai déjà un code"}
-                            </Text>
-                        </TouchableOpacity>
+                        />
                     </Animated.View>
-                </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </View>
     );

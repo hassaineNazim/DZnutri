@@ -16,12 +16,10 @@ import {
 } from 'react-native';
 import Animated, {
   Easing,
-  SlideInDown,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
-  ZoomIn,
 } from 'react-native-reanimated';
 import Txt from './components/ui/Txt';
 import ScoreRing from './components/ui/ScoreRing';
@@ -248,7 +246,7 @@ export default function Scanner() {
               <Search size={24} color={colors.inkOnYellow} strokeWidth={2.2} />
             </View>
             <View style={{ flex: 1 }}>
-              <Txt variant="displayXBold" size={18} color={colors.ink}>{t('unknown_product') || 'Produit introuvable ?'}</Txt>
+              <Txt variant="displayXBold" size={18} color={colors.ink}>{t('product_not_found_q') || 'Produit introuvable ?'}</Txt>
               <Txt variant="body" size={12.5} color={colors.inkSoft} style={{ marginTop: 4 }}>{t('add_in_30s') || 'Ajoutez-le à la base en 30 s.'}</Txt>
             </View>
             <TouchableOpacity onPress={() => goToAddFlow()} style={{ backgroundColor: colors.dark, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 24 }} activeOpacity={0.85}>
@@ -278,7 +276,7 @@ export default function Scanner() {
         >
           {scanResult.status === 'found' && (
             <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 380 }}>
-              <Animated.View entering={ZoomIn.duration(200)} style={[{ backgroundColor: colors.cream, borderRadius: radius.sheet, padding: 20 }, shadows.resultCard]}>
+              <View style={[{ backgroundColor: colors.cream, borderRadius: radius.sheet, padding: 20 }, shadows.resultCard]}>
                 {/* Bandeau succès */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                   <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' }}>
@@ -319,19 +317,19 @@ export default function Scanner() {
                 >
                   <Txt variant="bold" size={16} color={colors.cream}>{t('product_details')}</Txt>
                 </TouchableOpacity>
-              </Animated.View>
+              </View>
             </Pressable>
           )}
 
           {scanResult.status === 'notFound' && (
             <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%' }}>
-              <Animated.View entering={SlideInDown.duration(220)} style={{ backgroundColor: colors.cream, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, alignItems: 'center' }}>
+              <View style={{ backgroundColor: colors.cream, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, alignItems: 'center' }}>
                 <View style={{ width: 48, height: 6, borderRadius: 3, backgroundColor: '#d8ccb4', marginBottom: 22 }} />
                 <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
                   <Plus size={32} color={colors.inkOnYellow} />
                 </View>
                 <Txt variant="displayXBold" size={22} color={colors.ink} style={{ marginBottom: 6, textAlign: 'center' }}>
-                  {t('unknown_product') || 'Produit introuvable ?'}
+                  {t('product_not_found_q') || 'Produit introuvable ?'}
                 </Txt>
                 <Txt variant="body" size={14} color={colors.inkSoft} style={{ marginBottom: 22, textAlign: 'center', paddingHorizontal: 16 }}>
                   {t('help_add_product')}
@@ -346,7 +344,7 @@ export default function Scanner() {
                 <TouchableOpacity onPress={resetScanner} style={{ padding: 12 }}>
                   <Txt variant="semibold" size={14} color={colors.inkSoft}>{t('cancel')}</Txt>
                 </TouchableOpacity>
-              </Animated.View>
+              </View>
             </Pressable>
           )}
         </Pressable>

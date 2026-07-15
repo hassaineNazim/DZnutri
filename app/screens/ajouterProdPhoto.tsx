@@ -2,57 +2,32 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, Check, RefreshCw, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-  useColorScheme
-} from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import StepHeader from '../components/StepHeader';
+import Txt from '../components/ui/Txt';
 import { useToast } from '../context/ToastContext';
-import { api } from '../services/axios';
-import { getAccessToken } from '../services/tokenStore';
 import { useTranslation } from '../i18n';
+import { api } from '../services/axios';
+import { colors, radius, shadows } from '../theme/tokens';
+import { getAccessToken } from '../services/tokenStore';
 
-// Example images
 const FRONT_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_dlyit9dlyit9dlyi.png');
 const BACK_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_3ypwh63ypwh63ypw.png');
-// --- MODIF 1: Image exemple pour la nutrition (réutilisation ou nouvelle image) ---
 const NUTRITION_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_3ypwh63ypwh63ypw.png');
 
 export default function AjouterProduitPhotoPage() {
   const router = useRouter();
   const { t } = useTranslation();
-  const colorScheme = useColorScheme();
-  const params = useLocalSearchParams<{
-    barcode: string;
-    type: string;
-    typeSpecifique: string;
-    productName: string;
-    brand: string;
-    category: string;
-  }>();
-
+  const params = useLocalSearchParams<{ barcode: string; type: string; typeSpecifique: string; productName: string; brand: string; category: string }>();
   const { showToast } = useToast();
-
-
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageIngredientsUri, setImageIngredientsUri] = useState<string | null>(null);
-  // --- MODIF 2: État pour la 3ème image ---
   const [imageNutritionUri, setImageNutritionUri] = useState<string | null>(null);
-
   const [loading, setLoading] = useState(false);
 
-  // Modal state
   const [modalVisible, setModalVisible] = useState(false);
-  // --- MODIF 3: Type mis à jour ---
   const [activePhotoType, setActivePhotoType] = useState<'front' | 'ingredients' | 'nutrition' | null>(null);
 
   const openCameraInstruction = (type: 'front' | 'ingredients' | 'nutrition') => {
@@ -62,39 +37,25 @@ export default function AjouterProduitPhotoPage() {
 
   const handleCameraLaunch = async () => {
     setModalVisible(false);
-
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (permissionResult.granted === false) {
       Alert.alert(t('add_product_title'), t('camera_permission_needed'));
       return;
     }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      quality: 0.7,
-    });
-
+    const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.7 });
     if (!result.canceled) {
-      // --- MODIF 4: Gestion de la 3ème image ---
-      if (activePhotoType === 'front') {
-        setImageUri(result.assets[0].uri);
-      } else if (activePhotoType === 'ingredients') {
-        setImageIngredientsUri(result.assets[0].uri);
-      } else if (activePhotoType === 'nutrition') {
-        setImageNutritionUri(result.assets[0].uri);
-      }
+      if (activePhotoType === 'front') setImageUri(result.assets[0].uri);
+      else if (activePhotoType === 'ingredients') setImageIngredientsUri(result.assets[0].uri);
+      else if (activePhotoType === 'nutrition') setImageNutritionUri(result.assets[0].uri);
     }
   };
 
   const handleSubmission = async () => {
-    // --- MODIF 5: Vérification optionnelle ou obligatoire ? ---
-    // Ici j'ai rendu la photo nutrition optionnelle, mais vous pouvez ajouter !imageNutritionUri si obligatoire
     if (!imageUri || !imageIngredientsUri) {
       Alert.alert(t('add_product_title'), t('photo_error'));
       return;
     }
     setLoading(true);
-
     try {
       const userToken = await getAccessToken();
       if (!userToken) throw new Error(t('connect'));
@@ -105,184 +66,109 @@ export default function AjouterProduitPhotoPage() {
       formData.append('typeSpecifique', params.typeSpecifique as string);
       formData.append('productName', params.productName as string);
       formData.append('brand', params.brand as string);
-
-      formData.append('image_front', {
-        uri: imageUri,
-        name: `front_${params.barcode}.jpg`,
-        type: 'image/jpeg',
-      } as any);
-
-      formData.append('image_ingredients', {
-        uri: imageIngredientsUri,
-        name: `ingredients_${params.barcode}.jpg`,
-        type: 'image/jpeg',
-      } as any);
-
-      // --- MODIF 6: Ajout au FormData ---
+      formData.append('image_front', { uri: imageUri, name: `front_${params.barcode}.jpg`, type: 'image/jpeg' } as any);
+      formData.append('image_ingredients', { uri: imageIngredientsUri, name: `ingredients_${params.barcode}.jpg`, type: 'image/jpeg' } as any);
       if (imageNutritionUri) {
-        formData.append('image_nutrition', {
-          uri: imageNutritionUri,
-          name: `nutrition_${params.barcode}.jpg`,
-          type: 'image/jpeg',
-        } as any);
+        formData.append('image_nutrition', { uri: imageNutritionUri, name: `nutrition_${params.barcode}.jpg`, type: 'image/jpeg' } as any);
       }
 
-      // Passe par `api` : ajout automatique du token + rafraîchissement
-      // silencieux sur 401. Timeout allongé pour l'upload multipart des images.
       await api.post('/api/submission', formData, { timeout: 60000 });
-
-      showToast(t('success_message') || "Produit soumis avec succès !", 'success');
-
-      // Petit délai pour laisser le temps de voir le toast avant de rediriger
-      setTimeout(() => {
-        router.replace('../scanner');
-      }, 1500);
-
+      showToast(t('success_message') || 'Produit soumis avec succès !', 'success');
+      setTimeout(() => router.replace('../scanner'), 1500);
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || error?.message || "Une erreur est survenue";
+      const msg = error?.response?.data?.detail || error?.message || 'Une erreur est survenue';
       showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const PhotoButton = ({
-    uri,
-    onPress,
-    label,
-    stepNumber
-  }: {
-    uri: string | null,
-    onPress: () => void,
-    label: string,
-    stepNumber: number
-  }) => (
-    <Animated.View entering={FadeInDown.delay(stepNumber * 100).springify()} className="mb-6">
-      <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 ml-1">
+  const PhotoButton = ({ uri, onPress, label, stepNumber }: { uri: string | null; onPress: () => void; label: string; stepNumber: number }) => (
+    <Animated.View entering={FadeInDown.delay(stepNumber * 100).springify()} style={{ marginBottom: 20 }}>
+      <Txt variant="medium" size={13} color={colors.inkSoft} style={{ marginBottom: 10, marginLeft: 2 }}>
         {stepNumber}. {label}
-      </Text>
-
+      </Txt>
       {uri ? (
-        <View className="relative w-full h-64">
-          <Image source={{ uri }} className="w-full h-full rounded-2xl bg-gray-100 dark:bg-gray-800" resizeMode="cover" />
-          <View className="absolute top-0 left-0 w-full h-full bg-black/40 rounded-2xl items-center justify-center">
-            <Animated.View entering={ZoomIn} className="bg-emerald-500 rounded-full p-2 mb-2">
-              <Check size={24} color="white" />
+        <View style={{ width: '100%', height: 250, borderRadius: radius.card, overflow: 'hidden' }}>
+          <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          <View style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(20,17,16,0.4)', alignItems: 'center', justifyContent: 'center' }}>
+            <Animated.View entering={ZoomIn} style={{ backgroundColor: colors.green, borderRadius: 20, padding: 8, marginBottom: 10 }}>
+              <Check size={24} color={colors.white} />
             </Animated.View>
-            <TouchableOpacity onPress={onPress} className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full flex-row items-center">
-              <RefreshCw size={14} color="white" className="mr-2" />
-              <Text className="text-white font-medium text-xs">{t('retake_photo')}</Text>
+            <TouchableOpacity onPress={onPress} style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <RefreshCw size={14} color={colors.white} />
+              <Txt variant="semibold" size={12} color={colors.white}>{t('retake_photo')}</Txt>
             </TouchableOpacity>
           </View>
         </View>
       ) : (
         <TouchableOpacity
           onPress={onPress}
-          activeOpacity={0.7}
-          className="w-full h-48 bg-white dark:bg-[#1F2937] rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 items-center justify-center"
+          activeOpacity={0.75}
+          style={{ width: '100%', height: 190, backgroundColor: colors.white, borderRadius: radius.card, borderWidth: 2, borderStyle: 'dashed', borderColor: '#d8cbb2', alignItems: 'center', justifyContent: 'center' }}
         >
-          <View className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full items-center justify-center mb-3">
-            <Camera size={32} color={colorScheme === 'dark' ? '#9CA3AF' : '#6B7280'} />
+          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#f2e9d8', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+            <Camera size={30} color={colors.inkSoft} />
           </View>
-          <Text className="text-gray-500 dark:text-gray-400 font-medium">{t('take_photo') || "Tap to take photo"}</Text>
+          <Txt variant="semibold" size={14} color={colors.inkSoft}>{t('take_photo') || 'Prendre une photo'}</Txt>
         </TouchableOpacity>
       )}
     </Animated.View>
   );
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
-      <View className="px-6 pt-6">
+    <View style={{ flex: 1, backgroundColor: colors.cream }}>
+      <View style={{ paddingHorizontal: 24, paddingTop: 16 }}>
         <StepHeader step={3} title={t('step_3_title')} />
       </View>
 
-      <ScrollView className="flex-1 px-6">
-        <PhotoButton
-          stepNumber={1}
-          label={t('take_photo_front')}
-          uri={imageUri}
-          onPress={() => openCameraInstruction('front')}
-        />
-
-        <PhotoButton
-          stepNumber={2}
-          label={t('take_photo_ingredients')}
-          uri={imageIngredientsUri}
-          onPress={() => openCameraInstruction('ingredients')}
-        />
-
-        {/* --- MODIF 7: Bouton pour la 3ème photo --- */}
-        <PhotoButton
-          stepNumber={3}
-          label={t('Tableau Nutritionnel')}
-          uri={imageNutritionUri}
-          onPress={() => openCameraInstruction('nutrition')}
-        />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        <PhotoButton stepNumber={1} label={t('take_photo_front')} uri={imageUri} onPress={() => openCameraInstruction('front')} />
+        <PhotoButton stepNumber={2} label={t('take_photo_ingredients')} uri={imageIngredientsUri} onPress={() => openCameraInstruction('ingredients')} />
+        <PhotoButton stepNumber={3} label={t('take_photo_nutrition') || 'Tableau Nutritionnel'} uri={imageNutritionUri} onPress={() => openCameraInstruction('nutrition')} />
 
         {imageUri && imageIngredientsUri && (
-          <Animated.View entering={FadeInDown.delay(300).springify()} className="mt-4 mb-10">
+          <Animated.View entering={FadeInDown.delay(300).springify()} style={{ marginTop: 4, marginBottom: 30 }}>
             <TouchableOpacity
               onPress={handleSubmission}
               disabled={loading}
-              className={`py-4 rounded-xl items-center shadow-lg ${loading ? 'bg-gray-400' : 'bg-emerald-500 shadow-emerald-500/30 active:bg-emerald-600'}`}
+              activeOpacity={0.85}
+              style={{ paddingVertical: 16, borderRadius: radius.cta, alignItems: 'center', backgroundColor: loading ? '#e6c94f' : colors.yellow }}
             >
-              {loading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-white font-bold text-lg">{t('submit_product')}</Text>
-              )}
+              {loading ? <ActivityIndicator color={colors.inkOnYellow} /> : <Txt variant="bold" size={16} color={colors.inkOnYellow}>{t('submit_product')}</Txt>}
             </TouchableOpacity>
           </Animated.View>
         )}
       </ScrollView>
 
-      {/* Instruction Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View className="flex-1 bg-black/80 justify-center items-center p-6">
-          <View className="bg-white dark:bg-[#1F2937] p-5 rounded-3xl w-full max-w-sm shadow-2xl">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-xl font-bold text-gray-900 dark:text-white">
-                {/* --- MODIF 8: Titre dynamique --- */}
-                {activePhotoType === 'front' ? t('take_photo_front') :
-                  activePhotoType === 'ingredients' ? t('take_photo_ingredients') :
-                    t('take_photo_nutrition') || "Tableau Nutritionnel"}
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)} className="bg-gray-100 dark:bg-gray-800 p-2 rounded-full">
-                <X size={20} color={colorScheme === 'dark' ? '#9CA3AF' : '#6B7280'} />
+      {/* Modal instruction */}
+      <Modal animationType="fade" transparent visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(20,17,16,0.8)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={[{ backgroundColor: colors.cream, padding: 20, borderRadius: 28, width: '100%', maxWidth: 380 }, shadows.resultCard]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Txt variant="displayXBold" size={20} color={colors.ink} style={{ flex: 1 }}>
+                {activePhotoType === 'front' ? t('take_photo_front') : activePhotoType === 'ingredients' ? t('take_photo_ingredients') : t('take_photo_nutrition') || 'Tableau Nutritionnel'}
+              </Txt>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ backgroundColor: 'rgba(89,18,31,0.08)', padding: 8, borderRadius: 20 }}>
+                <X size={20} color={colors.bordeaux} />
               </TouchableOpacity>
             </View>
 
-            <View className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-2 mb-6">
+            <View style={{ backgroundColor: '#efe6d3', borderRadius: 18, padding: 8, marginBottom: 18 }}>
               <Image
-                // --- MODIF 9: Image exemple dynamique ---
-                source={activePhotoType === 'front' ? FRONT_EXAMPLE :
-                  activePhotoType === 'ingredients' ? BACK_EXAMPLE :
-                    NUTRITION_EXAMPLE}
-                className="w-full h-64 rounded-xl"
+                source={activePhotoType === 'front' ? FRONT_EXAMPLE : activePhotoType === 'ingredients' ? BACK_EXAMPLE : NUTRITION_EXAMPLE}
+                style={{ width: '100%', height: 250, borderRadius: 12 }}
                 resizeMode="contain"
               />
             </View>
 
-            <Text className="text-center text-gray-600 dark:text-gray-300 mb-8 px-2 leading-6">
-              {/* --- MODIF 10: Texte instruction dynamique --- */}
-              {activePhotoType === 'front' ? t('photo_instruction_front') :
-                activePhotoType === 'ingredients' ? t('photo_instruction_back') :
-                  t('photo_instruction_nutrition') || "Prenez une photo claire du tableau des valeurs nutritionnelles."}
-            </Text>
+            <Txt variant="body" size={13.5} color={colors.inkSoft} style={{ textAlign: 'center', marginBottom: 20, lineHeight: 20, paddingHorizontal: 8 }}>
+              {activePhotoType === 'front' ? t('photo_instruction_front') : activePhotoType === 'ingredients' ? t('photo_instruction_back') : t('photo_instruction_nutrition') || 'Prenez une photo claire du tableau des valeurs nutritionnelles.'}
+            </Txt>
 
-            <TouchableOpacity
-              onPress={handleCameraLaunch}
-              className="bg-emerald-500 py-4 rounded-2xl items-center shadow-lg shadow-emerald-500/30 active:bg-emerald-600"
-            >
-              <View className="flex-row items-center">
-                <Camera size={20} color="white" className="mr-2 pr-2 " />
-                <Text className="text-white font-bold text-lg ml-2">{t('open_camera')}</Text>
-              </View>
+            <TouchableOpacity onPress={handleCameraLaunch} activeOpacity={0.85} style={{ backgroundColor: colors.yellow, paddingVertical: 16, borderRadius: radius.cta, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+              <Camera size={20} color={colors.inkOnYellow} />
+              <Txt variant="bold" size={16} color={colors.inkOnYellow}>{t('open_camera')}</Txt>
             </TouchableOpacity>
           </View>
         </View>

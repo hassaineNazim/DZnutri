@@ -1,12 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Check, ChevronDown } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import StepHeader from '../components/StepHeader';
+import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
+import { colors, fonts, radius, shadows } from '../theme/tokens';
 
-// Les catégories techniques de votre Scoring
 const TECHNICAL_CATEGORIES = [
   { label: 'Solide (Standard)', value: 'solid' },
   { label: 'Boissons / Liquides', value: 'boissons' },
@@ -23,167 +24,124 @@ export default function AjouterProduitInfoPage() {
 
   const [productName, setProductName] = useState('');
   const [brand, setBrand] = useState('');
-
-  // --- NOUVEAU : État pour la catégorie technique ---
-  const [typeSpecifique, settypeSpecifique] = useState(TECHNICAL_CATEGORIES[0]); // Par défaut "Solide"
+  const [typeSpecifique, settypeSpecifique] = useState(TECHNICAL_CATEGORIES[0]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  // -----------------------------------------------
 
-  // Error states
   const [nameError, setNameError] = useState('');
   const [brandError, setBrandError] = useState('');
 
   const handleNext = () => {
     let isValid = true;
-
-    if (!productName.trim()) {
-      setNameError(t('fill_all_fields'));
-      isValid = false;
-    } else {
-      setNameError('');
-    }
-
-    if (!brand.trim()) {
-      setBrandError(t('fill_all_fields'));
-      isValid = false;
-    } else {
-      setBrandError('');
-    }
-
+    if (!productName.trim()) { setNameError(t('fill_all_fields')); isValid = false; } else setNameError('');
+    if (!brand.trim()) { setBrandError(t('fill_all_fields')); isValid = false; } else setBrandError('');
     if (!isValid) return;
 
     router.push({
       pathname: './ajouterProdPhoto',
-      // On passe la catégorie sélectionnée (value) comme paramètre "type" ou "category"
-      params: {
-        barcode,
-        type: type,
-        typeSpecifique: typeSpecifique.value,
-        productName,
-        brand
-      },
+      params: { barcode, type, typeSpecifique: typeSpecifique.value, productName, brand },
     });
   };
 
+  const inputStyle = (error?: string) => ({
+    backgroundColor: '#f6efe0',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: error ? colors.red : '#e7ddc9',
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 15,
+    color: colors.ink,
+    fontFamily: fonts.sans,
+  });
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-gray-50 dark:bg-[#181A20]"
-    >
-      <ScrollView className="flex-1 p-6">
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: colors.cream }}>
+      <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 16 }} showsVerticalScrollIndicator={false}>
         <StepHeader step={2} title={t('step_2_title')} />
 
-        <Animated.View entering={FadeInDown.delay(100).springify()} className="bg-white dark:bg-[#1F2937] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-          <Text className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t('product_details')}</Text>
+        <Animated.View entering={FadeInDown.delay(80).springify()} style={[{ backgroundColor: colors.white, padding: 20, borderRadius: radius.card }, shadows.listCard]}>
+          <Txt variant="displayXBold" size={18} color={colors.ink} style={{ marginBottom: 18 }}>{t('product_details')}</Txt>
 
-          {/* Barcode (Read-only) */}
-          <View className="mb-5">
-            <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 ml-1">{t('barcode')}</Text>
-            <View className="bg-gray-100 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-              <Text className="text-gray-500 dark:text-gray-400 font-mono">{barcode}</Text>
+          {/* Code-barres (lecture seule) */}
+          <View style={{ marginBottom: 16 }}>
+            <Txt variant="medium" size={13} color={colors.inkSoft} style={{ marginBottom: 8, marginLeft: 2 }}>{t('barcode')}</Txt>
+            <View style={{ backgroundColor: '#efe6d3', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12 }}>
+              <Txt variant="medium" size={14} color={colors.inkSoft}>{barcode}</Txt>
             </View>
           </View>
 
-          {/* Product Name */}
-          <View className="mb-5">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ml-1">{t('product_name')}</Text>
+          {/* Nom du produit */}
+          <View style={{ marginBottom: 16 }}>
+            <Txt variant="medium" size={13} color={colors.inkSoft} style={{ marginBottom: 8, marginLeft: 2 }}>{t('product_name')}</Txt>
             <TextInput
-              className={`bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 rounded-xl border ${nameError ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'} focus:border-emerald-500 dark:focus:border-emerald-500`}
+              style={inputStyle(nameError)}
               placeholder={t('product_name_placeholder')}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.inkMeta}
               value={productName}
-              onChangeText={(text) => {
-                setProductName(text);
-                if (text.trim()) setNameError('');
-              }}
+              onChangeText={(text) => { setProductName(text); if (text.trim()) setNameError(''); }}
             />
-            {nameError ? <Text className="text-red-500 text-xs mt-1 ml-1">{nameError}</Text> : null}
+            {nameError ? <Txt variant="medium" size={12} color={colors.red} style={{ marginTop: 4, marginLeft: 2 }}>{nameError}</Txt> : null}
           </View>
 
-          {/* Brand */}
-          <View className="mb-5">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ml-1">{t('brand')}</Text>
+          {/* Marque */}
+          <View style={{ marginBottom: 16 }}>
+            <Txt variant="medium" size={13} color={colors.inkSoft} style={{ marginBottom: 8, marginLeft: 2 }}>{t('brand')}</Txt>
             <TextInput
-              className={`bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 rounded-xl border ${brandError ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'} focus:border-emerald-500 dark:focus:border-emerald-500`}
+              style={inputStyle(brandError)}
               placeholder={t('brand_placeholder')}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.inkMeta}
               value={brand}
-              onChangeText={(text) => {
-                setBrand(text);
-                if (text.trim()) setBrandError('');
-              }}
+              onChangeText={(text) => { setBrand(text); if (text.trim()) setBrandError(''); }}
             />
-            {brandError ? <Text className="text-red-500 text-xs mt-1 ml-1">{brandError}</Text> : null}
+            {brandError ? <Txt variant="medium" size={12} color={colors.red} style={{ marginTop: 4, marginLeft: 2 }}>{brandError}</Txt> : null}
           </View>
 
-          {/* --- NOUVEAU : TYPE SPÉCIFIQUE (Dropdown) --- */}
-          <View className="mb-8">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ml-1">
-              Type Spécifique (pour le calcul du score)
-            </Text>
-
+          {/* Type spécifique (dropdown) */}
+          <View style={{ marginBottom: 22 }}>
+            <Txt variant="medium" size={13} color={colors.inkSoft} style={{ marginBottom: 8, marginLeft: 2 }}>
+              Type spécifique (pour le calcul du score)
+            </Txt>
             <TouchableOpacity
               onPress={() => setDropdownVisible(true)}
-              className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex-row justify-between items-center"
+              style={{ backgroundColor: '#f6efe0', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderColor: '#e7ddc9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
             >
-              <Text className="text-gray-900 dark:text-white font-medium">
-                {typeSpecifique.label}
-              </Text>
-              <ChevronDown size={20} color="#9CA3AF" />
+              <Txt variant="semibold" size={15} color={colors.ink}>{typeSpecifique.label}</Txt>
+              <ChevronDown size={20} color={colors.inkSoft} />
             </TouchableOpacity>
           </View>
-          {/* ------------------------------------------- */}
 
-          {/* Next Button */}
-          <TouchableOpacity
-            onPress={handleNext}
-            className="bg-emerald-500 py-4 rounded-xl items-center shadow-lg shadow-emerald-500/30 active:bg-emerald-600"
-          >
-            <Text className="text-white font-bold text-lg">{t('next')}</Text>
+          <TouchableOpacity onPress={handleNext} activeOpacity={0.85} style={{ backgroundColor: colors.yellow, paddingVertical: 16, borderRadius: radius.cta, alignItems: 'center' }}>
+            <Txt variant="bold" size={16} color={colors.inkOnYellow}>{t('next')}</Txt>
           </TouchableOpacity>
-
         </Animated.View>
       </ScrollView>
 
-      {/* --- MODAL POUR LE DROPDOWN --- */}
-      <Modal
-        visible={dropdownVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setDropdownVisible(false)}
-      >
-        <TouchableOpacity
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
-          activeOpacity={1}
-          onPress={() => setDropdownVisible(false)}
-        >
-          <View className="bg-white dark:bg-[#1F2937] w-[80%] rounded-2xl overflow-hidden shadow-2xl">
-            <View className="p-4 border-b border-gray-100 dark:border-gray-700">
-              <Text className="text-lg font-bold text-gray-900 dark:text-white text-center">Choisir un type</Text>
+      {/* Modal dropdown */}
+      <Modal visible={dropdownVisible} transparent animationType="fade" onRequestClose={() => setDropdownVisible(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(30,18,12,0.55)', justifyContent: 'center', alignItems: 'center' }} onPress={() => setDropdownVisible(false)}>
+          <Pressable style={[{ backgroundColor: colors.cream, width: '82%', borderRadius: 22, overflow: 'hidden' }, shadows.resultCard]} onPress={(e) => e.stopPropagation()}>
+            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e7ddc9' }}>
+              <Txt variant="displayXBold" size={18} color={colors.ink} style={{ textAlign: 'center' }}>Choisir un type</Txt>
             </View>
             <FlatList
               data={TECHNICAL_CATEGORIES}
               keyExtractor={(item) => item.value}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  className={`p-4 border-b border-gray-50 dark:border-gray-800 flex-row justify-between items-center ${item.value === typeSpecifique.value ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}
-                  onPress={() => {
-                    settypeSpecifique(item);
-                    setDropdownVisible(false);
-                  }}
-                >
-                  <Text className={`text-base ${item.value === typeSpecifique.value ? 'text-emerald-600 font-bold' : 'text-gray-700 dark:text-gray-300'}`}>
-                    {item.label}
-                  </Text>
-                  {item.value === typeSpecifique.value && <Check size={20} color="#10B981" />}
-                </TouchableOpacity>
-              )}
+              renderItem={({ item }) => {
+                const active = item.value === typeSpecifique.value;
+                return (
+                  <TouchableOpacity
+                    style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#efe6d3', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: active ? 'rgba(89,18,31,0.06)' : 'transparent' }}
+                    onPress={() => { settypeSpecifique(item); setDropdownVisible(false); }}
+                  >
+                    <Txt variant={active ? 'bold' : 'medium'} size={15} color={active ? colors.bordeaux : colors.ink}>{item.label}</Txt>
+                    {active && <Check size={20} color={colors.bordeaux} />}
+                  </TouchableOpacity>
+                );
+              }}
             />
-          </View>
-        </TouchableOpacity>
+          </Pressable>
+        </Pressable>
       </Modal>
-      {/* ----------------------------- */}
-
     </KeyboardAvoidingView>
   );
 }

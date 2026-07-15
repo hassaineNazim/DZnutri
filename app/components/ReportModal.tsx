@@ -1,6 +1,21 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View, Dimensions, StyleSheet } from 'react-native';
+import {
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+import { useTranslation } from '../i18n';
 import { reportProduct } from '../services/report';
+import { colors, radius, shadows } from '../theme/tokens';
+import Txt from './ui/Txt';
 
 type Props = {
     visible: boolean;
@@ -10,7 +25,19 @@ type Props = {
 
 const { width, height } = Dimensions.get('window');
 
+function AlertTriangle() {
+    return (
+        <Svg width={22} height={22} viewBox="0 0 24 24">
+            <Path
+                fill={colors.red}
+                d="M12 2 1 21h22L12 2zm0 6c.7 0 1.2.6 1.1 1.3l-.4 5a.7.7 0 0 1-1.4 0l-.4-5A1.1 1.1 0 0 1 12 8zm0 9.5a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"
+            />
+        </Svg>
+    );
+}
+
 export default function ReportModal({ visible, onClose, barcode }: Props) {
+    const { t } = useTranslation();
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -18,103 +45,131 @@ export default function ReportModal({ visible, onClose, barcode }: Props) {
 
     const handleSubmit = async () => {
         if (!description.trim()) {
-            Alert.alert("Erreur", "Veuillez décrire le problème.");
+            Alert.alert(t('error') || 'Erreur', t('report_empty') || 'Veuillez décrire le problème.');
             return;
         }
 
         setLoading(true);
         try {
             await reportProduct(barcode, description);
-            Alert.alert("Merci !", "Votre signalement a été envoyé à l'équipe.");
-            setDescription(''); // Reset
+            Alert.alert(t('report_thanks') || 'Merci !', t('report_sent') || "Votre signalement a été envoyé à l'équipe.");
+            setDescription('');
             onClose();
         } catch (error) {
-            console.error("Erreur detaillée :", error);
-            Alert.alert("Oups", "Impossible d'envoyer le signalement.");
+            console.error('Erreur detaillée :', error);
+            Alert.alert(t('oops') || 'Oups', t('report_failed') || "Impossible d'envoyer le signalement.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <View 
-            style={{ 
-                position: 'absolute', 
-                top: 0, left: 0, right: 0, bottom: 0, 
-                width: width, 
-                height: height,
-                backgroundColor: 'rgba(0,0,0,0.6)', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                padding: 20,
+        <View
+            style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width,
+                height,
+                backgroundColor: 'rgba(30,18,12,0.55)',
+                justifyContent: 'flex-end',
                 zIndex: 9999,
-                elevation: 9999
+                elevation: 9999,
             }}
             pointerEvents="auto"
         >
-            <TouchableOpacity 
-                style={StyleSheet.absoluteFillObject} 
-                activeOpacity={1} 
-                onPress={onClose} 
-            />
-            
-            <View 
-                style={{ 
-                    width: '100%', 
-                    maxWidth: 400, 
-                    minHeight: 320, 
-                    backgroundColor: 'white', 
-                    borderRadius: 12, 
-                    padding: 24, 
-                    elevation: 10000,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 5,
-                    zIndex: 10000 
-                }}
-                pointerEvents="auto"
+            {/* Voile cliquable pour fermer */}
+            <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                pointerEvents="box-none"
+                style={{ justifyContent: 'flex-end' }}
             >
-                {/* Header Text */}
-                <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#111827', marginBottom: 8, textAlign: 'center' }}>
-                    Signaler une erreur
-                </Text>
+                {/* Feuille modale */}
+                <View
+                    style={[
+                        {
+                            backgroundColor: colors.cream,
+                            borderTopLeftRadius: 28,
+                            borderTopRightRadius: 28,
+                            paddingHorizontal: 24,
+                            paddingTop: 20,
+                            paddingBottom: 30,
+                        },
+                        shadows.resultCard,
+                    ]}
+                >
+                    {/* Poignée */}
+                    <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: '#d9cdb6', alignSelf: 'center', marginBottom: 20 }} />
 
-                <Text style={{ fontSize: 14, color: '#4B5563', marginBottom: 20, textAlign: 'center' }}>
-                    Pourquoi le score de ce produit ({barcode}) vous semble-t-il incorrect ?
-                </Text>
-
-                {/* Zone de texte */}
-                <TextInput
-                    style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, height: 120, marginBottom: 20, backgroundColor: '#F9FAFB', color: '#111827', textAlignVertical: 'top', fontSize: 16 }}
-                    placeholder="Ex: Les calories sont fausses..."
-                    placeholderTextColor="#9ca3af"
-                    multiline
-                    value={description}
-                    onChangeText={setDescription}
-                />
-
-                {/* Boutons (Natifs pour être sûr que ça marche à 100%) */}
-                {loading ? (
-                    <ActivityIndicator size="large" color="#EF4444" style={{ marginVertical: 10 }} />
-                ) : (
-                    <View style={{ gap: 12 }}>
-                        <TouchableOpacity 
-                            onPress={handleSubmit} 
-                            style={{ backgroundColor: '#EF4444', paddingVertical: 14, borderRadius: 8, alignItems: 'center', zIndex: 10001 }}
-                        >
-                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Envoyer le signalement</Text>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity 
-                            onPress={onClose} 
-                            style={{ backgroundColor: '#E5E7EB', paddingVertical: 14, borderRadius: 8, alignItems: 'center', zIndex: 10001 }}
-                        >
-                            <Text style={{ color: '#374151', fontWeight: 'bold', fontSize: 16 }}>Fermer / Annuler</Text>
-                        </TouchableOpacity>
+                    {/* Titre */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: 'rgba(210,75,51,0.14)', alignItems: 'center', justifyContent: 'center' }}>
+                            <AlertTriangle />
+                        </View>
+                        <Txt variant="display" size={24} color={colors.ink} style={{ flex: 1 }}>
+                            {t('report_error_title') || 'Signaler une erreur'}
+                        </Txt>
                     </View>
-                )}
-            </View>
+
+                    {/* Explication */}
+                    <Txt variant="body" size={13.5} color={colors.inkSoft} style={{ lineHeight: 20, marginTop: 14 }}>
+                        {t('report_error_why') || 'Pourquoi le score de ce produit'}{' '}
+                        <Txt variant="semibold" size={13.5} color={colors.bordeaux}>({barcode})</Txt>{' '}
+                        {t('report_error_why_end') || 'vous semble-t-il incorrect ?'}
+                    </Txt>
+
+                    {/* Champ de saisie */}
+                    <TextInput
+                        style={{
+                            backgroundColor: colors.white,
+                            borderWidth: 1.5,
+                            borderColor: '#e7ddc9',
+                            borderRadius: 18,
+                            paddingHorizontal: 16,
+                            paddingTop: 15,
+                            paddingBottom: 15,
+                            marginTop: 16,
+                            minHeight: 100,
+                            fontSize: 14,
+                            color: colors.ink,
+                            textAlignVertical: 'top',
+                        }}
+                        placeholder={t('report_placeholder') || 'Ex : les calories sont fausses…'}
+                        placeholderTextColor={colors.inkMeta}
+                        multiline
+                        value={description}
+                        onChangeText={setDescription}
+                    />
+
+                    {/* Bouton primaire */}
+                    <TouchableOpacity
+                        onPress={handleSubmit}
+                        disabled={loading}
+                        activeOpacity={0.85}
+                        style={{ marginTop: 18, backgroundColor: colors.yellow, borderRadius: radius.cta, paddingVertical: 17, alignItems: 'center' }}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color={colors.inkOnYellow} />
+                        ) : (
+                            <Txt variant="bold" size={16} color={colors.inkOnYellow}>{t('send_report') || 'Envoyer le signalement'}</Txt>
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Bouton secondaire */}
+                    <TouchableOpacity
+                        onPress={onClose}
+                        disabled={loading}
+                        activeOpacity={0.85}
+                        style={{ marginTop: 11, backgroundColor: 'rgba(89,18,31,0.08)', borderRadius: radius.cta, paddingVertical: 15, alignItems: 'center' }}
+                    >
+                        <Txt variant="bold" size={15} color={colors.bordeaux}>{t('close_cancel') || 'Fermer / Annuler'}</Txt>
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
         </View>
     );
 }

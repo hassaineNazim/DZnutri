@@ -1,11 +1,14 @@
 import { useRouter } from 'expo-router';
-import { saveTokens } from '../services/tokenStore';
 import React, { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { BackButton, Field, FormError, LinkButton, PrimaryButton } from '../components/ui/FormKit';
+import Txt from '../components/ui/Txt';
 import { API_URL } from '../config/api';
 import { useTranslation } from '../i18n';
 import { registerForPushAndSendToServer } from '../services/PushNotif';
+import { saveTokens } from '../services/tokenStore';
+import { colors } from '../theme/tokens';
 
 export default function LoginEmail() {
     const router = useRouter();
@@ -14,9 +17,10 @@ export default function LoginEmail() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
     const handleLogin = async () => {
         if (!email || !password) {
-            setError("Veuillez remplir tous les champs");
+            setError('Veuillez remplir tous les champs');
             return;
         }
 
@@ -37,96 +41,65 @@ export default function LoginEmail() {
                 await registerForPushAndSendToServer();
                 router.replace('/(tabs)/historique');
             } else {
-                setError(data?.detail || "Email ou mot de passe incorrect");
+                setError(data?.detail || 'Email ou mot de passe incorrect');
             }
         } catch {
-            setError("Erreur de connexion au serveur");
+            setError('Erreur de connexion au serveur');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <View className="flex-1 bg-white dark:bg-[#181A20]">
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                className="flex-1"
-            >
-                <View className="flex-1 justify-center px-8">
-                    <Animated.View entering={FadeInUp.duration(1000).springify()} className="items-center mb-8">
-                        <Text className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                            {t('welcome_back') || "Bon retour !"}
-                        </Text>
-                        <Text className="text-gray-500 dark:text-gray-400 text-center">
-                            {t('enter_credentials') || "Entrez vos identifiants pour continuer"}
-                        </Text>
+        <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+            <StatusBar barStyle="light-content" />
+            <View style={{ position: 'absolute', top: 14, left: 26, zIndex: 10 }}>
+                <BackButton onPress={() => router.back()} />
+            </View>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                <ScrollView
+                    contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 26, paddingTop: 80, paddingBottom: 40 }}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
+                    <Animated.View entering={FadeInUp.duration(700).springify()} style={{ marginBottom: 24 }}>
+                        <Txt variant="display" size={34} color={colors.creamTitle} style={{ letterSpacing: -0.5 }}>
+                            {t('welcome_back') || 'Bon retour !'}
+                        </Txt>
+                        <Txt variant="body" size={14} color={colors.rose} style={{ marginTop: 8, lineHeight: 21 }}>
+                            {t('enter_credentials') || 'Entrez vos identifiants pour continuer.'}
+                        </Txt>
                     </Animated.View>
 
-                    <Animated.View entering={FadeInDown.delay(200).duration(1000).springify()} className="space-y-4">
-                        <View>
-                            <Text className="text-gray-700 dark:text-gray-300 mb-2 ml-1 font-medium">Email</Text>
-                            <TextInput
-                                className="bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white p-4 rounded-xl border border-gray-200 dark:border-gray-700"
-                                placeholder="exemple@email.com"
-                                placeholderTextColor="#9CA3AF"
-                                value={email}
-                                onChangeText={setEmail}
-                                autoCapitalize="none"
-                                keyboardType="email-address"
-                                autoComplete="email"
+                    <Animated.View entering={FadeInDown.delay(150).duration(700).springify()}>
+                        <Field
+                            label="Email"
+                            placeholder="exemple@email.com"
+                            value={email}
+                            onChangeText={setEmail}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                            autoComplete="email"
+                        />
+                        <Field
+                            label={t('password') || 'Mot de passe'}
+                            placeholder="••••••••"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry
+                        />
+                        <View style={{ alignItems: 'flex-end', marginBottom: 4 }}>
+                            <LinkButton
+                                label={t('forgot_password') || 'Mot de passe oublié ?'}
+                                color={colors.yellow}
+                                onPress={() => router.push('/auth/forgot-password')}
                             />
                         </View>
-
-                        <View>
-                            <Text className="text-gray-700 dark:text-gray-300 mb-2 ml-1 font-medium">{t('password') || "Mot de passe"}</Text>
-                            <TextInput
-                                className="bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white p-4 rounded-xl border border-gray-200 dark:border-gray-700"
-                                placeholder="••••••••"
-                                placeholderTextColor="#9CA3AF"
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry
-
-                            />
-                        </View>
-
-                        <TouchableOpacity
-                            onPress={() => router.push('/auth/forgot-password')}
-                            className="items-end"
-                        >
-                            <Text className="text-green-600 dark:text-green-400 font-medium">
-                                {t('forgot_password') || "Mot de passe oublié ?"}
-                            </Text>
-                        </TouchableOpacity>
-
-                        {error && (
-                            <Text className="text-red-500 text-center font-medium">{error}</Text>
-                        )}
-
-                        <TouchableOpacity
-                            disabled={loading}
-                            onPress={handleLogin}
-                            className="bg-green-500 py-4 rounded-xl items-center shadow-lg shadow-green-500/30 mt-4"
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <Text className="text-white text-lg font-bold">
-                                    {t('login') || "Se connecter"}
-                                </Text>
-                            )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={() => router.back()}
-                            className="py-4 items-center"
-                        >
-                            <Text className="text-gray-500 dark:text-gray-400 font-medium">
-                                {t('cancel') || "Annuler"}
-                            </Text>
-                        </TouchableOpacity>
+                        {error ? <FormError>{error}</FormError> : null}
+                        <PrimaryButton label={t('login') || 'Se connecter'} loading={loading} onPress={handleLogin} style={{ marginTop: 8 }} />
+                        <LinkButton label={t('cancel') || 'Annuler'} onPress={() => router.back()} />
                     </Animated.View>
-                </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </View>
     );

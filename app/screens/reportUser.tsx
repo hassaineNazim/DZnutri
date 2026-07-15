@@ -1,96 +1,88 @@
 import { Stack, useRouter } from 'expo-router';
-import { ArrowLeft, ChevronRight, HelpCircle, ScanLine, XCircle } from 'lucide-react-native';
+import { ChevronRight, HelpCircle, ScanLine, XCircle } from 'lucide-react-native';
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { BackButton } from '../components/ui/FormKit';
+import Txt from '../components/ui/Txt';
+import { useTranslation } from '../i18n';
+import { colors, radius, shadows } from '../theme/tokens';
 
 export default function ReportUserPage() {
     const router = useRouter();
+    const { t } = useTranslation();
 
-    // Fonction générique pour gérer le clic sur un problème
-    const handleProblemPress = (problemType: string) => {
+    const handleProblemPress = (_problemType: string) => {
         router.push('/screens/autreProbleme');
     };
 
     const openFAQ = (question: string) => {
         console.log(`Ouverture FAQ : ${question}`);
-        // router.push('/faq/detail');
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white dark:bg-[#181A20]">
+        <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
             <Stack.Screen options={{ headerShown: false }} />
 
-            {/* --- HEADER --- */}
-            <View className="flex-row items-center p-4 border-b border-gray-100 dark:border-gray-800">
-                <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-                    <ArrowLeft size={24} color="#374151" className="dark:text-white" />
-                </TouchableOpacity>
-                <Text className="text-xl font-bold text-gray-900 dark:text-white ml-2">
-                    Signaler un problème
-                </Text>
+            {/* ---- Entête bordeaux ---- */}
+            <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <BackButton onPress={() => router.back()} />
+                <Txt variant="display" size={26} color={colors.creamTitle} style={{ flex: 1, letterSpacing: -0.5 }} numberOfLines={1}>
+                    {t('a_problem') || 'Signaler un problème'}
+                </Txt>
             </View>
 
-            <ScrollView className="flex-1">
+            {/* ---- Feuille crème ---- */}
+            <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+                <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+                    <SectionLabel>Problèmes généraux</SectionLabel>
+                    <Card>
+                        <Row icon={<ScanLine size={19} color={colors.red} />} tint="rgba(210,75,51,0.14)" label="Le scan ne fonctionne pas" onPress={() => handleProblemPress('scan_broken')} />
+                        <Row icon={<XCircle size={19} color={colors.orange} />} tint="rgba(240,138,60,0.16)" label="Le produit n'a pas de code-barres" onPress={() => handleProblemPress('no_barcode')} />
+                        <Row icon={<HelpCircle size={19} color={colors.inkSoft} />} tint="rgba(139,128,115,0.16)" label="Autre problème" onPress={() => handleProblemPress('other')} last />
+                    </Card>
 
-                {/* --- SECTION 1 : PROBLÈMES GÉNÉRAUX --- */}
-                <View className="mt-6 mb-2 px-4">
-                    <Text className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400">
-                        Problèmes généraux
-                    </Text>
-                </View>
-
-                <View className="bg-white dark:bg-[#1F2937] border-y border-gray-100 dark:border-gray-800">
-                    <ListItem
-                        icon={<ScanLine size={20} color="#EF4444" />}
-                        label="Le scan ne fonctionne pas"
-                        onPress={() => handleProblemPress("scan_broken")}
-                    />
-                    <ListItem
-                        icon={<XCircle size={20} color="#F59E0B" />}
-                        label="Le produit n'a pas de code-barres"
-                        onPress={() => handleProblemPress("no_barcode")}
-                    />
-                    <ListItem
-                        icon={<HelpCircle size={20} color="#6B7280" />}
-                        label="Autre problème"
-                        onPress={() => handleProblemPress("other")}
-                        isLast
-                    />
-                </View>
-
-                {/* --- SECTION 2 : À PROPOS (FAQ) --- */}
-                <View className="mt-8 mb-2 px-4">
-                    <Text className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400">
-                        À propos de DZnutri
-                    </Text>
-                </View>
-
-                <View className="bg-white dark:bg-[#1F2937] border-y border-gray-100 dark:border-gray-800 mb-10">
-                    <ListItem label="Quelle est la mission de Remo Scan ?" onPress={() => openFAQ("mission")} />
-                    <ListItem label="Remo Scan est-il indépendant ?" onPress={() => openFAQ("independant")} />
-                    <ListItem label="Comment est financée l'application ?" onPress={() => openFAQ("finance")} />
-                    <ListItem label="Comment sont notés les produits ?" onPress={() => openFAQ("scoring")} />
-                    <ListItem label="Qui est derrière Remo Scan ?" onPress={() => openFAQ("team")} />
-                    <ListItem label="Autres questions" onPress={() => openFAQ("other_faq")} isLast />
-                </View>
-
-            </ScrollView>
-        </SafeAreaView>
+                    <View style={{ height: 24 }} />
+                    <SectionLabel>À propos de Remo Scan</SectionLabel>
+                    <Card>
+                        <Row label="Quelle est la mission de Remo Scan ?" onPress={() => openFAQ('mission')} />
+                        <Row label="Remo Scan est-il indépendant ?" onPress={() => openFAQ('independant')} />
+                        <Row label="Comment est financée l'application ?" onPress={() => openFAQ('finance')} />
+                        <Row label="Comment sont notés les produits ?" onPress={() => openFAQ('scoring')} />
+                        <Row label="Qui est derrière Remo Scan ?" onPress={() => openFAQ('team')} />
+                        <Row label="Autres questions" onPress={() => openFAQ('other_faq')} last />
+                    </Card>
+                </ScrollView>
+            </View>
+        </View>
     );
 }
 
-// --- COMPOSANT REUTILISABLE POUR LES LIGNES ---
-const ListItem = ({ label, onPress, isLast, icon }: { label: string, onPress: () => void, isLast?: boolean, icon?: React.ReactNode }) => (
-    <TouchableOpacity
-        onPress={onPress}
-        className={`flex-row items-center justify-between p-4 bg-white dark:bg-[#1F2937] active:bg-gray-50 dark:active:bg-gray-800 ${!isLast ? 'border-b border-gray-100 dark:border-gray-700' : ''}`}
-    >
-        <View className="flex-row items-center">
-            {/* On affiche l'icône seulement si elle est fournie */}
-            {icon && <View className="mr-3">{icon}</View>}
-            <Text className="text-base text-gray-900 dark:text-white font-medium">{label}</Text>
+function SectionLabel({ children }: { children: React.ReactNode }) {
+    return (
+        <Txt variant="bold" size={11.5} color={colors.inkSoft} style={{ letterSpacing: 1.5, marginBottom: 12 }}>
+            {String(children).toUpperCase()}
+        </Txt>
+    );
+}
+function Card({ children }: { children: React.ReactNode }) {
+    return (
+        <View style={[{ backgroundColor: colors.white, borderRadius: radius.card, overflow: 'hidden' }, shadows.listCard]}>
+            {children}
         </View>
-        <ChevronRight size={20} color="#9CA3AF" />
-    </TouchableOpacity>
-);
+    );
+}
+function Row({ icon, tint, label, onPress, last = false }: { icon?: React.ReactNode; tint?: string; label: string; onPress: () => void; last?: boolean }) {
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            activeOpacity={0.65}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 15, borderBottomWidth: last ? 0 : 1, borderBottomColor: '#f1e9d8' }}
+        >
+            {icon ? (
+                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: tint, alignItems: 'center', justifyContent: 'center' }}>{icon}</View>
+            ) : null}
+            <Txt variant="semibold" size={15} color={colors.ink} style={{ flex: 1 }}>{label}</Txt>
+            <ChevronRight size={20} color="#c3b8a6" />
+        </TouchableOpacity>
+    );
+}

@@ -1,8 +1,10 @@
 import { useRouter } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import React from 'react';
-import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useTranslation } from '../i18n';
+import { colors, shadows } from '../theme/tokens';
+import Txt from './ui/Txt';
 
 type StepHeaderProps = {
     step: number;
@@ -15,36 +17,34 @@ export default function StepHeader({ step, title, totalSteps = 3 }: StepHeaderPr
     const router = useRouter();
 
     return (
-        <View className="mb-8">
-            <View className="flex-row items-center mb-6">
-                <TouchableOpacity
+        <View style={{ marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18, gap: 12 }}>
+                <Pressable
                     onPress={() => router.back()}
-                    className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 items-center justify-center mr-3"
+                    style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}
                 >
-                    <ChevronLeft size={24} color={useColorScheme() === 'dark' ? '#fff' : '#111827'} />
-                </TouchableOpacity>
-                <View className="flex-1">
-                    <Text className="text-sm font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                        {t('add_product_title')}
-                    </Text>
-                    <Text className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                        {title}
-                    </Text>
+                    <ArrowLeft size={20} color={colors.bordeaux} />
+                </Pressable>
+                <View style={{ flex: 1 }}>
+                    <Txt variant="bold" size={12} color={colors.bordeaux} style={{ letterSpacing: 1.2 }}>
+                        {(t('add_product_title') || 'Ajouter un produit').toUpperCase()}
+                    </Txt>
+                    <Txt variant="display" size={26} color={colors.ink} style={{ marginTop: 2 }}>{title}</Txt>
                 </View>
             </View>
 
-            {/* Progress Bar */}
-            <View className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex-row">
+            {/* Barre de progression */}
+            <View style={{ flexDirection: 'row', height: 6, borderRadius: 3, backgroundColor: '#e6dcc7' }}>
                 {[...Array(totalSteps)].map((_, i) => (
                     <View
                         key={i}
-                        className={`flex-1 ${i < step ? 'bg-emerald-500' : 'bg-transparent'} ${i > 0 ? 'ml-1' : ''}`}
+                        style={{ flex: 1, backgroundColor: i < step ? colors.bordeaux : 'transparent', marginLeft: i > 0 ? 2 : 0, borderRadius: 3 }}
                     />
                 ))}
             </View>
-            <Text className="text-right text-xs text-gray-500 dark:text-gray-400 mt-2">
+            <Txt variant="medium" size={12} color={colors.inkSoft} style={{ textAlign: 'right', marginTop: 6 }}>
                 {step}/{totalSteps}
-            </Text>
+            </Txt>
         </View>
     );
 }

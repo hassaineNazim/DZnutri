@@ -1,58 +1,144 @@
 import { useRouter } from 'expo-router';
-import { ChevronRight, Heart, Info, Languages, Palette, User } from 'lucide-react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, Switch, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { useColorScheme } from 'nativewind';
-import React, { useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import LanguageSelector from '../../components/LanguageSelector';
+import Txt from '../../components/ui/Txt';
 import { SupportedLang, useTranslation } from '../../i18n';
+import { colors, radius, shadows } from '../../theme/tokens';
 
-const Section = ({ title, children, delay = 0 }: { title: string, children: React.ReactNode, delay?: number }) => (
-  <Animated.View
-    entering={FadeInDown.delay(delay).duration(500)}
-    layout={Layout.springify()}
-    className="mb-6"
-  >
-    <Text className="text-sm font-bold text-gray-500 dark:text-gray-400 px-4 mb-3 uppercase tracking-wider">
-      {title}
-    </Text>
-    <View className="bg-white dark:bg-[#1F2937] rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800">
+const languageData = [
+  { value: 'fr', label: 'Français', icon: '🇫🇷' },
+  { value: 'en', label: 'English', icon: '🇬🇧' },
+  { value: 'ar', label: 'العربية', icon: '🇩🇿' },
+  { value: 'fs', label: 'Système', icon: '📱' },
+];
+
+// --- Icônes (dessinées à la main, style plein fidèle au handoff) ------------
+function IconArrowLeft({ color = colors.bordeaux }: { color?: string }) {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path d="M13 5l-7 7 7 7M6 12h13" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+function IconProfile({ color = colors.bordeaux }: { color?: string }) {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={8} r={4} stroke={color} strokeWidth={2} />
+      <Path d="M4.5 20a7.5 7.5 0 0 1 15 0" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+function IconUserFill({ color }: { color: string }) {
+  return (
+    <Svg width={19} height={19} viewBox="0 0 24 24">
+      <Circle cx={12} cy={8} r={4.2} fill={color} />
+      <Path d="M4 20.5a8 8 0 0 1 16 0 1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" fill={color} />
+    </Svg>
+  );
+}
+function IconGlobeFill({ color }: { color: string }) {
+  return (
+    <Svg width={19} height={19} viewBox="0 0 24 24">
+      <Path
+        fill={color}
+        d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 9h-3.2a15.7 15.7 0 0 0-1.1-5.3A8 8 0 0 1 18.9 11zM12 4.2c.9 1 1.7 3.1 1.9 6.8h-3.8c.2-3.7 1-5.8 1.9-6.8zM8.3 5.7A15.7 15.7 0 0 0 7.3 11H4.1a8 8 0 0 1 4.2-5.3zM4.1 13h3.2a15.7 15.7 0 0 0 1.1 5.3A8 8 0 0 1 4.1 13zm7.9 6.8c-.9-1-1.7-3.1-1.9-6.8h3.8c-.2 3.7-1 5.8-1.9 6.8zm3.7-1.5a15.7 15.7 0 0 0 1.1-5.3h3.2a8 8 0 0 1-4.3 5.3z"
+      />
+    </Svg>
+  );
+}
+function IconStarFill({ color }: { color: string }) {
+  return (
+    <Svg width={19} height={19} viewBox="0 0 24 24">
+      <Path fill={color} d="M12 4l2.5 5.1 5.6.8-4.1 4 1 5.6L12 16.9 6.9 19.5l1-5.6-4.1-4 5.6-.8z" />
+    </Svg>
+  );
+}
+function IconMoonFill({ color }: { color: string }) {
+  return (
+    <Svg width={19} height={19} viewBox="0 0 24 24">
+      <Path fill={color} d="M21.6 13a9 9 0 1 1-10.6-10 7.2 7.2 0 0 0 10.6 10z" />
+    </Svg>
+  );
+}
+function IconInfo({ color }: { color: string }) {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={9} stroke={color} strokeWidth={2} />
+      <Path d="M12 11v5M12 8h.01" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+function Chevron() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Path d="M9 6l6 6-6 6" stroke="#c3b8a6" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// --- Primitives d'affichage -------------------------------------------------
+function RoundBtn({ children, onPress }: { children: React.ReactNode; onPress?: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+function IconTile({ tint, children }: { tint: string; children: React.ReactNode }) {
+  return (
+    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: tint, alignItems: 'center', justifyContent: 'center' }}>
       {children}
     </View>
-  </Animated.View>
-);
+  );
+}
 
-const ListItem = ({ icon, label, value, onPress, children, isLast = false }: { icon?: any; label?: any; value?: any; onPress?: any; children?: any; isLast?: boolean }) => {
+function Row({
+  tile,
+  label,
+  value,
+  onPress,
+  right,
+  last = false,
+}: {
+  tile: React.ReactNode;
+  label: string;
+  value?: string;
+  onPress?: () => void;
+  right?: React.ReactNode;
+  last?: boolean;
+}) {
   return (
     <TouchableOpacity
       onPress={onPress}
-      disabled={!onPress && !children}
-      className={`
-        flex-row items-center p-4 bg-white dark:bg-[#1F2937]
-        ${!isLast ? 'border-b border-gray-100 dark:border-gray-800' : ''}
-      `}
-      activeOpacity={onPress ? 0.7 : 1}
+      disabled={!onPress}
+      activeOpacity={onPress ? 0.65 : 1}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        paddingHorizontal: 16,
+        paddingVertical: 15,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: '#f1e9d8',
+      }}
     >
-      {icon}
-      <Text className="text-base font-medium text-gray-900 dark:text-gray-100 ml-4 flex-1">{label}</Text>
-
-      <View className="flex-row items-center space-x-2">
-        {value && <Text className="text-base text-gray-500 dark:text-gray-400 mr-2">{value}</Text>}
-        {children}
-        {onPress && !children && <ChevronRight size={20} className="text-gray-400" />}
-      </View>
+      {tile}
+      <Txt variant="semibold" size={16} color={colors.ink} style={{ flex: 1 }}>{label}</Txt>
+      {value ? <Txt variant="semibold" size={13} color={colors.inkSoft} style={{ marginRight: 2 }}>{value}</Txt> : null}
+      {right ?? <Chevron />}
     </TouchableOpacity>
   );
-};
+}
 
 export default function SettingsPage() {
-  const languageData = [
-    { value: 'fr', label: 'Français', icon: '🇫🇷' },
-    { value: 'en', label: 'English', icon: '🇬🇧' },
-    { value: 'ar', label: 'العربية', icon: '🇩🇿' },
-    { value: 'fs', label: 'Système', icon: '📱' }
-  ];
-
   const { lang, setLanguage, t, setFollowSystem, follow } = useTranslation();
   const router = useRouter();
   const { colorScheme, setColorScheme } = useColorScheme();
@@ -61,129 +147,126 @@ export default function SettingsPage() {
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
 
-  const toggleTheme = () => {
-    setColorScheme(isDarkMode ? 'light' : 'dark');
-  };
+  const currentLangLabel = useMemo(() => {
+    if (follow) return languageData.find((l) => l.value === 'fs')?.label ?? 'Système';
+    return languageData.find((l) => l.value === lang)?.label ?? 'Français';
+  }, [follow, lang]);
+
+  const toggleTheme = () => setColorScheme(isDarkMode ? 'light' : 'dark');
 
   const handleLanguageSelect = async (value: string) => {
     setSelectorVisible(false);
-
-    // Show restarting modal immediately to give feedback
-    // We might want to delay this slightly if the transition is too abrupt, 
-    // but usually immediate feedback is better.
-
     let result;
     if (value === 'fs') {
-      if (follow) return; // Already following system
+      if (follow) return;
       setIsRestarting(true);
       result = await setFollowSystem(true);
     } else {
-      if (lang === value && !follow) return; // Already selected
+      if (lang === value && !follow) return;
       setIsRestarting(true);
-      await setFollowSystem(false); // Disable follow system first
+      await setFollowSystem(false);
       result = await setLanguage(value as SupportedLang);
     }
-
-    // If reload didn't happen automatically (e.g. in dev client without updates), 
-    // we keep the modal open or show a manual restart prompt.
-    // But since our i18n logic returns { needsRestart: boolean }, we can handle it.
-
     if (result.needsRestart) {
-      // Keep the modal open, maybe change text to "Please restart app"
-      // For now, we just keep the spinner which implies "working on it"
-      // In a real app, you might want a button "Restart Now" if programmatic restart fails.
-      setTimeout(() => setIsRestarting(false), 3000); // Fallback timeout
+      setTimeout(() => setIsRestarting(false), 3000);
     } else {
       setIsRestarting(false);
     }
   };
 
-
-  const IconContainer = ({ children, color = "bg-gray-100 dark:bg-gray-700" }: { children?: React.ReactNode, color?: string }) => (
-    <View className={`w-10 h-10 rounded-xl items-center justify-center ${color}`}>
-      {children}
-    </View>
-  );
-
   return (
-    <ScrollView
-      className="flex-1 bg-gray-50 dark:bg-[#181A20]"
-      contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 24 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header */}
-      <View className="px-2 pt-2 pb-6">
-        <Text className="text-3xl font-bold text-gray-900 dark:text-white">
-          {t('reglage') || "Réglages"}
-        </Text>
-        <Text className="text-base text-gray-500 dark:text-gray-400 mt-1">
-          {t('settings_description') || "Personnalisez votre expérience"}
-        </Text>
+    <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+      {/* ---- Entête bordeaux ---- */}
+      <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 26 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <RoundBtn onPress={() => router.back()}>
+            <IconArrowLeft />
+          </RoundBtn>
+          <RoundBtn onPress={() => router.push('/reglage/compte')}>
+            <IconProfile />
+          </RoundBtn>
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14, marginTop: 20 }}>
+          <Image
+            source={require('../../../assets/images/mascotte-mecano.png')}
+            style={{ width: 76, height: 76, marginTop: -4, resizeMode: 'contain' }}
+          />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Txt variant="bold" size={12} color={colors.yellow} style={{ letterSpacing: 1.2 }}>
+              {(t('my_account') || 'Mon compte').toUpperCase()}
+            </Txt>
+            <Txt variant="display" size={46} color={colors.creamTitle} style={{ marginTop: 4, letterSpacing: -0.5 }}>
+              {t('settings_title') || 'Réglages'}
+            </Txt>
+            <Txt variant="body" size={14} color={colors.rose} style={{ marginTop: 12, lineHeight: 21 }}>
+              {t('settings_description') || 'Personnalisez votre expérience.'}
+            </Txt>
+          </View>
+        </View>
       </View>
 
-      <Section title={t('settings_language') || 'Général'} delay={100}>
-        <ListItem
-          icon={
-            <IconContainer color="bg-blue-100 dark:bg-blue-900/30">
-              <User size={20} color={isDarkMode ? '#60A5FA' : '#2563EB'} />
-            </IconContainer>
-          }
-          label={t('account') ?? 'Compte'}
-          onPress={() => router.push('/reglage/compte')}
-        />
+      {/* ---- Feuille crème ---- */}
+      <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+        <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 24, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+          {/* PRÉFÉRENCES */}
+          <Animated.View entering={FadeInDown.duration(400)}>
+            <Txt variant="bold" size={11.5} color={colors.inkSoft} style={{ letterSpacing: 1.5, marginBottom: 12 }}>
+              {(t('preferences') || 'Préférences').toUpperCase()}
+            </Txt>
+            <View style={[{ backgroundColor: colors.white, borderRadius: radius.card, overflow: 'hidden' }, shadows.listCard]}>
+              <Row
+                tile={<IconTile tint="rgba(89,18,31,0.1)"><IconUserFill color={colors.bordeaux} /></IconTile>}
+                label={t('account') || 'Compte'}
+                onPress={() => router.push('/reglage/compte')}
+              />
+              <Row
+                tile={<IconTile tint="rgba(242,194,46,0.2)"><IconGlobeFill color="#b98a09" /></IconTile>}
+                label={t('settings_language') || 'Langue'}
+                value={currentLangLabel}
+                onPress={() => setSelectorVisible(true)}
+              />
+              <Row
+                tile={<IconTile tint="rgba(210,75,51,0.14)"><IconStarFill color={colors.red} /></IconTile>}
+                label={t('favorites') || 'Favoris'}
+                onPress={() => router.push('/screens/FavoritesScreen')}
+              />
+              <Row
+                tile={<IconTile tint="rgba(79,158,90,0.16)"><IconMoonFill color={colors.green} /></IconTile>}
+                label={t('theme_dark') || 'Thème sombre'}
+                last
+                right={
+                  <Switch
+                    value={isDarkMode}
+                    onValueChange={toggleTheme}
+                    trackColor={{ false: '#d9cdb6', true: colors.green }}
+                    thumbColor={colors.white}
+                  />
+                }
+              />
+            </View>
+          </Animated.View>
 
-        <ListItem
-          icon={
-            <IconContainer color="bg-purple-100 dark:bg-purple-900/30">
-              <Languages size={20} color={isDarkMode ? '#C084FC' : '#9333EA'} />
-            </IconContainer>
-          }
-          label={t('settings_language')}
-          onPress={() => setSelectorVisible(true)}
-        />
+          {/* À PROPOS */}
+          <Animated.View entering={FadeInDown.delay(120).duration(400)}>
+            <Txt variant="bold" size={11.5} color={colors.inkSoft} style={{ letterSpacing: 1.5, marginTop: 24, marginBottom: 12 }}>
+              {(t('about') || 'À propos').toUpperCase()}
+            </Txt>
+            <View style={[{ backgroundColor: colors.white, borderRadius: radius.card, overflow: 'hidden' }, shadows.listCard]}>
+              <Row
+                tile={<IconTile tint="rgba(240,138,60,0.16)"><IconInfo color={colors.orange} /></IconTile>}
+                label={t('who_are_we') || 'Qui sommes-nous ?'}
+                onPress={() => router.push('/reglage/apropos')}
+                last
+              />
+            </View>
+          </Animated.View>
 
-        <ListItem
-          icon={
-            <IconContainer color="bg-pink-100 dark:bg-pink-900/30">
-              <Heart size={20} color={isDarkMode ? '#F471B5' : '#DB2777'} />
-            </IconContainer>
-          }
-          label={t('favorites') ?? 'Favoris'}
-          onPress={() => router.push('/screens/FavoritesScreen')}
-        />
-
-
-
-        <ListItem
-          icon={
-            <IconContainer color="bg-green-100 dark:bg-green-900/30">
-              <Palette size={20} color={isDarkMode ? '#4ADE80' : '#16A34A'} />
-            </IconContainer>
-          }
-          label={t('theme_dark') ?? 'Mode Sombre'}
-          isLast={true}
-        >
-          <Switch
-            value={isDarkMode}
-            onValueChange={toggleTheme}
-            trackColor={{ false: '#E5E7EB', true: '#22c55e' }}
-            thumbColor={'#fff'}
-          />
-        </ListItem>
-      </Section>
-
-      <Section title={t('about') ?? 'À propos'} delay={200}>
-        <ListItem
-          icon={
-            <IconContainer color="bg-orange-100 dark:bg-orange-900/30">
-              <Info size={20} color={isDarkMode ? '#FB923C' : '#EA580C'} />
-            </IconContainer>
-          }
-          label={t('who_are_we') ?? 'Qui sommes-nous ?'}
-          onPress={() => router.push('/reglage/apropos')}
-          isLast={true}
-        />
-      </Section>
+          <Txt variant="body" size={12} color={colors.inkMeta} style={{ textAlign: 'center', marginTop: 20 }}>
+            Remo Scan · v2.0
+          </Txt>
+        </ScrollView>
+      </View>
 
       <LanguageSelector
         visible={selectorVisible}
@@ -193,38 +276,31 @@ export default function SettingsPage() {
         languages={languageData}
       />
 
-      {/* Restarting Modal */}
-      <Modal
-        transparent
-        visible={isRestarting}
-        animationType="fade"
-      >
-        <View className="flex-1 bg-black/80 items-center justify-center">
-          <View className="bg-white dark:bg-[#1F2937] p-8 rounded-3xl items-center shadow-2xl">
-            <ActivityIndicator size="large" color="#10B981" className="mb-6" />
-            <Text className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+      {/* Modale « changement de langue » */}
+      <Modal transparent visible={isRestarting} animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(20,17,16,0.8)', alignItems: 'center', justifyContent: 'center', padding: 30 }}>
+          <View style={[{ backgroundColor: colors.cream, borderRadius: 28, padding: 30, alignItems: 'center', maxWidth: 340 }, shadows.resultCard]}>
+            <ActivityIndicator size="large" color={colors.green} />
+            <Txt variant="displayXBold" size={20} color={colors.ink} style={{ marginTop: 18, textAlign: 'center' }}>
               {lang === 'ar' ? 'جاري تغيير اللغة...' : 'Changing language...'}
-            </Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-center mb-6">
+            </Txt>
+            <Txt variant="body" size={13.5} color={colors.inkSoft} style={{ marginTop: 8, textAlign: 'center', lineHeight: 20 }}>
               {lang === 'ar'
-                ? 'جاري إعادة التشغيل... إذا لم يحدث شيء، يرجى إعادة تشغيل التطبيق يدوياً لتطبيق التغييرات.'
-                : 'Restarting... If nothing happens, please restart the app manually to apply changes.'}
-            </Text>
-
+                ? 'جاري إعادة التشغيل... إذا لم يحدث شيء، يرجى إعادة تشغيل التطبيق يدوياً.'
+                : 'Restarting... If nothing happens, please restart the app manually.'}
+            </Txt>
             <TouchableOpacity
-              onPress={() => {
-                setIsRestarting(false);
-              }}
-              className="bg-gray-200 dark:bg-gray-700 px-6 py-3 rounded-xl"
+              onPress={() => setIsRestarting(false)}
+              activeOpacity={0.85}
+              style={{ marginTop: 20, backgroundColor: 'rgba(89,18,31,0.08)', borderRadius: radius.cta, paddingVertical: 13, paddingHorizontal: 26 }}
             >
-              <Text className="font-bold text-gray-900 dark:text-white">
-                {lang === 'ar' ? 'إغلاق النافذة' : 'Close Window'}
-              </Text>
+              <Txt variant="bold" size={15} color={colors.bordeaux}>
+                {lang === 'ar' ? 'إغلاق' : 'Close'}
+              </Txt>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-
-    </ScrollView>
+    </View>
   );
 }

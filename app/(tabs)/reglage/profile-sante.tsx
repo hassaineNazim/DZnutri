@@ -1,14 +1,42 @@
 import { useRouter } from 'expo-router';
-import { Activity, AlertTriangle, ChevronLeft, Flame, Leaf, Plus, Save, X } from 'lucide-react-native';
+import { Activity, AlertTriangle, ArrowLeft, Flame, Leaf, Plus, Save, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Txt from '../../components/ui/Txt';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { useTranslation } from '../../i18n';
+import { colors, fonts, radius, shadows } from '../../theme/tokens';
 
 const COMMON_ALLERGIES = ['gluten', 'peanuts', 'lactose', 'eggs', 'soy', 'fish', 'shellfish', 'nuts'];
 const DIET_TYPES = ['none', 'vegan', 'vegetarian', 'keto', 'paleo'];
 const ACTIVITY_LEVELS = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
+
+// --- petits helpers d'affichage -------------------------------------------
+function SectionLabel({ children }: { children: React.ReactNode }) {
+    return (
+        <Txt variant="bold" size={11.5} color={colors.inkSoft} style={{ letterSpacing: 1.5, marginBottom: 12 }}>
+            {String(children).toUpperCase()}
+        </Txt>
+    );
+}
+function Card({ children }: { children: React.ReactNode }) {
+    return (
+        <View style={[{ backgroundColor: colors.white, borderRadius: radius.card, padding: 16 }, shadows.listCard]}>
+            {children}
+        </View>
+    );
+}
+const numInputStyle = {
+    backgroundColor: '#f6efe0',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    color: colors.ink,
+    fontFamily: fonts.sansBold,
+    textAlign: 'center' as const,
+};
 
 export default function HealthProfilePage() {
     const router = useRouter();
@@ -28,7 +56,7 @@ export default function HealthProfilePage() {
         diet_type: 'none',
         disliked_ingredients: [] as string[],
         daily_calories: 0,
-        daily_proteins: 0
+        daily_proteins: 0,
     });
 
     const [newDislike, setNewDislike] = useState('');
@@ -36,14 +64,12 @@ export default function HealthProfilePage() {
     useEffect(() => {
         if (profile) {
             let day = '', month = '', year = '';
-            // Parse existing date if available
             if (profile.birth_date) {
                 const date = new Date(profile.birth_date);
                 day = date.getDate().toString();
                 month = (date.getMonth() + 1).toString();
                 year = date.getFullYear().toString();
             }
-
             setFormData({
                 height: profile.height?.toString() || '',
                 weight: profile.weight?.toString() || '',
@@ -57,19 +83,17 @@ export default function HealthProfilePage() {
                 diet_type: profile.diet_type || 'none',
                 disliked_ingredients: profile.disliked_ingredients || [],
                 daily_calories: profile.daily_calories || 0,
-                daily_proteins: profile.daily_proteins || 0
+                daily_proteins: profile.daily_proteins || 0,
             });
         }
     }, [profile]);
 
     const handleSave = async () => {
         try {
-            // Format date
             let birth_date = null;
             if (formData.birth_day && formData.birth_month && formData.birth_year) {
                 birth_date = `${formData.birth_year}-${formData.birth_month.padStart(2, '0')}-${formData.birth_day.padStart(2, '0')}`;
             }
-
             const payload = {
                 height: parseFloat(formData.height.replace(',', '.')) || null,
                 weight: parseFloat(formData.weight.replace(',', '.')) || null,
@@ -79,18 +103,10 @@ export default function HealthProfilePage() {
                 allergies: formData.allergies,
                 medical_conditions: formData.medical_conditions,
                 diet_type: formData.diet_type,
-                disliked_ingredients: formData.disliked_ingredients
+                disliked_ingredients: formData.disliked_ingredients,
             };
-
             const updatedData = await updateProfile(payload);
-
-            // Update local state with returned calculated values
-            setFormData(prev => ({
-                ...prev,
-                daily_calories: updatedData.daily_calories,
-                daily_proteins: updatedData.daily_proteins
-            }));
-
+            setFormData((prev) => ({ ...prev, daily_calories: updatedData.daily_calories, daily_proteins: updatedData.daily_proteins }));
             Alert.alert(t('success_title') || 'Succès', 'Profil mis à jour avec succès');
         } catch (error) {
             console.log('Error saving profile:', error);
@@ -99,277 +115,192 @@ export default function HealthProfilePage() {
     };
 
     const toggleAllergy = (allergy: string) => {
-        setFormData(prev => {
+        setFormData((prev) => {
             const exists = prev.allergies.includes(allergy);
-            return {
-                ...prev,
-                allergies: exists
-                    ? prev.allergies.filter(a => a !== allergy)
-                    : [...prev.allergies, allergy]
-            };
+            return { ...prev, allergies: exists ? prev.allergies.filter((a) => a !== allergy) : [...prev.allergies, allergy] };
         });
     };
 
     const addDislike = () => {
         if (newDislike.trim()) {
-            setFormData(prev => ({
-                ...prev,
-                disliked_ingredients: [...prev.disliked_ingredients, newDislike.trim()]
-            }));
+            setFormData((prev) => ({ ...prev, disliked_ingredients: [...prev.disliked_ingredients, newDislike.trim()] }));
             setNewDislike('');
         }
     };
 
     const removeDislike = (item: string) => {
-        setFormData(prev => ({
-            ...prev,
-            disliked_ingredients: prev.disliked_ingredients.filter(i => i !== item)
-        }));
+        setFormData((prev) => ({ ...prev, disliked_ingredients: prev.disliked_ingredients.filter((i) => i !== item) }));
     };
 
     if (isLoading) {
         return (
-            <View className="flex-1 bg-gray-50 dark:bg-[#181A20] items-center justify-center">
-                <ActivityIndicator size="large" color="#22C55E" />
+            <View style={{ flex: 1, backgroundColor: colors.bordeaux, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="large" color={colors.yellow} />
             </View>
         );
     }
 
     return (
-        <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
-            {/* Header */}
-            <View className="bg-white dark:bg-[#1F222A] px-4 pt-12 pb-4 flex-row items-center justify-between shadow-sm z-10">
-                <TouchableOpacity
-                    onPress={() => router.back()}
-                    className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 items-center justify-center"
-                >
-                    <ChevronLeft size={24} color="#374151" />
-                </TouchableOpacity>
-                <Text className="text-xl font-bold text-gray-900 dark:text-white">
-                    {t('health_profile')}
-                </Text>
-                <TouchableOpacity
+        <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+            {/* ---- Entête bordeaux ---- */}
+            <View style={{ paddingHorizontal: 22, paddingTop: 16, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Pressable onPress={() => router.back()} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }}>
+                    <ArrowLeft size={20} color={colors.bordeaux} />
+                </Pressable>
+                <Txt variant="displayXBold" size={20} color={colors.creamTitle}>{t('health_profile')}</Txt>
+                <Pressable
                     onPress={handleSave}
                     disabled={isUpdating}
-                    className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 items-center justify-center"
+                    style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center' }}
                 >
-                    {isUpdating ? <ActivityIndicator size="small" color="#22C55E" /> : <Save size={20} color="#22C55E" />}
-                </TouchableOpacity>
+                    {isUpdating ? <ActivityIndicator size="small" color={colors.inkOnYellow} /> : <Save size={20} color={colors.inkOnYellow} />}
+                </Pressable>
             </View>
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                className="flex-1"
-            >
-
-                <ScrollView
-                    className="flex-1 px-4 py-6"
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 100 }}
-                >
-
-                    {/* Smart Alerts Card */}
-                    <Animated.View entering={FadeInDown.delay(100).springify()} className="bg-blue-500 rounded-2xl p-4 mb-6 flex-row items-center shadow-lg shadow-blue-500/30">
-                        <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center mr-4">
-                            <AlertTriangle size={24} color="white" />
-                        </View>
-                        <View className="flex-1">
-                            <Text className="text-white font-bold text-lg">{t('smart_alerts')}</Text>
-                            <Text className="text-blue-100 text-sm">{t('smart_alerts_desc')}</Text>
-                        </View>
-                    </Animated.View>
-
-                    {/* Daily Goals Preview */}
-                    {(formData.daily_calories > 0) && (
-                        <Animated.View entering={FadeInDown.delay(200).springify()} className="flex-row mb-6" style={{ gap: 16 }}>
-                            <View className="flex-1 bg-white dark:bg-[#1F222A] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 items-center">
-                                <View className="mb-2">
-                                    <Flame size={24} color="#F59E0B" />
-                                </View>
-                                <Text className="text-2xl font-bold text-gray-900 dark:text-white">{formData.daily_calories}</Text>
-                                <Text className="text-xs text-gray-500 dark:text-gray-400 uppercase">{t('calories')}</Text>
+            {/* ---- Feuille crème ---- */}
+            <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 22, paddingBottom: 120 }}>
+                        {/* Alertes intelligentes */}
+                        <Animated.View entering={FadeInDown.delay(80).springify()} style={{ backgroundColor: colors.bordeaux, borderRadius: radius.card, padding: 16, marginBottom: 22, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(242,194,46,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+                                <AlertTriangle size={24} color={colors.yellow} />
                             </View>
-                            <View className="flex-1 bg-white dark:bg-[#1F222A] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 items-center">
-                                <View className="mb-2">
-                                    <Activity size={24} color="#3B82F6" />
-                                </View>
-                                <Text className="text-2xl font-bold text-gray-900 dark:text-white">{formData.daily_proteins}g</Text>
-                                <Text className="text-xs text-gray-500 dark:text-gray-400 uppercase">{t('proteins')}</Text>
+                            <View style={{ flex: 1 }}>
+                                <Txt variant="displayXBold" size={17} color={colors.creamTitle}>{t('smart_alerts')}</Txt>
+                                <Txt variant="body" size={12.5} color={colors.rose} style={{ marginTop: 3, lineHeight: 18 }}>{t('smart_alerts_desc')}</Txt>
                             </View>
                         </Animated.View>
-                    )}
 
-                    {/* Physical Stats */}
-                    <View className="mb-6">
-                        <Text className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">{t('physical_stats')}</Text>
-                        <View className="bg-white dark:bg-[#1F222A] rounded-2xl p-4 shadow-sm">
-                            <View className="flex-row mb-4" style={{ gap: 16 }}>
-                                <View className="flex-1">
-                                    <Text className="text-gray-500 dark:text-gray-400 mb-1 text-xs">{t('height')}</Text>
-                                    <TextInput
-                                        className="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl text-gray-900 dark:text-white font-bold text-center"
-                                        placeholder="175"
-                                        keyboardType="numeric"
-                                        value={formData.height}
-                                        onChangeText={(t) => setFormData(prev => ({ ...prev, height: t }))}
-                                    />
+                        {/* Objectifs journaliers */}
+                        {formData.daily_calories > 0 && (
+                            <Animated.View entering={FadeInDown.delay(140).springify()} style={{ flexDirection: 'row', gap: 12, marginBottom: 22 }}>
+                                <View style={[{ flex: 1, backgroundColor: colors.white, borderRadius: radius.card, padding: 16, alignItems: 'center' }, shadows.listCard]}>
+                                    <Flame size={24} color={colors.orange} />
+                                    <Txt variant="display" size={26} color={colors.ink} style={{ marginTop: 8 }}>{formData.daily_calories}</Txt>
+                                    <Txt variant="bold" size={10.5} color={colors.inkSoft} style={{ letterSpacing: 0.5, marginTop: 2 }}>{(t('calories') || 'Calories').toUpperCase()}</Txt>
                                 </View>
-                                <View className="flex-1">
-                                    <Text className="text-gray-500 dark:text-gray-400 mb-1 text-xs">{t('weight')}</Text>
-                                    <TextInput
-                                        className="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl text-gray-900 dark:text-white font-bold text-center"
-                                        placeholder="70"
-                                        keyboardType="numeric"
-                                        value={formData.weight}
-                                        onChangeText={(t) => setFormData(prev => ({ ...prev, weight: t }))}
-                                    />
+                                <View style={[{ flex: 1, backgroundColor: colors.white, borderRadius: radius.card, padding: 16, alignItems: 'center' }, shadows.listCard]}>
+                                    <Activity size={24} color={colors.green} />
+                                    <Txt variant="display" size={26} color={colors.ink} style={{ marginTop: 8 }}>{formData.daily_proteins}g</Txt>
+                                    <Txt variant="bold" size={10.5} color={colors.inkSoft} style={{ letterSpacing: 0.5, marginTop: 2 }}>{(t('proteins') || 'Protéines').toUpperCase()}</Txt>
                                 </View>
-                            </View >
+                            </Animated.View>
+                        )}
 
-                            <Text className="text-gray-500 dark:text-gray-400 mb-1 text-xs">{t('birth_date')}</Text>
-                            <View className="flex-row mb-4" style={{ gap: 8 }}>
-                                <TextInput
-                                    className="flex-1 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl text-gray-900 dark:text-white text-center"
-                                    placeholder="JJ"
-                                    keyboardType="numeric"
-                                    maxLength={2}
-                                    value={formData.birth_day}
-                                    onChangeText={(t) => setFormData(prev => ({ ...prev, birth_day: t }))}
-                                />
-                                <TextInput
-                                    className="flex-1 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl text-gray-900 dark:text-white text-center"
-                                    placeholder="MM"
-                                    keyboardType="numeric"
-                                    maxLength={2}
-                                    value={formData.birth_month}
-                                    onChangeText={(t) => setFormData(prev => ({ ...prev, birth_month: t }))}
-                                />
-                                <TextInput
-                                    className="flex-1 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl text-gray-900 dark:text-white text-center"
-                                    placeholder="AAAA"
-                                    keyboardType="numeric"
-                                    maxLength={4}
-                                    value={formData.birth_year}
-                                    onChangeText={(t) => setFormData(prev => ({ ...prev, birth_year: t }))}
-                                />
+                        {/* Statistiques physiques */}
+                        <SectionLabel>{t('physical_stats')}</SectionLabel>
+                        <Card>
+                            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 14 }}>
+                                <View style={{ flex: 1 }}>
+                                    <Txt variant="medium" size={12} color={colors.inkSoft} style={{ marginBottom: 6 }}>{t('height')}</Txt>
+                                    <TextInput style={numInputStyle} placeholder="175" placeholderTextColor={colors.inkMeta} keyboardType="numeric" value={formData.height} onChangeText={(v) => setFormData((prev) => ({ ...prev, height: v }))} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Txt variant="medium" size={12} color={colors.inkSoft} style={{ marginBottom: 6 }}>{t('weight')}</Txt>
+                                    <TextInput style={numInputStyle} placeholder="70" placeholderTextColor={colors.inkMeta} keyboardType="numeric" value={formData.weight} onChangeText={(v) => setFormData((prev) => ({ ...prev, weight: v }))} />
+                                </View>
                             </View>
 
-                            <Text className="text-gray-500 dark:text-gray-400 mb-2 text-xs">{t('gender')}</Text>
-                            <View className="flex-row bg-gray-50 dark:bg-gray-800 p-1 rounded-xl mb-4">
-                                {['male', 'female'].map((g) => (
-                                    <TouchableOpacity
-                                        key={g}
-                                        onPress={() => setFormData(prev => ({ ...prev, gender: g }))}
-                                        className={`flex-1 py-2 rounded-lg items-center ${formData.gender === g ? 'bg-white dark:bg-gray-700 ' : ''}`}
-                                    >
-                                        <Text className={`font-medium ${formData.gender === g ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
-                                            {t(g)}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
+                            <Txt variant="medium" size={12} color={colors.inkSoft} style={{ marginBottom: 6 }}>{t('birth_date')}</Txt>
+                            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                                <TextInput style={[numInputStyle, { flex: 1 }]} placeholder="JJ" placeholderTextColor={colors.inkMeta} keyboardType="numeric" maxLength={2} value={formData.birth_day} onChangeText={(v) => setFormData((prev) => ({ ...prev, birth_day: v }))} />
+                                <TextInput style={[numInputStyle, { flex: 1 }]} placeholder="MM" placeholderTextColor={colors.inkMeta} keyboardType="numeric" maxLength={2} value={formData.birth_month} onChangeText={(v) => setFormData((prev) => ({ ...prev, birth_month: v }))} />
+                                <TextInput style={[numInputStyle, { flex: 1.4 }]} placeholder="AAAA" placeholderTextColor={colors.inkMeta} keyboardType="numeric" maxLength={4} value={formData.birth_year} onChangeText={(v) => setFormData((prev) => ({ ...prev, birth_year: v }))} />
                             </View>
 
-                            <Text className="text-gray-500 dark:text-gray-400 mb-2 text-xs">{t('activity_level')}</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-                                {ACTIVITY_LEVELS.map((level) => (
-                                    <TouchableOpacity
-                                        key={level}
-                                        onPress={() => setFormData(prev => ({ ...prev, activity_level: level }))}
-                                        className={`mr-2 px-4 py-2 rounded-full border ${formData.activity_level === level
-                                            ? 'bg-green-500 border-green-500'
-                                            : 'bg-transparent border-gray-200 dark:border-gray-700'
-                                            }`}
-                                    >
-                                        <Text className={formData.activity_level === level ? 'text-white font-medium' : 'text-gray-500 dark:text-gray-400'}>
-                                            {t(level)}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
+                            <Txt variant="medium" size={12} color={colors.inkSoft} style={{ marginBottom: 8 }}>{t('gender')}</Txt>
+                            <View style={{ flexDirection: 'row', backgroundColor: '#f6efe0', padding: 4, borderRadius: 12, marginBottom: 14 }}>
+                                {['male', 'female'].map((g) => {
+                                    const active = formData.gender === g;
+                                    return (
+                                        <TouchableOpacity key={g} onPress={() => setFormData((prev) => ({ ...prev, gender: g }))} style={{ flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center', backgroundColor: active ? colors.white : 'transparent' }}>
+                                            <Txt variant="semibold" size={14} color={active ? colors.bordeaux : colors.inkSoft}>{t(g)}</Txt>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+
+                            <Txt variant="medium" size={12} color={colors.inkSoft} style={{ marginBottom: 8 }}>{t('activity_level')}</Txt>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                {ACTIVITY_LEVELS.map((level) => {
+                                    const active = formData.activity_level === level;
+                                    return (
+                                        <TouchableOpacity
+                                            key={level}
+                                            onPress={() => setFormData((prev) => ({ ...prev, activity_level: level }))}
+                                            style={{ marginRight: 8, paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill, borderWidth: 1.5, backgroundColor: active ? colors.bordeaux : 'transparent', borderColor: active ? colors.bordeaux : '#e0d6c1' }}
+                                        >
+                                            <Txt variant="semibold" size={13} color={active ? colors.cream : colors.inkSoft}>{t(level)}</Txt>
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </ScrollView>
-                        </View>
-                    </View>
+                        </Card>
 
-                    {/* Diet & Allergies */}
-                    <View className="mb-6">
-                        <Text className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">{t('diet_type')}</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
-                            {DIET_TYPES.map((type) => (
-                                <TouchableOpacity
-                                    key={type}
-                                    onPress={() => setFormData(prev => ({ ...prev, diet_type: type }))}
-                                    className={`mr-3 items-center`}
-                                >
-                                    <View className={`w-16 h-16 rounded-2xl items-center justify-center mb-2 ${formData.diet_type === type
-                                        ? 'bg-green-500 '
-                                        : 'bg-white dark:bg-[#1F222A] border border-gray-100 dark:border-gray-800'
-                                        }`}>
-                                        <Leaf size={24} color={formData.diet_type === type ? 'white' : '#9CA3AF'} />
-                                    </View>
-                                    <Text className={`text-xs font-medium ${formData.diet_type === type ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
-                                        {t(type)}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
+                        {/* Régime */}
+                        <View style={{ height: 22 }} />
+                        <SectionLabel>{t('diet_type')}</SectionLabel>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 22 }}>
+                            {DIET_TYPES.map((type) => {
+                                const active = formData.diet_type === type;
+                                return (
+                                    <TouchableOpacity key={type} onPress={() => setFormData((prev) => ({ ...prev, diet_type: type }))} style={{ marginRight: 12, alignItems: 'center' }}>
+                                        <View style={{ width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 6, backgroundColor: active ? colors.bordeaux : colors.white, borderWidth: active ? 0 : 1.5, borderColor: '#e7ddc9' }}>
+                                            <Leaf size={24} color={active ? colors.cream : colors.inkMeta} />
+                                        </View>
+                                        <Txt variant="semibold" size={12} color={active ? colors.bordeaux : colors.inkSoft}>{t(type)}</Txt>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </ScrollView>
 
-                        <Text className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">{t('allergies')}</Text>
-                        <View className="flex-row flex-wrap">
-                            {COMMON_ALLERGIES.map((allergy) => (
-                                <TouchableOpacity
-                                    key={allergy}
-                                    onPress={() => toggleAllergy(allergy)}
-                                    className={`mr-2 mb-2 px-4 py-2 rounded-xl flex-row items-center ${formData.allergies.includes(allergy)
-                                        ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-                                        : 'bg-white dark:bg-[#1F222A] border border-gray-100 dark:border-gray-800'
-                                        }`}
-                                >
-                                    {formData.allergies.includes(allergy) && <AlertTriangle size={14} color="#EF4444" />}
-                                    <Text className={formData.allergies.includes(allergy) ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-600 dark:text-gray-300'}>
-                                        {t(allergy)}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
+                        {/* Allergies */}
+                        <SectionLabel>{t('allergies')}</SectionLabel>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 22 }}>
+                            {COMMON_ALLERGIES.map((allergy) => {
+                                const active = formData.allergies.includes(allergy);
+                                return (
+                                    <TouchableOpacity
+                                        key={allergy}
+                                        onPress={() => toggleAllergy(allergy)}
+                                        style={{ marginRight: 8, marginBottom: 8, paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.cardSm, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5, backgroundColor: active ? 'rgba(210,75,51,0.1)' : colors.white, borderColor: active ? colors.red : '#e7ddc9' }}
+                                    >
+                                        {active && <AlertTriangle size={14} color={colors.red} />}
+                                        <Txt variant="semibold" size={13.5} color={active ? colors.red : colors.inkSoft}>{t(allergy)}</Txt>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
-                    </View>
 
-                    {/* Dislikes */}
-                    <View className="mb-12">
-                        <Text className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">{t('disliked_ingredients')}</Text>
-                        <View className="bg-white dark:bg-[#1F222A] rounded-2xl p-4 shadow-sm">
-                            <View className="flex-row mb-4" style={{ gap: 8 }}>
+                        {/* Ingrédients non désirés */}
+                        <SectionLabel>{t('disliked_ingredients')}</SectionLabel>
+                        <Card>
+                            <View style={{ flexDirection: 'row', gap: 8, marginBottom: formData.disliked_ingredients.length > 0 ? 14 : 0 }}>
                                 <TextInput
-                                    className="flex-1 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl text-gray-900 dark:text-white"
+                                    style={{ flex: 1, backgroundColor: '#f6efe0', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: colors.ink, fontFamily: fonts.sans }}
                                     placeholder={t('dislike_placeholder')}
-                                    placeholderTextColor="#9CA3AF"
+                                    placeholderTextColor={colors.inkMeta}
                                     value={newDislike}
                                     onChangeText={setNewDislike}
                                     onSubmitEditing={addDislike}
                                 />
-                                <TouchableOpacity
-                                    onPress={addDislike}
-                                    className="bg-gray-900 dark:bg-white w-12 rounded-xl items-center justify-center"
-                                >
-                                    <Plus size={24} color={Platform.OS === 'ios' ? 'white' : 'black'} />
+                                <TouchableOpacity onPress={addDislike} style={{ backgroundColor: colors.bordeaux, width: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                                    <Plus size={24} color={colors.cream} />
                                 </TouchableOpacity>
                             </View>
-
-                            <View className="flex-row flex-wrap">
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                                 {formData.disliked_ingredients.map((item, index) => (
-                                    <TouchableOpacity
-                                        key={index}
-                                        onPress={() => removeDislike(item)}
-                                        className="mr-2 mb-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg flex-row items-center"
-                                    >
-                                        <Text className="text-gray-700 dark:text-gray-300 mr-2">{item}</Text>
-                                        <X size={14} color="#6B7280" />
+                                    <TouchableOpacity key={index} onPress={() => removeDislike(item)} style={{ marginRight: 8, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#efe6d3', borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Txt variant="medium" size={13} color={colors.ink}>{item}</Txt>
+                                        <X size={14} color={colors.inkSoft} />
                                     </TouchableOpacity>
                                 ))}
                             </View>
-                        </View>
-                    </View>
-
-                </ScrollView>
-            </KeyboardAvoidingView>
+                        </Card>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </View>
         </View>
     );
 }

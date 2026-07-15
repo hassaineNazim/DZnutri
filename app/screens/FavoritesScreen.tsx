@@ -1,20 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
-import { ArrowLeft, Heart, ScanBarcode } from 'lucide-react-native';
+import { Heart } from 'lucide-react-native';
 import React, { useCallback } from 'react';
-import { ActivityIndicator, FlatList, Image, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { BackButton } from '../components/ui/FormKit';
+import ProductCard from '../components/ui/ProductCard';
+import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { api } from '../services/axios';
-
-
-
-const getScoreColor = (score?: number) => {
-    if (score === undefined) return '#6B7280';
-    if (score >= 75) return '#22C55E';
-    if (score >= 50) return '#84CC16';
-    if (score >= 25) return '#F97316';
-    return '#EF4444';
-};
+import { colors, radius } from '../theme/tokens';
 
 export default function FavoritesScreen() {
     const router = useRouter();
@@ -30,85 +25,57 @@ export default function FavoritesScreen() {
     useFocusEffect(
         useCallback(() => {
             refetch();
-        }, [refetch])
+        }, [refetch]),
     );
 
     return (
-        <View className="flex-1 bg-gray-50 dark:bg-[#181A20]">
+        <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
             <Stack.Screen options={{ headerShown: false }} />
-            {/* Header */}
-            <View className="px-6 pt-12 pb-4 flex-row items-center bg-white dark:bg-[#1F2937] border-b border-gray-100 dark:border-gray-800 shadow-sm rounded-b-3xl mb-4">
-                <TouchableOpacity onPress={() => router.back()} className="mr-4 p-2 rounded-full bg-gray-100 dark:bg-gray-700">
-                    <ArrowLeft size={24} color="#374151" />
-                </TouchableOpacity>
-                <Text className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {t('favorites') || "Favoris"}
-                </Text>
+
+            {/* ---- Entête bordeaux ---- */}
+            <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <BackButton onPress={() => router.back()} />
+                <Txt variant="display" size={30} color={colors.creamTitle} style={{ letterSpacing: -0.5 }}>
+                    {t('favorites') || 'Favoris'}
+                </Txt>
             </View>
 
-            {loading ? (
-                <View className="flex-1 items-center justify-center">
-                    <ActivityIndicator size="large" color="#10B981" />
-                </View>
-            ) : (
-                <FlatList
-                    data={favorites}
-                    keyExtractor={(item) => item.barcode}
-                    contentContainerStyle={{ padding: 16 }}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            className="flex-row items-center mb-3 bg-white dark:bg-[#1F2937] rounded-2xl p-3 shadow-sm border border-gray-50 dark:border-gray-800"
-                            onPress={() => router.push({
-                                pathname: '/screens/productDetail',
-                                params: { product: JSON.stringify(item) }
-                            })}
-                        >
-                            {item.image_url ? (
-                                <Image
-                                    source={{ uri: item.image_url }}
-                                    className="w-16 h-16 rounded-xl mr-4 bg-gray-100 dark:bg-gray-800"
-                                    resizeMode="contain"
+            {/* ---- Feuille crème ---- */}
+            <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+                {loading ? (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                        <ActivityIndicator size="large" color={colors.green} />
+                    </View>
+                ) : (
+                    <FlatList
+                        data={favorites}
+                        keyExtractor={(item: any) => item.barcode}
+                        contentContainerStyle={{ padding: 22, paddingBottom: 120 }}
+                        showsVerticalScrollIndicator={false}
+                        renderItem={({ item, index }: { item: any; index: number }) => (
+                            <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 45).springify()} style={{ marginBottom: 12 }}>
+                                <ProductCard
+                                    item={item}
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: '/screens/productDetail',
+                                            params: { product: JSON.stringify(item) },
+                                        })
+                                    }
                                 />
-                            ) : (
-                                <View className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 mr-4 items-center justify-center">
-                                    <ScanBarcode size={24} color="#9CA3AF" />
-                                </View>
-                            )}
-
-                            <View className="flex-1 mr-2">
-                                <Text numberOfLines={1} className="text-base font-bold text-gray-900 dark:text-white">
-                                    {item.product_name || t('no_name')}
-                                </Text>
-                                <Text numberOfLines={1} className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                                    {item.brand || t('brand_unknown')}
-                                </Text>
+                            </Animated.View>
+                        )}
+                        ListEmptyComponent={
+                            <View style={{ marginTop: 70, alignItems: 'center', opacity: 0.5 }}>
+                                <Heart size={60} color={colors.inkSoft} />
+                                <Txt variant="medium" size={15} color={colors.inkSoft} style={{ textAlign: 'center', marginTop: 16 }}>
+                                    {t('no_favorites') || 'Aucun favori pour le moment'}
+                                </Txt>
                             </View>
-
-                            <View className="items-end">
-                                <View
-                                    className="w-10 h-10 rounded-xl items-center justify-center mb-1"
-                                    style={{ backgroundColor: getScoreColor(item.custom_score) + '20' }}
-                                >
-                                    <Text
-                                        className="font-bold text-sm"
-                                        style={{ color: getScoreColor(item.custom_score) }}
-                                    >
-                                        {item.custom_score || '-'}
-                                    </Text>
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    )}
-                    ListEmptyComponent={
-                        <View className="mt-20 items-center opacity-50">
-                            <Heart size={64} color="#9CA3AF" />
-                            <Text className="text-gray-500 dark:text-gray-400 text-center mt-4">
-                                {t('no_favorites') || "Aucun favori pour le moment"}
-                            </Text>
-                        </View>
-                    }
-                />
-            )}
+                        }
+                    />
+                )}
+            </View>
         </View>
     );
 }
