@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_cache import FastAPICache
+from fastapi_cache.decorator import cache
 
 from database import get_db, AsyncSessionLocal
 from observability import metrics
@@ -58,6 +59,12 @@ def _daily_series(rows, days: int) -> list:
 
 
 @router.get("/api/admin/monitoring")
+# Dashboard = ~20 requêtes d'agrégation. On sert un instantané caché 30 s :
+# l'admin peut rafraîchir sans marteler la base à chaque chargement. L'auth
+# (get_current_admin) reste évaluée à chaque requête ; la clé de cache ignore
+# session/user -> tous les admins partagent le même instantané global. Toute
+# écriture admin appelle FastAPICache.clear() -> le dashboard redevient frais.
+@cache(expire=30)
 async def get_monitoring_dashboard(
     db: AsyncSession = Depends(get_db),
     current_user: auth_models.UserTable = Depends(auth_security.get_current_admin),

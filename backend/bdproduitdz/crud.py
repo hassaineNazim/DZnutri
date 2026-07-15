@@ -217,8 +217,21 @@ async def get_user_history(db: AsyncSession, user_id: int):
     route vers la bonne fiche. Les cosmétiques exposent leur note sous
     `custom_score` afin de réutiliser le même rendu de liste.
     """
+    # Sélection CIBLÉE : la liste d'historique n'affiche que nom/marque/image/
+    # score. Les gros JSONB (nutriments, additives_tags, detail_custom_score) sont
+    # inutiles ici — la fiche produit les recharge de toute façon via
+    # /api/product/{barcode} (elle re-fetch dès que `ingredients_text` manque).
     result = await db.execute(
-        select(models.ScanHistory, models.Product)
+        select(
+            models.ScanHistory.scanned_at,
+            models.Product.id,
+            models.Product.barcode,
+            models.Product.product_name,
+            models.Product.brand,
+            models.Product.image_url,
+            models.Product.custom_score,
+            models.Product.nutri_score,
+        )
         .join(models.Product, models.Product.id == models.ScanHistory.product_id)
         .where(models.ScanHistory.user_id == user_id)
         .order_by(models.ScanHistory.scanned_at.desc())
@@ -226,22 +239,17 @@ async def get_user_history(db: AsyncSession, user_id: int):
     )
 
     history_list = []
-    for scan, product in result.all():
+    for row in result.all():
         history_list.append({
             'item_type': 'food',
-            'id': product.id,
-            'barcode': product.barcode,
-            'product_name': product.product_name,
-            'brand': product.brand,
-            'image_url': product.image_url,
-            'nutriments': product.nutriments,
-            'additives_tags': product.additives_tags,
-            'nova_group': product.nova_group,
-            'ecoscore_grade': product.ecoscore_grade,
-            'detail_custom_score': product.detail_custom_score,
-            'custom_score': product.custom_score,
-            'nutri_score': getattr(product, 'nutri_score', None),
-            'scanned_at': _iso(getattr(scan, 'scanned_at', None)),
+            'id': row.id,
+            'barcode': row.barcode,
+            'product_name': row.product_name,
+            'brand': row.brand,
+            'image_url': row.image_url,
+            'custom_score': row.custom_score,
+            'nutri_score': row.nutri_score,
+            'scanned_at': _iso(row.scanned_at),
         })
 
     cosmetic_rows = await db.execute(
@@ -372,9 +380,16 @@ _ADDITIFS_TTL_SECONDS = 300.0  # 5 minutes
 
 
 def invalidate_additifs_cache() -> None:
-    """À appeler après une modification de la table des additifs (côté admin)."""
+    """À appeler après une modification de la table des additifs (côté admin).
+
+    Invalide les DEUX caches mémoire dérivés du référentiel : la map de pénalités
+    (ici) et le cache du parser d'additifs (référentiel + regex précompilées).
+    """
     _additifs_cache["data"] = None
     _additifs_cache["ts"] = 0.0
+    # Import local pour éviter toute dépendance circulaire à l'import.
+    from . import additives_parser
+    additives_parser.invalidate_additifs_cache()
 
 
 async def get_additifs_penalty(db: AsyncSession, force_refresh: bool = False) -> Dict[str, float]:

@@ -30,5 +30,18 @@ until $schema_cmd; do
   sleep 3
 done
 
-echo "[entrypoint] Schéma prêt. Démarrage de l'application : $*"
+echo "[entrypoint] Schéma prêt."
+
+# Index de performance (trigram GIN pour la recherche ILIKE '%...%', tris par
+# score, historique...). Idempotent (CREATE ... IF NOT EXISTS) et BEST-EFFORT :
+# un échec ici ne doit PAS empêcher l'app de démarrer — elle fonctionne sans,
+# juste avec une recherche plus lente. (CONCURRENTLY = pas de verrou bloquant.)
+echo "[entrypoint] Création/vérification des index de performance..."
+if python script/add_indexes.py; then
+  echo "[entrypoint] Index de performance OK."
+else
+  echo "[entrypoint] Avertissement : création des index échouée (démarrage quand même)." >&2
+fi
+
+echo "[entrypoint] Démarrage de l'application : $*"
 exec "$@"
