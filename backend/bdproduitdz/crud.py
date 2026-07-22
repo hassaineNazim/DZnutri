@@ -231,6 +231,7 @@ async def get_user_history(db: AsyncSession, user_id: int):
             models.Product.image_url,
             models.Product.custom_score,
             models.Product.nutri_score,
+            models.Product.ingredients_text,
         )
         .join(models.Product, models.Product.id == models.ScanHistory.product_id)
         .where(models.ScanHistory.user_id == user_id)
@@ -249,6 +250,9 @@ async def get_user_history(db: AsyncSession, user_id: int):
             'image_url': row.image_url,
             'custom_score': row.custom_score,
             'nutri_score': row.nutri_score,
+            # Champ texte léger (pas de JSONB) : permet à la liste de détecter
+            # une alerte allergène (mobile) sans re-fetch de la fiche produit.
+            'ingredients_text': row.ingredients_text,
             'scanned_at': _iso(row.scanned_at),
         })
 

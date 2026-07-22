@@ -4,8 +4,10 @@
  * marque, pastille de statut colorée + heure relative, et anneau de score.
  */
 import { MaterialIcons } from '@expo/vector-icons';
+import { AlertTriangle } from 'lucide-react-native';
 import React from 'react';
 import { Image, TouchableOpacity, View } from 'react-native';
+import { useAllergenCheck } from '../../hooks/useAllergenCheck';
 import { useTranslation } from '../../i18n';
 import { colors, radius, scoreBand, shadows } from '../../theme/tokens';
 import ScoreRing from './ScoreRing';
@@ -20,6 +22,7 @@ export type ProductCardItem = {
   image_url?: string;
   custom_score?: number;
   scanned_at?: string | null;
+  ingredients_text?: string;
 };
 
 type Props = {
@@ -59,6 +62,10 @@ export default function ProductCard({ item, onPress, onLongPress, selected = fal
   const brand = item.brand || item.brands || t('brand_unknown');
   const THUMB = 56;
 
+  // Alerte allergènes : uniquement pour l'alimentaire (le texte INCI des
+  // cosmétiques ferait remonter de faux positifs sur les mots-clés food).
+  const { hasAllergies } = useAllergenCheck(isCosmetic ? undefined : item.ingredients_text);
+
   const relativeTime = (iso?: string | null) => {
     if (!iso) return '';
     try {
@@ -95,15 +102,36 @@ export default function ProductCard({ item, onPress, onLongPress, selected = fal
         shadows.listCard,
       ]}
     >
-      {item.image_url ? (
-        <Image
-          source={{ uri: item.image_url }}
-          style={{ width: THUMB, height: THUMB, borderRadius: 15, backgroundColor: colors.thumbBg }}
-          resizeMode="contain"
-        />
-      ) : (
-        <StripedThumb size={THUMB} isCosmetic={isCosmetic} />
-      )}
+      <View>
+        {item.image_url ? (
+          <Image
+            source={{ uri: item.image_url }}
+            style={{ width: THUMB, height: THUMB, borderRadius: 15, backgroundColor: colors.thumbBg }}
+            resizeMode="contain"
+          />
+        ) : (
+          <StripedThumb size={THUMB} isCosmetic={isCosmetic} />
+        )}
+        {hasAllergies && (
+          <View
+            style={{
+              position: 'absolute',
+              top: -6,
+              right: -6,
+              backgroundColor: colors.red,
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 2,
+              borderColor: colors.card,
+            }}
+          >
+            <AlertTriangle size={12} color={colors.white} fill={colors.red} />
+          </View>
+        )}
+      </View>
 
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

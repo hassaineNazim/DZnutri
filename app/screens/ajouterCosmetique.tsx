@@ -25,16 +25,20 @@ export default function AjouterCosmetique() {
   const [loading, setLoading] = useState(false);
 
   const takePhoto = async (which: 'front' | 'back') => {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      showToast(t('camera_permission_needed'), 'error');
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.6, allowsEditing: false });
-    if (!result.canceled && result.assets?.[0]) {
-      const uri = result.assets[0].uri;
-      if (which === 'front') setFrontUri(uri);
-      else setBackUri(uri);
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        showToast(t('camera_permission_needed'), 'error');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({ quality: 0.6, allowsEditing: false });
+      if (!result.canceled && result.assets?.[0]) {
+        const uri = result.assets[0].uri;
+        if (which === 'front') setFrontUri(uri);
+        else setBackUri(uri);
+      }
+    } catch (error: any) {
+      showToast(error?.message || t('photo_error'), 'error');
     }
   };
 

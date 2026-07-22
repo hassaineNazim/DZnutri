@@ -258,7 +258,7 @@ export default function Login() {
             ) : (
               <>
                 <FacebookIcon />
-                <Txt variant="bold" size={16} color={colors.ink}>{t('continue_facebook')}</Txt>
+                <Txt variant="bold" size={16} color={colors.bordeaux}>{t('continue_facebook')}</Txt>
               </>
             )}
           </TouchableOpacity>

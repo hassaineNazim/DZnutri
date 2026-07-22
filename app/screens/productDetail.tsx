@@ -111,10 +111,10 @@ function AllergenWarning({ ingredients }: { ingredients?: string }) {
       </View>
       <View style={{ flex: 1 }}>
         <Txt variant="bold" size={14} color={colors.red} style={{ marginBottom: 4 }}>
-          {t('allergen_warning_title') || 'Attention : Allergènes détectés'}
+          {t('allergen_warning_title')}
         </Txt>
         <Txt variant="body" size={13} color="#b5503f" style={{ lineHeight: 18 }}>
-          {t('allergen_warning_desc') || 'Ce produit contient des ingrédients signalés dans votre profil santé.'}
+          {t('allergen_warning_desc')}
         </Txt>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 6 }}>
           {detectedAllergens.map((a) => (

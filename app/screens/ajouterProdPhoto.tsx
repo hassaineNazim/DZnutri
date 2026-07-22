@@ -38,16 +38,23 @@ export default function AjouterProduitPhotoPage() {
 
   const handleCameraLaunch = async () => {
     setModalVisible(false);
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (permissionResult.granted === false) {
-      Alert.alert(t('add_product_title'), t('camera_permission_needed'));
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.7 });
-    if (!result.canceled) {
-      if (activePhotoType === 'front') setImageUri(result.assets[0].uri);
-      else if (activePhotoType === 'ingredients') setImageIngredientsUri(result.assets[0].uri);
-      else if (activePhotoType === 'nutrition') setImageNutritionUri(result.assets[0].uri);
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (permissionResult.granted === false) {
+        Alert.alert(t('add_product_title'), t('camera_permission_needed'));
+        return;
+      }
+      // allowsEditing (crop natif) désactivé : source de gels/plantages sur
+      // certains appareils Android avec la New Architecture. Pas nécessaire
+      // ici, la photo brute suffit pour l'OCR.
+      const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
+      if (!result.canceled && result.assets?.[0]) {
+        if (activePhotoType === 'front') setImageUri(result.assets[0].uri);
+        else if (activePhotoType === 'ingredients') setImageIngredientsUri(result.assets[0].uri);
+        else if (activePhotoType === 'nutrition') setImageNutritionUri(result.assets[0].uri);
+      }
+    } catch (error: any) {
+      showToast(error?.message || t('photo_error'), 'error');
     }
   };
 

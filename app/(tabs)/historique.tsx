@@ -90,7 +90,9 @@ export default function HistoriquePage() {
       ? Math.round(scored.reduce((s, h) => s + (h.custom_score as number), 0) / scored.length)
       : 0;
     const alertes = history.filter((h) => typeof h.custom_score === 'number' && (h.custom_score as number) < 25).length;
-    return { scans: history.length, avg, alertes };
+    // Mêmes seuils que le reste de l'app (scoreBand : 50 = bon, 25 = médiocre).
+    const avgTone: 'yellow' | 'green' | 'red' = !scored.length ? 'yellow' : avg < 25 ? 'red' : avg >= 50 ? 'green' : 'yellow';
+    return { scans: history.length, avg, alertes, avgTone };
   }, [history]);
 
   const sections = useMemo(() => buildSections(history, t), [history, t]);
@@ -192,14 +194,14 @@ export default function HistoriquePage() {
               {todayLabel}
             </Txt>
             <Txt variant="display" size={46} color={colors.creamTitle} style={{ marginTop: 4, letterSpacing: -0.5 }}>
-              {t('history') || 'Historique'}
+              {t('historique')}
             </Txt>
 
             {/* 3 stats */}
             <View style={{ flexDirection: 'row', gap: 11, marginTop: 20 }}>
               <StatCard label={t('scans') || 'SCANS'} value={stats.scans} />
-              <StatCard label={t('avg_score') || 'SCORE MOY.'} value={stats.avg} />
-              <StatCard label={t('alerts') || 'ALERTES'} value={stats.alertes} alert />
+              <StatCard label={t('avg_score') || 'SCORE MOY.'} value={stats.avg} tone={stats.avgTone} />
+              <StatCard label={t('alerts') || 'ALERTES'} value={stats.alertes} tone="red" />
             </View>
           </>
         )}
@@ -289,13 +291,22 @@ export default function HistoriquePage() {
   );
 }
 
-function StatCard({ label, value, alert = false }: { label: string; value: number; alert?: boolean }) {
+type StatTone = 'yellow' | 'green' | 'red';
+
+const STAT_TONE_STYLES: Record<StatTone, { bg: string; label: string; value: string }> = {
+  yellow: { bg: colors.yellow, label: '#8a6b12', value: colors.inkOnYellow },
+  green: { bg: colors.green, label: '#d9f0dc', value: colors.white },
+  red: { bg: colors.redAlt, label: '#fbd9d1', value: colors.white },
+};
+
+function StatCard({ label, value, tone = 'yellow' }: { label: string; value: number; tone?: StatTone }) {
+  const s = STAT_TONE_STYLES[tone];
   return (
-    <View style={{ flex: 1, backgroundColor: alert ? colors.redAlt : colors.yellow, borderRadius: radius.cardSm, padding: 14 }}>
-      <Txt variant="bold" size={10.5} color={alert ? '#fbd9d1' : '#8a6b12'} style={{ letterSpacing: 0.5 }}>
+    <View style={{ flex: 1, backgroundColor: s.bg, borderRadius: radius.cardSm, padding: 14 }}>
+      <Txt variant="bold" size={10.5} color={s.label} style={{ letterSpacing: 0.5 }}>
         {label}
       </Txt>
-      <Txt variant="display" size={34} color={alert ? colors.white : colors.inkOnYellow} style={{ marginTop: 8 }}>
+      <Txt variant="display" size={34} color={s.value} style={{ marginTop: 8 }}>
         {String(value).padStart(2, '0')}
       </Txt>
     </View>
