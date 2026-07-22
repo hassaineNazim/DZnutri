@@ -1,7 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ChevronRight, Heart, Key, LogOut, Mail, User as UserIcon } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StatusBar, TouchableOpacity, View } from 'react-native';
 import { BackButton } from '../../components/ui/FormKit';
 import Txt from '../../components/ui/Txt';
 import { api } from '../../services/axios';
@@ -136,6 +136,7 @@ export default function ComptePage() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
       {/* ---- Entête bordeaux : avatar + identité ---- */}
       <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 28 }}>
         <BackButton onPress={() => router.back()} />

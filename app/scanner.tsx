@@ -170,7 +170,7 @@ export default function Scanner() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.dark }}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.dark} />
 
       <CameraView
         style={StyleSheet.absoluteFill}

@@ -102,7 +102,7 @@ export default function AjouterCosmetique() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.sheet }}>
-      <StatusBar barStyle={getThemeScheme() === 'dark' ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle={getThemeScheme() === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.sheet} />
       {/* Entête */}
       <View style={{ paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <Pressable onPress={() => router.back()} style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}>

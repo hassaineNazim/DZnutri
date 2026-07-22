@@ -45,7 +45,7 @@ export default function CosmeticDetail() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
 
       {/* ---- Entête bordeaux ---- */}
       <View style={{ paddingHorizontal: 22, paddingTop: 14 }}>

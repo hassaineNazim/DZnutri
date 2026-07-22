@@ -66,7 +66,7 @@ export default function AnalysePage() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.sheet }}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.dark} />
 
       {/* Entête sombre */}
       <View style={{ backgroundColor: colors.dark, paddingHorizontal: 26, paddingTop: 18, paddingBottom: 24 }}>

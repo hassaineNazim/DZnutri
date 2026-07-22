@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Activity, AlertTriangle, ArrowLeft, Flame, Leaf, Plus, Save, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Txt from '../../components/ui/Txt';
 import { useUserProfile } from '../../hooks/useUserProfile';
@@ -143,6 +143,7 @@ export default function HealthProfilePage() {
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+            <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
             {/* ---- Entête bordeaux ---- */}
             <View style={{ paddingHorizontal: 22, paddingTop: 16, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Pressable onPress={() => router.back()} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }}>

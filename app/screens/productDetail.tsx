@@ -84,7 +84,7 @@ function NoteBar({ score }: { score?: number }) {
 // ─── Carte nutrition ─────────────────────────────────────────────────────────
 function NutritionCard({ letter, label, value, lvl }: { letter: string; label: string; value: string; lvl: { label: string; color: string } }) {
   return (
-    <View style={{ width: '48.5%', backgroundColor: colors.card, borderRadius: radius.cardSm, padding: 14 }}>
+    <View style={{ width: '48%', backgroundColor: colors.card, borderRadius: radius.cardSm, padding: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: lvl.color + '26', alignItems: 'center', justifyContent: 'center' }}>
           <Txt variant="display" size={15} color={lvl.color}>{letter}</Txt>
@@ -171,7 +171,7 @@ export default function ProductDetail() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
 
       {/* Entête bordeaux */}
       <View style={{ paddingHorizontal: 22, paddingTop: 14 }}>
@@ -267,7 +267,10 @@ export default function ProductDetail() {
           <Txt variant="displayXBold" size={22} color={colors.ink} style={{ marginTop: 24 }}>
             {t('nutritional_info') || 'Informations nutritionnelles'}
           </Txt>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginTop: 12 }}>
+          {/* rowGap (pas gap) : justifyContent:'space-between' gère déjà l'écart
+              horizontal. Un gap général s'ajoutait à 48.5%+48.5%, dépassant
+              100% sur les écrans étroits et forçant les cartes en 1 colonne. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10, marginTop: 12 }}>
             <NutritionCard letter="É" label={t('energy') || 'Énergie'} value={`${energy} kcal`} lvl={level(energy, 500, 300)} />
             <NutritionCard letter="G" label={t('carbs') || 'Glucides'} value={`${sugars} g`} lvl={level(sugars, 20, 10)} />
             <NutritionCard letter="P" label={t('proteins') || 'Protéines'} value={`${proteins} g`} lvl={level(proteins, 10, 5, true)} />

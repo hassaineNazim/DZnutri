@@ -2,7 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, Check, RefreshCw, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, StatusBar, TouchableOpacity, View } from 'react-native';
 import AppModal from '../components/ui/AppModal';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import StepHeader from '../components/StepHeader';
@@ -10,7 +10,7 @@ import Txt from '../components/ui/Txt';
 import { useToast } from '../context/ToastContext';
 import { useTranslation } from '../i18n';
 import { api } from '../services/axios';
-import { colors, radius, shadows } from '../theme/tokens';
+import { colors, getThemeScheme, radius, shadows } from '../theme/tokens';
 import { getAccessToken } from '../services/tokenStore';
 
 const FRONT_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_dlyit9dlyit9dlyi.png');
@@ -126,6 +126,7 @@ export default function AjouterProduitPhotoPage() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.sheet }}>
+      <StatusBar barStyle={getThemeScheme() === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.sheet} />
       <View style={{ paddingHorizontal: 24, paddingTop: 16 }}>
         <StepHeader step={3} title={t('step_3_title')} />
       </View>

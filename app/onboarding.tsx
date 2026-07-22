@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Image, StatusBar, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StatusBar, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import ScoreRing from './components/ui/ScoreRing';
 import Txt from './components/ui/Txt';
@@ -66,41 +66,49 @@ export default function Onboarding() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bordeaux, paddingHorizontal: 26, paddingTop: 16, paddingBottom: 28 }}>
-      <StatusBar barStyle="light-content" />
+    <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
 
-      {/* Cartes empilées */}
-      <Animated.View entering={FadeInDown.duration(600)} style={{ height: 372, marginTop: 18 }}>
-        {DEMO.map((item) => (
-          <DemoCard key={item.name} item={item} />
-        ))}
-      </Animated.View>
+      {/* ScrollView (au lieu d'un View flex fixe) : sur les écrans étroits/
+          courts, le titre passe sur plus de lignes et poussait le bouton
+          "Commencer" hors de l'écran, sans aucun moyen d'y accéder. */}
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 26, paddingTop: 16, paddingBottom: 28 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Cartes empilées */}
+        <Animated.View entering={FadeInDown.duration(600)} style={{ height: 372, marginTop: 18 }}>
+          {DEMO.map((item) => (
+            <DemoCard key={item.name} item={item} />
+          ))}
+        </Animated.View>
 
-      {/* Bloc bas */}
-      <View style={{ marginTop: 'auto' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-          <Txt variant="display" size={40} color={colors.creamTitle} style={{ flex: 1, lineHeight: 42, letterSpacing: -0.5 }}>
-            {t('onboarding_title_1') || 'Manger mieux, '}
-            <Txt variant="displayItalic" size={40} color={colors.yellow}>{t('onboarding_title_2') || 'scan par scan.'}</Txt>
+        {/* Bloc bas */}
+        <View style={{ marginTop: 'auto', paddingTop: 24 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+            <Txt variant="display" size={40} color={colors.creamTitle} style={{ flex: 1, lineHeight: 42, letterSpacing: -0.5 }}>
+              {t('onboarding_title_1') || 'Manger mieux, '}
+              <Txt variant="displayItalic" size={40} color={colors.yellow}>{t('onboarding_title_2') || 'scan par scan.'}</Txt>
+            </Txt>
+            <Image
+              source={require('../assets/images/mascotte-betterave.png')}
+              style={{ width: 110, height: 110, marginTop: -30, resizeMode: 'contain' }}
+            />
+          </View>
+
+          <Txt variant="body" size={14} color={colors.rose} style={{ marginTop: 14, lineHeight: 21 }}>
+            {t('onboarding_subtitle') || "Décryptez les étiquettes des produits algériens en un clin d'œil."}
           </Txt>
-          <Image
-            source={require('../assets/images/mascotte-betterave.png')}
-            style={{ width: 150, height: 150, marginTop: -50, resizeMode: 'contain' }}
-          />
+
+          <TouchableOpacity
+            onPress={finish}
+            activeOpacity={0.85}
+            style={{ marginTop: 20, backgroundColor: colors.yellow, borderRadius: radius.cta, paddingVertical: 22, alignItems: 'center' }}
+          >
+            <Txt variant="bold" size={19} color={colors.inkOnYellow}>{t('start') || 'Commencer'} →</Txt>
+          </TouchableOpacity>
         </View>
-
-        <Txt variant="body" size={14} color={colors.rose} style={{ marginTop: 14, lineHeight: 21 }}>
-          {t('onboarding_subtitle') || "Décryptez les étiquettes des produits algériens en un clin d'œil."}
-        </Txt>
-
-        <TouchableOpacity
-          onPress={finish}
-          activeOpacity={0.85}
-          style={{ marginTop: 20, backgroundColor: colors.yellow, borderRadius: radius.cta, paddingVertical: 22, alignItems: 'center' }}
-        >
-          <Txt variant="bold" size={19} color={colors.inkOnYellow}>{t('start') || 'Commencer'} →</Txt>
-        </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 }

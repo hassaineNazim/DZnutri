@@ -1,7 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { ChevronRight, HelpCircle, ScanLine, XCircle } from 'lucide-react-native';
 import React from 'react';
-import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StatusBar, TouchableOpacity, View } from 'react-native';
 import { BackButton } from '../components/ui/FormKit';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
@@ -22,6 +22,7 @@ export default function ReportUserPage() {
     return (
         <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
             <Stack.Screen options={{ headerShown: false }} />
+            <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
 
             {/* ---- Entête bordeaux ---- */}
             <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>

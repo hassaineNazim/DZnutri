@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Switch, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StatusBar, Switch, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 import LanguageSelector from '../../components/LanguageSelector';
@@ -192,6 +192,7 @@ export default function SettingsPage() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
       {/* ---- Entête bordeaux ---- */}
       <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 26 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>

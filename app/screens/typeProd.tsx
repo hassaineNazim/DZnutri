@@ -34,7 +34,7 @@ export default function TypeProduitPage() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.sheet }}>
-      <StatusBar barStyle={getThemeScheme() === 'dark' ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle={getThemeScheme() === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.sheet} />
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 16 }} showsVerticalScrollIndicator={false}>
         <StepHeader step={1} title={t('step_1_title')} />
 

@@ -6,6 +6,7 @@ import {
   Pressable,
   RefreshControl,
   SectionList,
+  StatusBar,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -144,6 +145,7 @@ export default function HistoriquePage() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
       {/* ---- Entête bordeaux ---- */}
       <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 18 }}>
         {selecting ? (

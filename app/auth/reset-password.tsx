@@ -75,7 +75,7 @@ export default function ResetPassword() {
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
             <View style={{ position: 'absolute', top: 14, left: 26, zIndex: 10 }}>
                 <BackButton onPress={() => router.back()} />
             </View>

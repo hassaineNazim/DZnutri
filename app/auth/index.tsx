@@ -188,7 +188,7 @@ export default function Login() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
 
       {/* Cercles décoratifs */}
       <View

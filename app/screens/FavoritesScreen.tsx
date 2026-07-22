@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { Heart } from 'lucide-react-native';
 import React, { useCallback } from 'react';
-import { ActivityIndicator, FlatList, View } from 'react-native';
+import { ActivityIndicator, FlatList, StatusBar, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { BackButton } from '../components/ui/FormKit';
 import ProductCard from '../components/ui/ProductCard';
@@ -31,6 +31,7 @@ export default function FavoritesScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
             <Stack.Screen options={{ headerShown: false }} />
+            <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
 
             {/* ---- Entête bordeaux ---- */}
             <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}>

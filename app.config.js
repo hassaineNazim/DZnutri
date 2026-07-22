@@ -16,6 +16,15 @@ module.exports = {
     scheme: "dznutri",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
+    // Sans ce bloc, Android affiche la barre de statut par défaut (blanche)
+    // au démarrage et tant qu'aucun écran n'a encore posé son <StatusBar> —
+    // moche sur nos écrans à entête bordeaux/sombre. Bordeaux = couleur de
+    // la grande majorité des écrans (accueil, scan, fiches produit...).
+    androidStatusBar: {
+      backgroundColor: "#59121F",
+      barStyle: "light-content",
+      translucent: false,
+    },
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.nazim.dznutri",

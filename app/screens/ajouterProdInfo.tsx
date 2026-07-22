@@ -1,13 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Check, ChevronDown } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, TextInput, TouchableOpacity, View } from 'react-native';
 import AppModal from '../components/ui/AppModal';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import StepHeader from '../components/StepHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
-import { colors, fonts, radius, shadows } from '../theme/tokens';
+import { colors, fonts, getThemeScheme, radius, shadows } from '../theme/tokens';
 
 const TECHNICAL_CATEGORIES = [
   { label: 'Solide (Standard)', value: 'solid' },
@@ -57,6 +57,7 @@ export default function AjouterProduitInfoPage() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: colors.sheet }}>
+      <StatusBar barStyle={getThemeScheme() === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.sheet} />
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 16 }} showsVerticalScrollIndicator={false}>
         <StepHeader step={2} title={t('step_2_title')} />
 

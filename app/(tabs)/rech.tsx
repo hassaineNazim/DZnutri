@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Search, SlidersHorizontal, X } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StatusBar, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import FilterModal from '../components/FilterModal';
 import ProductCard from '../components/ui/ProductCard';
@@ -86,6 +86,7 @@ export default function Rech() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
       {/* ---- Entête bordeaux ---- */}
       <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 18 }}>
         <Txt variant="bold" size={12} color={colors.yellow} style={{ letterSpacing: 1.2 }}>

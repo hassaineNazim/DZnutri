@@ -2,11 +2,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import { ImagePlus, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StatusBar, TextInput, TouchableOpacity, View } from 'react-native';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { reportProduct } from '../services/report';
-import { colors, fonts, shadows } from '../theme/tokens';
+import { colors, fonts, getThemeScheme, shadows } from '../theme/tokens';
 
 export default function AutreProblemePage() {
     const router = useRouter();
@@ -65,6 +65,7 @@ export default function AutreProblemePage() {
     return (
         <View style={{ flex: 1, backgroundColor: colors.sheet }}>
             <Stack.Screen options={{ headerShown: false }} />
+            <StatusBar barStyle={getThemeScheme() === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.sheet} />
 
             {/* Entête */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12 }}>
