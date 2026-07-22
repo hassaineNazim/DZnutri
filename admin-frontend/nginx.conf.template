@@ -9,9 +9,14 @@ server {
     gzip_types text/css application/javascript application/json image/svg+xml;
     gzip_min_length 1000;
 
-    # Reverse-proxy des appels API vers le backend FastAPI (service "backend")
+    # Reverse-proxy des appels API vers le backend FastAPI.
+    # ${BACKEND_HOST} : substitué au démarrage du conteneur (envsubst, cf.
+    # Dockerfile) — "backend:8000" en local (docker-compose), l'hôte réseau
+    # privé du service Railway en production. Fichier nommé *.template dans
+    # /etc/nginx/templates/ : l'image nginx officielle l'interpole
+    # automatiquement vers /etc/nginx/conf.d/ au démarrage.
     location ~ ^/(api|auth|health|uploads|docs|openapi.json) {
-        proxy_pass http://backend:8000;
+        proxy_pass http://${BACKEND_HOST};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
