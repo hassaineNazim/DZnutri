@@ -2,7 +2,7 @@ import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@
 import { useRouter } from 'expo-router';
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, StatusBar, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, StatusBar, TouchableOpacity, View } from 'react-native';
 import { AccessToken, LoginManager, Settings } from "react-native-fbsdk-next";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
@@ -289,6 +289,15 @@ export default function Login() {
           <Txt variant="body" size={11.5} color="#a37780" style={{ textAlign: 'center', lineHeight: 17, marginTop: 6 }}>
             {t('terms_privacy')}
           </Txt>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 6 }}>
+            <TouchableOpacity onPress={() => Linking.openURL(`${API_URL}/legal/privacy`)}>
+              <Txt variant="bold" size={11.5} color={colors.rose}>{t('privacy_policy')}</Txt>
+            </TouchableOpacity>
+            <Txt variant="body" size={11.5} color="#a37780">·</Txt>
+            <TouchableOpacity onPress={() => Linking.openURL(`${API_URL}/legal/terms`)}>
+              <Txt variant="bold" size={11.5} color={colors.rose}>{t('terms_of_service')}</Txt>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
       </View>
     </View>

@@ -32,7 +32,7 @@ export default function ScoreRing({
   score,
   size = 50,
   discRatio = 0.76,
-  discColor = colors.white,
+  discColor = colors.card,
   trackColor = colors.ringTrack,
   animated = true,
   fontSize,

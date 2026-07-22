@@ -20,7 +20,7 @@ export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
   const router = useRouter();
 
   return (
-    <View style={{ backgroundColor: colors.cream, paddingHorizontal: 18, paddingTop: 6, paddingBottom: 16 }}>
+    <View style={{ backgroundColor: colors.sheet, paddingHorizontal: 18, paddingTop: 6, paddingBottom: 16 }}>
       <View
         style={[
           {

@@ -22,26 +22,27 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 function Card({ children }: { children: React.ReactNode }) {
     return (
-        <View style={[{ backgroundColor: colors.white, borderRadius: radius.card, padding: 16 }, shadows.listCard]}>
+        <View style={[{ backgroundColor: colors.card, borderRadius: radius.card, padding: 16 }, shadows.listCard]}>
             {children}
         </View>
     );
 }
-const numInputStyle = {
-    backgroundColor: '#f6efe0',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    fontSize: 15,
-    color: colors.ink,
-    fontFamily: fonts.sansBold,
-    textAlign: 'center' as const,
-};
-
 export default function HealthProfilePage() {
     const router = useRouter();
     const { t } = useTranslation();
     const { data: profile, isLoading, updateProfile, isUpdating } = useUserProfile();
+
+    // Défini AU RENDU (pas au chargement du module) pour suivre la bascule de thème.
+    const numInputStyle = {
+        backgroundColor: colors.inputBg,
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        fontSize: 15,
+        color: colors.ink,
+        fontFamily: fonts.sansBold,
+        textAlign: 'center' as const,
+    };
 
     const [formData, setFormData] = useState({
         height: '',
@@ -158,7 +159,7 @@ export default function HealthProfilePage() {
             </View>
 
             {/* ---- Feuille crème ---- */}
-            <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+            <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 22, paddingBottom: 120 }}>
                         {/* Alertes intelligentes */}
@@ -175,12 +176,12 @@ export default function HealthProfilePage() {
                         {/* Objectifs journaliers */}
                         {formData.daily_calories > 0 && (
                             <Animated.View entering={FadeInDown.delay(140).springify()} style={{ flexDirection: 'row', gap: 12, marginBottom: 22 }}>
-                                <View style={[{ flex: 1, backgroundColor: colors.white, borderRadius: radius.card, padding: 16, alignItems: 'center' }, shadows.listCard]}>
+                                <View style={[{ flex: 1, backgroundColor: colors.card, borderRadius: radius.card, padding: 16, alignItems: 'center' }, shadows.listCard]}>
                                     <Flame size={24} color={colors.orange} />
                                     <Txt variant="display" size={26} color={colors.ink} style={{ marginTop: 8 }}>{formData.daily_calories}</Txt>
                                     <Txt variant="bold" size={10.5} color={colors.inkSoft} style={{ letterSpacing: 0.5, marginTop: 2 }}>{(t('calories') || 'Calories').toUpperCase()}</Txt>
                                 </View>
-                                <View style={[{ flex: 1, backgroundColor: colors.white, borderRadius: radius.card, padding: 16, alignItems: 'center' }, shadows.listCard]}>
+                                <View style={[{ flex: 1, backgroundColor: colors.card, borderRadius: radius.card, padding: 16, alignItems: 'center' }, shadows.listCard]}>
                                     <Activity size={24} color={colors.green} />
                                     <Txt variant="display" size={26} color={colors.ink} style={{ marginTop: 8 }}>{formData.daily_proteins}g</Txt>
                                     <Txt variant="bold" size={10.5} color={colors.inkSoft} style={{ letterSpacing: 0.5, marginTop: 2 }}>{(t('proteins') || 'Protéines').toUpperCase()}</Txt>
@@ -210,12 +211,12 @@ export default function HealthProfilePage() {
                             </View>
 
                             <Txt variant="medium" size={12} color={colors.inkSoft} style={{ marginBottom: 8 }}>{t('gender')}</Txt>
-                            <View style={{ flexDirection: 'row', backgroundColor: '#f6efe0', padding: 4, borderRadius: 12, marginBottom: 14 }}>
+                            <View style={{ flexDirection: 'row', backgroundColor: colors.inputBg, padding: 4, borderRadius: 12, marginBottom: 14 }}>
                                 {['male', 'female'].map((g) => {
                                     const active = formData.gender === g;
                                     return (
-                                        <TouchableOpacity key={g} onPress={() => setFormData((prev) => ({ ...prev, gender: g }))} style={{ flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center', backgroundColor: active ? colors.white : 'transparent' }}>
-                                            <Txt variant="semibold" size={14} color={active ? colors.bordeaux : colors.inkSoft}>{t(g)}</Txt>
+                                        <TouchableOpacity key={g} onPress={() => setFormData((prev) => ({ ...prev, gender: g }))} style={{ flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center', backgroundColor: active ? colors.card : 'transparent' }}>
+                                            <Txt variant="semibold" size={14} color={active ? colors.accent : colors.inkSoft}>{t(g)}</Txt>
                                         </TouchableOpacity>
                                     );
                                 })}
@@ -229,7 +230,7 @@ export default function HealthProfilePage() {
                                         <TouchableOpacity
                                             key={level}
                                             onPress={() => setFormData((prev) => ({ ...prev, activity_level: level }))}
-                                            style={{ marginRight: 8, paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill, borderWidth: 1.5, backgroundColor: active ? colors.bordeaux : 'transparent', borderColor: active ? colors.bordeaux : '#e0d6c1' }}
+                                            style={{ marginRight: 8, paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill, borderWidth: 1.5, backgroundColor: active ? colors.bordeaux : 'transparent', borderColor: active ? colors.bordeaux : colors.border }}
                                         >
                                             <Txt variant="semibold" size={13} color={active ? colors.cream : colors.inkSoft}>{t(level)}</Txt>
                                         </TouchableOpacity>
@@ -246,10 +247,10 @@ export default function HealthProfilePage() {
                                 const active = formData.diet_type === type;
                                 return (
                                     <TouchableOpacity key={type} onPress={() => setFormData((prev) => ({ ...prev, diet_type: type }))} style={{ marginRight: 12, alignItems: 'center' }}>
-                                        <View style={{ width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 6, backgroundColor: active ? colors.bordeaux : colors.white, borderWidth: active ? 0 : 1.5, borderColor: '#e7ddc9' }}>
+                                        <View style={{ width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 6, backgroundColor: active ? colors.bordeaux : colors.card, borderWidth: active ? 0 : 1.5, borderColor: colors.border }}>
                                             <Leaf size={24} color={active ? colors.cream : colors.inkMeta} />
                                         </View>
-                                        <Txt variant="semibold" size={12} color={active ? colors.bordeaux : colors.inkSoft}>{t(type)}</Txt>
+                                        <Txt variant="semibold" size={12} color={active ? colors.accent : colors.inkSoft}>{t(type)}</Txt>
                                     </TouchableOpacity>
                                 );
                             })}
@@ -264,7 +265,7 @@ export default function HealthProfilePage() {
                                     <TouchableOpacity
                                         key={allergy}
                                         onPress={() => toggleAllergy(allergy)}
-                                        style={{ marginRight: 8, marginBottom: 8, paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.cardSm, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5, backgroundColor: active ? 'rgba(210,75,51,0.1)' : colors.white, borderColor: active ? colors.red : '#e7ddc9' }}
+                                        style={{ marginRight: 8, marginBottom: 8, paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.cardSm, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5, backgroundColor: active ? 'rgba(210,75,51,0.1)' : colors.card, borderColor: active ? colors.red : colors.border }}
                                     >
                                         {active && <AlertTriangle size={14} color={colors.red} />}
                                         <Txt variant="semibold" size={13.5} color={active ? colors.red : colors.inkSoft}>{t(allergy)}</Txt>
@@ -278,7 +279,7 @@ export default function HealthProfilePage() {
                         <Card>
                             <View style={{ flexDirection: 'row', gap: 8, marginBottom: formData.disliked_ingredients.length > 0 ? 14 : 0 }}>
                                 <TextInput
-                                    style={{ flex: 1, backgroundColor: '#f6efe0', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: colors.ink, fontFamily: fonts.sans }}
+                                    style={{ flex: 1, backgroundColor: colors.inputBg, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: colors.ink, fontFamily: fonts.sans }}
                                     placeholder={t('dislike_placeholder')}
                                     placeholderTextColor={colors.inkMeta}
                                     value={newDislike}
@@ -291,7 +292,7 @@ export default function HealthProfilePage() {
                             </View>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                                 {formData.disliked_ingredients.map((item, index) => (
-                                    <TouchableOpacity key={index} onPress={() => removeDislike(item)} style={{ marginRight: 8, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#efe6d3', borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <TouchableOpacity key={index} onPress={() => removeDislike(item)} style={{ marginRight: 8, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: colors.chipBg, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                         <Txt variant="medium" size={13} color={colors.ink}>{item}</Txt>
                                         <X size={14} color={colors.inkSoft} />
                                     </TouchableOpacity>

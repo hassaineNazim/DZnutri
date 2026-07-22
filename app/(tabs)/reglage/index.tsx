@@ -1,11 +1,13 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, Switch, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Switch, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { useColorScheme } from 'nativewind';
 import LanguageSelector from '../../components/LanguageSelector';
+import { useTheme } from '../../theme/ThemeContext';
+import AppModal from '../../components/ui/AppModal';
 import Txt from '../../components/ui/Txt';
+import { API_URL } from '../../config/api';
 import { SupportedLang, useTranslation } from '../../i18n';
 import { colors, radius, shadows } from '../../theme/tokens';
 
@@ -72,10 +74,25 @@ function IconInfo({ color }: { color: string }) {
     </Svg>
   );
 }
+function IconShield({ color }: { color: string }) {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+function IconDoc({ color }: { color: string }) {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M9 12h6M9 16h6" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
 function Chevron() {
   return (
     <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-      <Path d="M9 6l6 6-6 6" stroke="#c3b8a6" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M9 6l6 6-6 6" stroke={colors.chevron} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -127,7 +144,7 @@ function Row({
         paddingHorizontal: 16,
         paddingVertical: 15,
         borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: '#f1e9d8',
+        borderBottomColor: colors.separator,
       }}
     >
       {tile}
@@ -141,8 +158,7 @@ function Row({
 export default function SettingsPage() {
   const { lang, setLanguage, t, setFollowSystem, follow } = useTranslation();
   const router = useRouter();
-  const { colorScheme, setColorScheme } = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
+  const { isDark: isDarkMode, setScheme } = useTheme();
 
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
@@ -152,7 +168,7 @@ export default function SettingsPage() {
     return languageData.find((l) => l.value === lang)?.label ?? 'Français';
   }, [follow, lang]);
 
-  const toggleTheme = () => setColorScheme(isDarkMode ? 'light' : 'dark');
+  const toggleTheme = () => setScheme(isDarkMode ? 'light' : 'dark');
 
   const handleLanguageSelect = async (value: string) => {
     setSelectorVisible(false);
@@ -188,10 +204,6 @@ export default function SettingsPage() {
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14, marginTop: 20 }}>
-          <Image
-            source={require('../../../assets/images/mascotte-mecano.png')}
-            style={{ width: 76, height: 76, marginTop: -4, resizeMode: 'contain' }}
-          />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Txt variant="bold" size={12} color={colors.yellow} style={{ letterSpacing: 1.2 }}>
               {(t('my_account') || 'Mon compte').toUpperCase()}
@@ -203,20 +215,24 @@ export default function SettingsPage() {
               {t('settings_description') || 'Personnalisez votre expérience.'}
             </Txt>
           </View>
+          <Image
+            source={require('../../../assets/images/mascotte-mecano.png')}
+            style={{ width: 86, height: 86, marginTop: -2, resizeMode: 'contain' }}
+          />
         </View>
       </View>
 
       {/* ---- Feuille crème ---- */}
-      <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+      <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
         <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 24, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
           {/* PRÉFÉRENCES */}
           <Animated.View entering={FadeInDown.duration(400)}>
             <Txt variant="bold" size={11.5} color={colors.inkSoft} style={{ letterSpacing: 1.5, marginBottom: 12 }}>
               {(t('preferences') || 'Préférences').toUpperCase()}
             </Txt>
-            <View style={[{ backgroundColor: colors.white, borderRadius: radius.card, overflow: 'hidden' }, shadows.listCard]}>
+            <View style={[{ backgroundColor: colors.card, borderRadius: radius.card, overflow: 'hidden' }, shadows.listCard]}>
               <Row
-                tile={<IconTile tint="rgba(89,18,31,0.1)"><IconUserFill color={colors.bordeaux} /></IconTile>}
+                tile={<IconTile tint="rgba(89,18,31,0.1)"><IconUserFill color={colors.accent} /></IconTile>}
                 label={t('account') || 'Compte'}
                 onPress={() => router.push('/reglage/compte')}
               />
@@ -239,7 +255,7 @@ export default function SettingsPage() {
                   <Switch
                     value={isDarkMode}
                     onValueChange={toggleTheme}
-                    trackColor={{ false: '#d9cdb6', true: colors.green }}
+                    trackColor={{ false: colors.handle, true: colors.green }}
                     thumbColor={colors.white}
                   />
                 }
@@ -252,11 +268,21 @@ export default function SettingsPage() {
             <Txt variant="bold" size={11.5} color={colors.inkSoft} style={{ letterSpacing: 1.5, marginTop: 24, marginBottom: 12 }}>
               {(t('about') || 'À propos').toUpperCase()}
             </Txt>
-            <View style={[{ backgroundColor: colors.white, borderRadius: radius.card, overflow: 'hidden' }, shadows.listCard]}>
+            <View style={[{ backgroundColor: colors.card, borderRadius: radius.card, overflow: 'hidden' }, shadows.listCard]}>
               <Row
                 tile={<IconTile tint="rgba(240,138,60,0.16)"><IconInfo color={colors.orange} /></IconTile>}
                 label={t('who_are_we') || 'Qui sommes-nous ?'}
                 onPress={() => router.push('/reglage/apropos')}
+              />
+              <Row
+                tile={<IconTile tint="rgba(89,18,31,0.1)"><IconShield color={colors.accent} /></IconTile>}
+                label={t('privacy_policy') || 'Politique de confidentialité'}
+                onPress={() => Linking.openURL(`${API_URL}/legal/privacy`)}
+              />
+              <Row
+                tile={<IconTile tint="rgba(139,128,115,0.16)"><IconDoc color={colors.inkSoft} /></IconTile>}
+                label={t('terms_of_service') || "Conditions d'utilisation"}
+                onPress={() => Linking.openURL(`${API_URL}/legal/terms`)}
                 last
               />
             </View>
@@ -276,10 +302,10 @@ export default function SettingsPage() {
         languages={languageData}
       />
 
-      {/* Modale « changement de langue » */}
-      <Modal transparent visible={isRestarting} animationType="fade">
+      {/* Modale « changement de langue » — AppModal : le Modal natif figeait l'app. */}
+      <AppModal transparent visible={isRestarting} animationType="fade">
         <View style={{ flex: 1, backgroundColor: 'rgba(20,17,16,0.8)', alignItems: 'center', justifyContent: 'center', padding: 30 }}>
-          <View style={[{ backgroundColor: colors.cream, borderRadius: 28, padding: 30, alignItems: 'center', maxWidth: 340 }, shadows.resultCard]}>
+          <View style={[{ backgroundColor: colors.sheet, borderRadius: 28, padding: 30, alignItems: 'center', maxWidth: 340 }, shadows.resultCard]}>
             <ActivityIndicator size="large" color={colors.green} />
             <Txt variant="displayXBold" size={20} color={colors.ink} style={{ marginTop: 18, textAlign: 'center' }}>
               {lang === 'ar' ? 'جاري تغيير اللغة...' : 'Changing language...'}
@@ -292,15 +318,15 @@ export default function SettingsPage() {
             <TouchableOpacity
               onPress={() => setIsRestarting(false)}
               activeOpacity={0.85}
-              style={{ marginTop: 20, backgroundColor: 'rgba(89,18,31,0.08)', borderRadius: radius.cta, paddingVertical: 13, paddingHorizontal: 26 }}
+              style={{ marginTop: 20, backgroundColor: colors.bordeauxSoft, borderRadius: radius.cta, paddingVertical: 13, paddingHorizontal: 26 }}
             >
-              <Txt variant="bold" size={15} color={colors.bordeaux}>
+              <Txt variant="bold" size={15} color={colors.accent}>
                 {lang === 'ar' ? 'إغلاق' : 'Close'}
               </Txt>
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </AppModal>
     </View>
   );
 }

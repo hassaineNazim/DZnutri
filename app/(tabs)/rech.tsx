@@ -97,7 +97,7 @@ export default function Rech() {
 
         {/* Barre de recherche + filtre */}
         <View style={{ flexDirection: 'row', gap: 12, marginTop: 18 }}>
-          <View style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: radius.cardSm, paddingHorizontal: 14, paddingVertical: 12 }, shadows.listCard]}>
+          <View style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.cardSm, paddingHorizontal: 14, paddingVertical: 12 }, shadows.listCard]}>
             <TouchableOpacity onPress={searchProducts}>
               <Search size={20} color={colors.inkSoft} />
             </TouchableOpacity>
@@ -121,7 +121,7 @@ export default function Rech() {
                   }
                   inputRef.current?.focus();
                 }}
-                style={{ padding: 4, backgroundColor: '#efe6d3', borderRadius: 20 }}
+                style={{ padding: 4, backgroundColor: colors.chipBg, borderRadius: 20 }}
               >
                 <X size={15} color={colors.inkSoft} />
               </TouchableOpacity>
@@ -131,7 +131,7 @@ export default function Rech() {
           <TouchableOpacity
             onPress={() => setFilterModalVisible(true)}
             style={[
-              { width: 48, height: 48, borderRadius: radius.cardSm, alignItems: 'center', justifyContent: 'center', backgroundColor: filtersActive ? colors.yellow : colors.white },
+              { width: 48, height: 48, borderRadius: radius.cardSm, alignItems: 'center', justifyContent: 'center', backgroundColor: filtersActive ? colors.yellow : colors.card },
               shadows.listCard,
             ]}
           >
@@ -159,7 +159,7 @@ export default function Rech() {
       </View>
 
       {/* ---- Feuille crème : résultats ---- */}
-      <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+      <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
         {loading ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <ActivityIndicator size="large" color={colors.green} />

@@ -41,7 +41,7 @@ export default function FavoritesScreen() {
             </View>
 
             {/* ---- Feuille crème ---- */}
-            <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+            <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
                 {loading ? (
                     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                         <ActivityIndicator size="large" color={colors.green} />

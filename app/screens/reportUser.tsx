@@ -32,7 +32,7 @@ export default function ReportUserPage() {
             </View>
 
             {/* ---- Feuille crème ---- */}
-            <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+            <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
                 <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
                     <SectionLabel>Problèmes généraux</SectionLabel>
                     <Card>
@@ -66,7 +66,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 function Card({ children }: { children: React.ReactNode }) {
     return (
-        <View style={[{ backgroundColor: colors.white, borderRadius: radius.card, overflow: 'hidden' }, shadows.listCard]}>
+        <View style={[{ backgroundColor: colors.card, borderRadius: radius.card, overflow: 'hidden' }, shadows.listCard]}>
             {children}
         </View>
     );
@@ -76,13 +76,13 @@ function Row({ icon, tint, label, onPress, last = false }: { icon?: React.ReactN
         <TouchableOpacity
             onPress={onPress}
             activeOpacity={0.65}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 15, borderBottomWidth: last ? 0 : 1, borderBottomColor: '#f1e9d8' }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 15, borderBottomWidth: last ? 0 : 1, borderBottomColor: colors.separator }}
         >
             {icon ? (
                 <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: tint, alignItems: 'center', justifyContent: 'center' }}>{icon}</View>
             ) : null}
             <Txt variant="semibold" size={15} color={colors.ink} style={{ flex: 1 }}>{label}</Txt>
-            <ChevronRight size={20} color="#c3b8a6" />
+            <ChevronRight size={20} color={colors.chevron} />
         </TouchableOpacity>
     );
 }

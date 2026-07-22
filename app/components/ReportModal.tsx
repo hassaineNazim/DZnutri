@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     KeyboardAvoidingView,
-    Platform,
     Pressable,
+    ScrollView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
@@ -22,8 +21,6 @@ type Props = {
     onClose: () => void;
     barcode: string;
 };
-
-const { width, height } = Dimensions.get('window');
 
 function AlertTriangle() {
     return (
@@ -64,6 +61,10 @@ export default function ReportModal({ visible, onClose, barcode }: Props) {
     };
 
     return (
+        // PAS de width/height figés (Dimensions) ici : une hauteur fixe écrase
+        // `bottom: 0` et la feuille restait DERRIÈRE le clavier (champ et boutons
+        // inatteignables). Avec inset 0, l'overlay suit le redimensionnement de
+        // la fenêtre quand le clavier s'ouvre (adjustResize d'Android).
         <View
             style={{
                 position: 'absolute',
@@ -71,8 +72,6 @@ export default function ReportModal({ visible, onClose, barcode }: Props) {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                width,
-                height,
                 backgroundColor: 'rgba(30,18,12,0.55)',
                 justifyContent: 'flex-end',
                 zIndex: 9999,
@@ -83,27 +82,36 @@ export default function ReportModal({ visible, onClose, barcode }: Props) {
             {/* Voile cliquable pour fermer */}
             <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
 
+            {/* `padding` sur LES DEUX plateformes : sur Android, si la fenêtre est
+                déjà redimensionnée par le clavier, le chevauchement mesuré est ~0
+                (no-op) ; sinon il pousse la feuille au-dessus du clavier. */}
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                behavior="padding"
                 pointerEvents="box-none"
-                style={{ justifyContent: 'flex-end' }}
+                style={{ justifyContent: 'flex-end', maxHeight: '100%' }}
             >
-                {/* Feuille modale */}
+                {/* Feuille modale (défilable si l'écran est petit, clavier ouvert) */}
                 <View
                     style={[
                         {
-                            backgroundColor: colors.cream,
+                            backgroundColor: colors.sheet,
                             borderTopLeftRadius: 28,
                             borderTopRightRadius: 28,
                             paddingHorizontal: 24,
                             paddingTop: 20,
                             paddingBottom: 30,
+                            maxHeight: '100%',
                         },
                         shadows.resultCard,
                     ]}
                 >
+                    <ScrollView
+                        bounces={false}
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
+                    >
                     {/* Poignée */}
-                    <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: '#d9cdb6', alignSelf: 'center', marginBottom: 20 }} />
+                    <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: colors.handle, alignSelf: 'center', marginBottom: 20 }} />
 
                     {/* Titre */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -118,16 +126,16 @@ export default function ReportModal({ visible, onClose, barcode }: Props) {
                     {/* Explication */}
                     <Txt variant="body" size={13.5} color={colors.inkSoft} style={{ lineHeight: 20, marginTop: 14 }}>
                         {t('report_error_why') || 'Pourquoi le score de ce produit'}{' '}
-                        <Txt variant="semibold" size={13.5} color={colors.bordeaux}>({barcode})</Txt>{' '}
+                        <Txt variant="semibold" size={13.5} color={colors.accent}>({barcode})</Txt>{' '}
                         {t('report_error_why_end') || 'vous semble-t-il incorrect ?'}
                     </Txt>
 
                     {/* Champ de saisie */}
                     <TextInput
                         style={{
-                            backgroundColor: colors.white,
+                            backgroundColor: colors.card,
                             borderWidth: 1.5,
-                            borderColor: '#e7ddc9',
+                            borderColor: colors.border,
                             borderRadius: 18,
                             paddingHorizontal: 16,
                             paddingTop: 15,
@@ -164,10 +172,11 @@ export default function ReportModal({ visible, onClose, barcode }: Props) {
                         onPress={onClose}
                         disabled={loading}
                         activeOpacity={0.85}
-                        style={{ marginTop: 11, backgroundColor: 'rgba(89,18,31,0.08)', borderRadius: radius.cta, paddingVertical: 15, alignItems: 'center' }}
+                        style={{ marginTop: 11, backgroundColor: colors.bordeauxSoft, borderRadius: radius.cta, paddingVertical: 15, alignItems: 'center' }}
                     >
-                        <Txt variant="bold" size={15} color={colors.bordeaux}>{t('close_cancel') || 'Fermer / Annuler'}</Txt>
+                        <Txt variant="bold" size={15} color={colors.accent}>{t('close_cancel') || 'Fermer / Annuler'}</Txt>
                     </TouchableOpacity>
+                    </ScrollView>
                 </View>
             </KeyboardAvoidingView>
         </View>

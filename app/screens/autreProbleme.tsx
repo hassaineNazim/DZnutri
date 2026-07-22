@@ -63,7 +63,7 @@ export default function AutreProblemePage() {
     const canSend = description.trim().length > 0;
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.cream }}>
+        <View style={{ flex: 1, backgroundColor: colors.sheet }}>
             <Stack.Screen options={{ headerShown: false }} />
 
             {/* Entête */}
@@ -74,18 +74,18 @@ export default function AutreProblemePage() {
                             if (router.canGoBack()) router.back();
                             else router.push('/screens/reportUser');
                         }}
-                        style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}
+                        style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}
                     >
-                        <X size={20} color={colors.bordeaux} />
+                        <X size={20} color={colors.accent} />
                     </Pressable>
                     <Txt variant="displayXBold" size={20} color={colors.ink}>{t('help') || 'Aide'}</Txt>
                 </View>
 
                 <TouchableOpacity onPress={handleSubmit} disabled={loading || !canSend} style={{ paddingHorizontal: 8, paddingVertical: 8 }}>
                     {loading ? (
-                        <ActivityIndicator color={colors.bordeaux} />
+                        <ActivityIndicator color={colors.accent} />
                     ) : (
-                        <Txt variant="bold" size={14} color={canSend ? colors.bordeaux : colors.inkMeta} style={{ letterSpacing: 0.5 }}>
+                        <Txt variant="bold" size={14} color={canSend ? colors.accent : colors.inkMeta} style={{ letterSpacing: 0.5 }}>
                             {(t('send') || 'Envoyer').toUpperCase()}
                         </Txt>
                     )}
@@ -98,7 +98,7 @@ export default function AutreProblemePage() {
                 </Txt>
 
                 <TextInput
-                    style={{ fontSize: 17, color: colors.ink, fontFamily: fonts.sans, borderBottomWidth: 1.5, borderBottomColor: '#d8ccb4', paddingBottom: 10, marginBottom: 32 }}
+                    style={{ fontSize: 17, color: colors.ink, fontFamily: fonts.sans, borderBottomWidth: 1.5, borderBottomColor: colors.handle, paddingBottom: 10, marginBottom: 32 }}
                     placeholder="Ex : le code-barres n'est pas reconnu…"
                     placeholderTextColor={colors.inkMeta}
                     multiline
@@ -122,7 +122,7 @@ export default function AutreProblemePage() {
                     <TouchableOpacity
                         onPress={pickImage}
                         activeOpacity={0.75}
-                        style={{ width: 128, height: 128, backgroundColor: colors.white, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#d8cbb2' }}
+                        style={{ width: 128, height: 128, backgroundColor: colors.card, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.border }}
                     >
                         <ImagePlus size={26} color={colors.inkSoft} />
                         <Txt variant="bold" size={11} color={colors.inkSoft} style={{ marginTop: 8, letterSpacing: 0.5, textAlign: 'center', paddingHorizontal: 8 }}>

@@ -7,7 +7,7 @@ import Txt from '../components/ui/Txt';
 import { useToast } from '../context/ToastContext';
 import { useTranslation } from '../i18n';
 import { api } from '../services/axios';
-import { colors, fonts, radius, shadows } from '../theme/tokens';
+import { colors, fonts, getThemeScheme, radius, shadows } from '../theme/tokens';
 
 const PINK = '#EC4899';
 
@@ -66,7 +66,7 @@ export default function AjouterCosmetique() {
 
   const PhotoCard = ({ uri, onPress, label, hint }: { uri: string | null; onPress: () => void; label: string; hint: string }) => (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={{ flex: 1 }}>
-      <View style={{ backgroundColor: colors.white, borderRadius: radius.card, borderWidth: 2, borderStyle: 'dashed', borderColor: '#e2b7cf', overflow: 'hidden', height: 160 }}>
+      <View style={{ backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 2, borderStyle: 'dashed', borderColor: '#e2b7cf', overflow: 'hidden', height: 160 }}>
         {uri ? (
           <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
         ) : (
@@ -86,23 +86,23 @@ export default function AjouterCosmetique() {
   );
 
   const inputStyle = {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     padding: 15,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#e7ddc9',
+    borderColor: colors.border,
     color: colors.ink,
     fontFamily: fonts.sans,
     fontSize: 15,
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.cream }}>
-      <StatusBar barStyle="dark-content" />
+    <View style={{ flex: 1, backgroundColor: colors.sheet }}>
+      <StatusBar barStyle={getThemeScheme() === 'dark' ? 'light-content' : 'dark-content'} />
       {/* Entête */}
       <View style={{ paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <Pressable onPress={() => router.back()} style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}>
-          <ArrowLeft size={20} color={colors.bordeaux} />
+        <Pressable onPress={() => router.back()} style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}>
+          <ArrowLeft size={20} color={colors.accent} />
         </Pressable>
         <Txt variant="displayXBold" size={20} color={colors.ink}>{t('add_cosmetic_title')}</Txt>
       </View>

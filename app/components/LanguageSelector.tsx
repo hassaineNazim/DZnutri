@@ -1,7 +1,8 @@
 import { Check, Globe, X } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Text, TouchableOpacity, View } from 'react-native';
+import AppModal from './ui/AppModal';
 import Animated, {
     runOnJS,
     useAnimatedStyle,
@@ -87,7 +88,7 @@ export default function LanguageSelector({
     };
 
     return (
-        <Modal
+        <AppModal
             transparent
             visible={showModal} // Controlled by internal state, not prop directly
             animationType="none"
@@ -180,6 +181,6 @@ export default function LanguageSelector({
                     <View className="h-4" />
                 </Animated.View>
             </View>
-        </Modal>
+        </AppModal>
     );
 }

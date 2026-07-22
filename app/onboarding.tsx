@@ -15,6 +15,7 @@ const DEMO = [
   { name: 'Selecto Cola', brand: 'Hamoud Boualem', score: 32, rot: '-5deg', top: 6, left: 4 },
   { name: 'Soummam', brand: 'Yaourt · 125 g', score: 82, rot: '4deg', top: 96, left: 40 },
   { name: 'Tchina Orange', brand: 'Ramy', score: 48, rot: '-3deg', top: 186, left: 8 },
+  { name: 'El Mordjene', brand: 'Cebon · 700 g', score: 12, rot: '3deg', top: 276, left: 36 },
 ];
 
 function DemoCard({ item }: { item: (typeof DEMO)[number] }) {
@@ -28,7 +29,7 @@ function DemoCard({ item }: { item: (typeof DEMO)[number] }) {
           left: item.left,
           width: 256,
           transform: [{ rotate: item.rot }],
-          backgroundColor: colors.white,
+          backgroundColor: colors.card,
           borderRadius: radius.card,
           padding: 12,
           paddingHorizontal: 14,
@@ -39,7 +40,7 @@ function DemoCard({ item }: { item: (typeof DEMO)[number] }) {
         shadows.floatCard,
       ]}
     >
-      <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: '#e9dfc8' }} />
+      <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: colors.thumbBg }} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Txt variant="displayXBold" size={19} color={colors.ink} numberOfLines={1}>{item.name}</Txt>
         <Txt variant="body" size={12.5} color={colors.inkSoft} numberOfLines={1} style={{ marginTop: 3 }}>{item.brand}</Txt>
@@ -68,18 +69,8 @@ export default function Onboarding() {
     <View style={{ flex: 1, backgroundColor: colors.bordeaux, paddingHorizontal: 26, paddingTop: 16, paddingBottom: 28 }}>
       <StatusBar barStyle="light-content" />
 
-      {/* Entête */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Txt variant="bold" size={12} color={colors.cream} style={{ letterSpacing: 1.5 }}>DZNUTRI · V2</Txt>
-        <TouchableOpacity onPress={finish}>
-          <Txt variant="bold" size={12} color={colors.cream} style={{ letterSpacing: 1.5, opacity: 0.55 }}>
-            {(t('skip') || 'PASSER').toUpperCase()}
-          </Txt>
-        </TouchableOpacity>
-      </View>
-
       {/* Cartes empilées */}
-      <Animated.View entering={FadeInDown.duration(600)} style={{ height: 300, marginTop: 18 }}>
+      <Animated.View entering={FadeInDown.duration(600)} style={{ height: 372, marginTop: 18 }}>
         {DEMO.map((item) => (
           <DemoCard key={item.name} item={item} />
         ))}

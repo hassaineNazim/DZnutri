@@ -2,7 +2,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, Check, RefreshCw, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import AppModal from '../components/ui/AppModal';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import StepHeader from '../components/StepHeader';
 import Txt from '../components/ui/Txt';
@@ -105,9 +106,9 @@ export default function AjouterProduitPhotoPage() {
         <TouchableOpacity
           onPress={onPress}
           activeOpacity={0.75}
-          style={{ width: '100%', height: 190, backgroundColor: colors.white, borderRadius: radius.card, borderWidth: 2, borderStyle: 'dashed', borderColor: '#d8cbb2', alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: '100%', height: 190, backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
         >
-          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#f2e9d8', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.chipBg, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
             <Camera size={30} color={colors.inkSoft} />
           </View>
           <Txt variant="semibold" size={14} color={colors.inkSoft}>{t('take_photo') || 'Prendre une photo'}</Txt>
@@ -117,7 +118,7 @@ export default function AjouterProduitPhotoPage() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.cream }}>
+    <View style={{ flex: 1, backgroundColor: colors.sheet }}>
       <View style={{ paddingHorizontal: 24, paddingTop: 16 }}>
         <StepHeader step={3} title={t('step_3_title')} />
       </View>
@@ -141,20 +142,20 @@ export default function AjouterProduitPhotoPage() {
         )}
       </ScrollView>
 
-      {/* Modal instruction */}
-      <Modal animationType="fade" transparent visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+      {/* Instructions photo — AppModal : le Modal natif figeait l'app. */}
+      <AppModal animationType="fade" transparent visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(20,17,16,0.8)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-          <View style={[{ backgroundColor: colors.cream, padding: 20, borderRadius: 28, width: '100%', maxWidth: 380 }, shadows.resultCard]}>
+          <View style={[{ backgroundColor: colors.sheet, padding: 20, borderRadius: 28, width: '100%', maxWidth: 380 }, shadows.resultCard]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Txt variant="displayXBold" size={20} color={colors.ink} style={{ flex: 1 }}>
                 {activePhotoType === 'front' ? t('take_photo_front') : activePhotoType === 'ingredients' ? t('take_photo_ingredients') : t('take_photo_nutrition') || 'Tableau Nutritionnel'}
               </Txt>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ backgroundColor: 'rgba(89,18,31,0.08)', padding: 8, borderRadius: 20 }}>
-                <X size={20} color={colors.bordeaux} />
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ backgroundColor: colors.bordeauxSoft, padding: 8, borderRadius: 20 }}>
+                <X size={20} color={colors.accent} />
               </TouchableOpacity>
             </View>
 
-            <View style={{ backgroundColor: '#efe6d3', borderRadius: 18, padding: 8, marginBottom: 18 }}>
+            <View style={{ backgroundColor: colors.chipBg, borderRadius: 18, padding: 8, marginBottom: 18 }}>
               <Image
                 source={activePhotoType === 'front' ? FRONT_EXAMPLE : activePhotoType === 'ingredients' ? BACK_EXAMPLE : NUTRITION_EXAMPLE}
                 style={{ width: '100%', height: 250, borderRadius: 12 }}
@@ -172,7 +173,7 @@ export default function AjouterProduitPhotoPage() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </AppModal>
     </View>
   );
 }

@@ -40,7 +40,7 @@ from slowapi.errors import RateLimitExceeded
 
 from observability import metrics, setup_logging
 from rate_limit import limiter
-from routers import auth, products, submissions, admin, history, report, profile, search, favorites, notifications, cosmetics, ratings
+from routers import auth, products, submissions, admin, history, report, profile, search, favorites, notifications, cosmetics, ratings, legal
 
 load_dotenv()
 
@@ -298,3 +298,4 @@ app.include_router(favorites.router)
 app.include_router(notifications.router)
 app.include_router(cosmetics.router)
 app.include_router(ratings.router)
+app.include_router(legal.router)

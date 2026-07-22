@@ -1,12 +1,11 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import { Check, Plus, Search, X, Zap } from 'lucide-react-native';
+import { Check, Plus, X, Zap } from 'lucide-react-native';
 import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
   Image,
-  Modal,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -216,7 +215,7 @@ export default function Scanner() {
         </View>
 
         {/* Sélecteur Aliment / Cosmétique */}
-        <View style={{ alignItems: 'center', marginBottom: 14 }}>
+        <View style={{ alignItems: 'center', marginBottom: 44 }}>
           <View style={{ flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: radius.pill, padding: 4 }}>
             <TouchableOpacity
               onPress={() => setMode('food')}
@@ -239,21 +238,6 @@ export default function Scanner() {
           </View>
         </View>
 
-        {/* Carte crème : produit introuvable → ajouter */}
-        <View style={{ paddingHorizontal: 20, paddingBottom: 40 }}>
-          <View style={[{ backgroundColor: colors.cream, borderRadius: 24, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }, shadows.resultCard]}>
-            <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center' }}>
-              <Search size={24} color={colors.inkOnYellow} strokeWidth={2.2} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Txt variant="displayXBold" size={18} color={colors.ink}>{t('product_not_found_q') || 'Produit introuvable ?'}</Txt>
-              <Txt variant="body" size={12.5} color={colors.inkSoft} style={{ marginTop: 4 }}>{t('add_in_30s') || 'Ajoutez-le à la base en 30 s.'}</Txt>
-            </View>
-            <TouchableOpacity onPress={() => goToAddFlow()} style={{ backgroundColor: colors.dark, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 24 }} activeOpacity={0.85}>
-              <Txt variant="bold" size={14} color={colors.cream}>{t('add') || 'Ajouter'}</Txt>
-            </TouchableOpacity>
-          </View>
-        </View>
       </View>
 
       {/* Chargement */}
@@ -263,20 +247,28 @@ export default function Scanner() {
         </View>
       )}
 
-      {/* Modale résultat */}
-      <Modal
-        visible={scanResult.status === 'found' || scanResult.status === 'notFound'}
-        transparent
-        animationType="fade"
-        onRequestClose={resetScanner}
-      >
+      {/* Résultat du scan : overlay EN LIGNE, PAS de <Modal> natif.
+          Sur la nouvelle architecture Android, le contenu d'un Modal natif se
+          rendait replié en haut à gauche et sa fenêtre invisible figeait
+          l'écran. Un overlay absolu dans la même hiérarchie est fiable. */}
+      {(scanResult.status === 'found' || scanResult.status === 'notFound') && (
         <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(20,17,16,0.6)', justifyContent: scanResult.status === 'found' ? 'center' : 'flex-end', alignItems: scanResult.status === 'found' ? 'center' : 'stretch', padding: scanResult.status === 'found' ? 24 : 0 }}
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: 'rgba(20,17,16,0.6)',
+              justifyContent: scanResult.status === 'found' ? 'center' : 'flex-end',
+              alignItems: scanResult.status === 'found' ? 'center' : 'stretch',
+              padding: scanResult.status === 'found' ? 24 : 0,
+              zIndex: 50,
+              elevation: 50,
+            },
+          ]}
           onPress={resetScanner}
         >
           {scanResult.status === 'found' && (
             <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 380 }}>
-              <View style={[{ backgroundColor: colors.cream, borderRadius: radius.sheet, padding: 20 }, shadows.resultCard]}>
+              <View style={[{ backgroundColor: colors.sheet, borderRadius: radius.sheet, padding: 20 }, shadows.resultCard]}>
                 {/* Bandeau succès */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                   <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' }}>
@@ -290,7 +282,7 @@ export default function Scanner() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
                   <Image
                     source={{ uri: scanResult.product.image_url || 'https://via.placeholder.com/100' }}
-                    style={{ width: 64, height: 64, borderRadius: 15, backgroundColor: '#e9dfc8' }}
+                    style={{ width: 64, height: 64, borderRadius: 15, backgroundColor: colors.thumbBg }}
                     resizeMode="contain"
                   />
                   <View style={{ flex: 1, minWidth: 0 }}>
@@ -323,8 +315,8 @@ export default function Scanner() {
 
           {scanResult.status === 'notFound' && (
             <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%' }}>
-              <View style={{ backgroundColor: colors.cream, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, alignItems: 'center' }}>
-                <View style={{ width: 48, height: 6, borderRadius: 3, backgroundColor: '#d8ccb4', marginBottom: 22 }} />
+              <View style={{ backgroundColor: colors.sheet, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, alignItems: 'center' }}>
+                <View style={{ width: 48, height: 6, borderRadius: 3, backgroundColor: colors.handle, marginBottom: 22 }} />
                 <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
                   <Plus size={32} color={colors.inkOnYellow} />
                 </View>
@@ -348,7 +340,7 @@ export default function Scanner() {
             </Pressable>
           )}
         </Pressable>
-      </Modal>
+      )}
     </View>
   );
 }

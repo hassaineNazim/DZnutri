@@ -65,7 +65,7 @@ export default function AnalysePage() {
   const total = stats.total_scans;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.cream }}>
+    <View style={{ flex: 1, backgroundColor: colors.sheet }}>
       <StatusBar barStyle="light-content" />
 
       {/* Entête sombre */}
@@ -122,7 +122,7 @@ export default function AnalysePage() {
           {BANDS.map((b, i) => {
             const count = stats.distribution[b.key];
             return (
-              <Animated.View key={b.key} entering={FadeInDown.delay(i * 80).springify()} style={{ backgroundColor: colors.white, borderRadius: radius.cardSm, padding: 15, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+              <Animated.View key={b.key} entering={FadeInDown.delay(i * 80).springify()} style={{ backgroundColor: colors.card, borderRadius: radius.cardSm, padding: 15, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                 <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: b.color }} />
                 <Txt variant="semibold" size={16} color={colors.ink} style={{ flex: 1 }}>{t(b.labelKey) || b.fallback}</Txt>
                 <Txt variant="displayXBold" size={18} color={colors.ink}>{count}</Txt>

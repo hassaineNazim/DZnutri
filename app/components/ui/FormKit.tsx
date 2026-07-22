@@ -42,10 +42,10 @@ export function Field({ label, style, ...inputProps }: FieldProps) {
         {...inputProps}
         style={[
           {
-            backgroundColor: colors.white,
+            backgroundColor: colors.card,
             borderRadius: radius.cardSm,
             borderWidth: 1.5,
-            borderColor: '#e7ddc9',
+            borderColor: colors.border,
             paddingHorizontal: 16,
             paddingVertical: 15,
             fontSize: 15,

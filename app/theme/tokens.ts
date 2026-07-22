@@ -5,7 +5,11 @@
  */
 
 // --- Couleurs ---------------------------------------------------------------
-export const colors = {
+// Deux palettes (clair / sombre). Les entêtes bordeaux et les couleurs de score
+// sont la MARQUE : identiques dans les deux thèmes. Le mode sombre assombrit
+// les surfaces claires (feuille crème, cartes blanches, champs) et éclaircit
+// les textes qui vivent dessus.
+const LIGHT = {
   // Fonds
   bordeaux: '#59121F', // Onboarding / Accueil / Détail (fond principal)
   bordeauxDeep: '#3c0e17', // bandeau titre très foncé
@@ -14,23 +18,36 @@ export const colors = {
   navBordeaux: '#4d1521', // barre de navigation basse
 
   // Surfaces claires
-  cream: '#F4EAD6', // fond de contenu, feuille
+  cream: '#F4EAD6', // boutons/pilules crème SUR bordeaux (identique dans les 2 thèmes)
+  sheet: '#F4EAD6', // fond de contenu (feuille) — s'assombrit en mode sombre
+  card: '#ffffff', // cartes/lignes sur la feuille — s'assombrit en mode sombre
   creamTitle: '#F6EEDD', // titres crème sur fond sombre
-  white: '#ffffff',
+  white: '#ffffff', // blanc PUR (textes/icônes sur couleur) — ne change jamais
   ringTrack: '#ece2cc', // piste (vide) des anneaux de score
 
   // Accent
   yellow: '#F2C22E', // CTA, accents, scanner
   yellowHover: '#e7b01c',
   inkOnYellow: '#1c1108', // texte foncé sur jaune
+  accent: '#59121F', // accent texte/icône sur surfaces claires (bordeaux → jaune en sombre)
+  bordeauxSoft: 'rgba(89,18,31,0.08)', // fond des boutons secondaires
 
-  // Textes
-  ink: '#1e1712', // texte principal foncé (sur crème)
+  // Textes (sur feuille/cartes)
+  ink: '#1e1712', // texte principal
   inkSoft: '#8b8073', // texte secondaire gris-brun
   inkMeta: '#b7ad9e', // texte tertiaire / méta
   rose: '#cf9ea7', // texte rosé sur bordeaux
   rose2: '#dba9b1',
   rose3: '#e8b6be',
+
+  // Détails de surface
+  border: '#e7ddc9', // bordures de champs
+  separator: '#f1e9d8', // séparateurs de lignes
+  inputBg: '#f6efe0', // fond des champs sur carte
+  chipBg: '#efe6d3', // fonds de chips / pistes
+  thumbBg: '#e9dfc8', // vignettes produit (placeholder)
+  handle: '#d9cdb6', // poignées de feuille / pistes d'interrupteur
+  chevron: '#c3b8a6', // chevrons de navigation
 
   // Échelle de score / notes
   green: '#4F9E5A', // Excellent / A
@@ -45,7 +62,43 @@ export const colors = {
 
   // Châssis (prototype uniquement — non utilisé en natif)
   bezel: '#0a090b',
-} as const;
+};
+
+// Palette sombre : surfaces chaudes très foncées, textes crème, accent jaune.
+const DARK: typeof LIGHT = {
+  ...LIGHT,
+  sheet: '#201914',
+  card: '#2c241d',
+  ringTrack: '#3d332a',
+  accent: '#F2C22E',
+  bordeauxSoft: 'rgba(242,194,46,0.12)',
+  ink: '#F0E7D5',
+  inkSoft: '#b4a794',
+  inkMeta: '#8a7e6e',
+  border: '#3d332a',
+  separator: '#362d24',
+  inputBg: '#2a221b',
+  chipBg: '#362d24',
+  thumbBg: '#3d332a',
+  handle: '#4d4136',
+  chevron: '#6f6353',
+};
+
+export type ThemeScheme = 'light' | 'dark';
+let currentScheme: ThemeScheme = 'light';
+
+// Objet MUTABLE partagé : les styles étant inline (évalués au rendu), un
+// re-rendu après bascule suffit à appliquer la nouvelle palette partout.
+export const colors: typeof LIGHT = { ...LIGHT };
+
+export function applyThemeScheme(scheme: ThemeScheme): void {
+  currentScheme = scheme;
+  Object.assign(colors, scheme === 'dark' ? DARK : LIGHT);
+}
+
+export function getThemeScheme(): ThemeScheme {
+  return currentScheme;
+}
 
 // --- Polices ----------------------------------------------------------------
 // Noms exacts chargés via useFonts() dans app/_layout.tsx.

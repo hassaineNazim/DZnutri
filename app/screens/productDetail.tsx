@@ -84,7 +84,7 @@ function NoteBar({ score }: { score?: number }) {
 // ─── Carte nutrition ─────────────────────────────────────────────────────────
 function NutritionCard({ letter, label, value, lvl }: { letter: string; label: string; value: string; lvl: { label: string; color: string } }) {
   return (
-    <View style={{ width: '48.5%', backgroundColor: colors.white, borderRadius: radius.cardSm, padding: 14 }}>
+    <View style={{ width: '48.5%', backgroundColor: colors.card, borderRadius: radius.cardSm, padding: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: lvl.color + '26', alignItems: 'center', justifyContent: 'center' }}>
           <Txt variant="display" size={15} color={lvl.color}>{letter}</Txt>
@@ -219,7 +219,7 @@ export default function ProductDetail() {
       </View>
 
       {/* Feuille crème */}
-      <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, marginTop: 16, overflow: 'hidden' }}>
+      <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, marginTop: 16, overflow: 'hidden' }}>
         <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 120 }}>
           {/* Barre de note A→E */}
           <NoteBar score={fullProduct.custom_score} />
@@ -241,7 +241,7 @@ export default function ProductDetail() {
                 const { code, name } = parseAdditive(tag);
                 const risky = isRisky(info?.risk_level);
                 return (
-                  <View key={idx} style={{ backgroundColor: colors.white, borderRadius: radius.cardSm, padding: 13, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View key={idx} style={{ backgroundColor: colors.card, borderRadius: radius.cardSm, padding: 13, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <View style={{ backgroundColor: risky ? colors.redAlt : colors.greenAlt, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 6 }}>
                       <Txt variant="bold" size={12.5} color={colors.white}>{code}</Txt>
                     </View>
@@ -255,7 +255,7 @@ export default function ProductDetail() {
                 );
               })
             ) : (
-              <View style={{ backgroundColor: colors.white, borderRadius: radius.cardSm, padding: 16 }}>
+              <View style={{ backgroundColor: colors.card, borderRadius: radius.cardSm, padding: 16 }}>
                 <Txt variant="body" size={13} color={colors.inkSoft} style={{ fontStyle: 'italic' }}>
                   {t('no_additives') || 'Aucun additif à déclarer.'}
                 </Txt>
@@ -273,8 +273,8 @@ export default function ProductDetail() {
             <NutritionCard letter="P" label={t('proteins') || 'Protéines'} value={`${proteins} g`} lvl={level(proteins, 10, 5, true)} />
             <NutritionCard letter="L" label={t('sat_fat') || 'Gras saturés'} value={`${saturatedFat} g`} lvl={level(saturatedFat, 5, 1.5)} />
           </View>
-          <View style={{ backgroundColor: colors.white, borderRadius: radius.cardSm, marginTop: 10 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#f1e9d8' }}>
+          <View style={{ backgroundColor: colors.card, borderRadius: radius.cardSm, marginTop: 10 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: colors.separator }}>
               <Txt variant="semibold" size={14.5} color={colors.ink}>{t('fiber') || 'Fibres'}</Txt>
               <Txt variant="displayXBold" size={14.5} color={colors.ink}>{fiber} g</Txt>
             </View>

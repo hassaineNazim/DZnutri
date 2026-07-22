@@ -37,7 +37,7 @@ function StripedThumb({ size, isCosmetic }: { size: number; isCosmetic: boolean 
         width: size,
         height: size,
         borderRadius: 15,
-        backgroundColor: '#e9dfc8',
+        backgroundColor: colors.thumbBg,
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
@@ -85,7 +85,7 @@ export default function ProductCard({ item, onPress, onLongPress, selected = fal
           flexDirection: 'row',
           alignItems: 'center',
           gap: 14,
-          backgroundColor: colors.white,
+          backgroundColor: colors.card,
           borderRadius: radius.card,
           padding: 12,
           paddingHorizontal: 14,
@@ -98,7 +98,7 @@ export default function ProductCard({ item, onPress, onLongPress, selected = fal
       {item.image_url ? (
         <Image
           source={{ uri: item.image_url }}
-          style={{ width: THUMB, height: THUMB, borderRadius: 15, backgroundColor: '#e9dfc8' }}
+          style={{ width: THUMB, height: THUMB, borderRadius: 15, backgroundColor: colors.thumbBg }}
           resizeMode="contain"
         />
       ) : (

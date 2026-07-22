@@ -14,21 +14,61 @@ import {
 } from '@expo-google-fonts/playfair-display';
 import { Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
-import { useCallback } from 'react';
-import { useColorScheme, View } from "react-native";
+import { useCallback, useEffect, useState } from 'react';
+import { View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import NotificationListener from './components/NotificationListener';
 import { ToastProvider } from './context/ToastContext';
 import { persister, queryClient } from './services/queryClient';
+import { loadStoredThemeScheme, ThemeProvider, useTheme } from './theme/ThemeContext';
 
 // On garde le splash affiché tant que les polices du redesign ne sont pas prêtes,
 // pour éviter un flash de police système au démarrage.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+// Contenu sous le ThemeProvider : la CLÉ change avec le thème → tout l'arbre
+// est repeint avec la palette mutée (les styles inline sont réévalués).
+function ThemedApp({ onLayoutRootView }: { onLayoutRootView: () => void }) {
+  const { scheme, isDark } = useTheme();
+
+  return (
+    <View
+      key={scheme}
+      className={isDark ? 'dark flex-1' : 'flex-1'}
+      onLayout={onLayoutRootView}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#141110' : 'white' }}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
+          {/* Le scanner a sa propre entête (bouton fermer) dans le redesign. */}
+          <Stack.Screen name="scanner" options={{ headerShown: false }} />
+
+          {/* Hide headers for the add product flow screens */}
+          <Stack.Screen name="screens/ajouterProd" options={{ headerShown: false }} />
+          <Stack.Screen name="screens/typeProd" options={{ headerShown: false }} />
+          <Stack.Screen name="screens/ajouterProdInfo" options={{ headerShown: false }} />
+          <Stack.Screen name="screens/ajouterProdPhoto" options={{ headerShown: false }} />
+
+          <Stack.Screen name="screens/productDetail" options={{
+            headerShown: false,
+            headerTitle: "Détail sur le produit",
+          }} />
+        </Stack>
+      </SafeAreaView>
+    </View>
+  );
+}
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  // Préférence de thème chargée AVANT le premier rendu (pas de flash clair).
+  const [themeReady, setThemeReady] = useState(false);
+  useEffect(() => {
+    loadStoredThemeScheme().finally(() => setThemeReady(true));
+  }, []);
 
   const [fontsLoaded, fontError] = useFonts({
     PlayfairDisplay_500Medium,
@@ -48,9 +88,9 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  // Tant que les polices ne sont pas chargées (et sans erreur), on n'affiche rien
+  // Tant que polices + thème ne sont pas prêts, on n'affiche rien
   // (le splash natif reste visible).
-  if (!fontsLoaded && !fontError) {
+  if ((!fontsLoaded && !fontError) || !themeReady) {
     return null;
   }
 
@@ -59,28 +99,9 @@ export default function RootLayout() {
       <ToastProvider>
         <NotificationListener />
         <SafeAreaProvider>
-          <View className={colorScheme === 'dark' ? 'dark flex-1' : 'flex-1'} onLayout={onLayoutRootView}>
-            <SafeAreaView style={{ flex: 1, backgroundColor: colorScheme === 'dark' ? '#000' : 'white' }}>
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-                <Stack.Screen name="auth" options={{ headerShown: false }} />
-                {/* Le scanner a sa propre entête (bouton fermer) dans le redesign. */}
-                <Stack.Screen name="scanner" options={{ headerShown: false }} />
-
-                {/* Hide headers for the add product flow screens */}
-                <Stack.Screen name="screens/ajouterProd" options={{ headerShown: false }} />
-                <Stack.Screen name="screens/typeProd" options={{ headerShown: false }} />
-                <Stack.Screen name="screens/ajouterProdInfo" options={{ headerShown: false }} />
-                <Stack.Screen name="screens/ajouterProdPhoto" options={{ headerShown: false }} />
-
-                <Stack.Screen name="screens/productDetail" options={{
-                  headerShown: false,
-                  headerTitle: "Détail sur le produit",
-                }} />
-              </Stack>
-            </SafeAreaView>
-          </View>
+          <ThemeProvider>
+            <ThemedApp onLayoutRootView={onLayoutRootView} />
+          </ThemeProvider>
         </SafeAreaProvider>
       </ToastProvider>
     </PersistQueryClientProvider>

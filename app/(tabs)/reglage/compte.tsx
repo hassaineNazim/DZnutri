@@ -48,7 +48,7 @@ function Row({
         <Txt variant="semibold" size={16} color={danger ? colors.red : colors.ink}>{label}</Txt>
         {value ? <Txt variant="body" size={13} color={colors.inkSoft} style={{ marginTop: 2 }}>{value}</Txt> : null}
       </View>
-      {showArrow && <ChevronRight size={20} color="#c3b8a6" />}
+      {showArrow && <ChevronRight size={20} color={colors.chevron} />}
     </TouchableRow>
   );
 }
@@ -66,7 +66,7 @@ function TouchableRow({ children, onPress, last }: { children: React.ReactNode; 
         paddingHorizontal: 16,
         paddingVertical: 15,
         borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: '#f1e9d8',
+        borderBottomColor: colors.separator,
       }}
     >
       {children}
@@ -155,10 +155,10 @@ export default function ComptePage() {
       </View>
 
       {/* ---- Feuille crème ---- */}
-      <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+      <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
         <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 24, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           <Section title="Informations personnelles">
-            <Row icon={<UserIcon size={19} color={colors.bordeaux} />} tint="rgba(89,18,31,0.1)" label="Nom d'utilisateur" value={user?.username} />
+            <Row icon={<UserIcon size={19} color={colors.accent} />} tint="rgba(89,18,31,0.1)" label="Nom d'utilisateur" value={user?.username} />
             <Row icon={<Mail size={19} color="#b98a09" />} tint="rgba(242,194,46,0.2)" label="Email" value={user?.email} last />
           </Section>
 
@@ -196,7 +196,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <Txt variant="bold" size={11.5} color={colors.inkSoft} style={{ letterSpacing: 1.5, marginBottom: 12 }}>
         {title.toUpperCase()}
       </Txt>
-      <View style={[{ backgroundColor: colors.white, borderRadius: radius.card, overflow: 'hidden' }, shadows.listCard]}>
+      <View style={[{ backgroundColor: colors.card, borderRadius: radius.card, overflow: 'hidden' }, shadows.listCard]}>
         {children}
       </View>
     </View>

@@ -1,6 +1,7 @@
 import { Check, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Pressable, ScrollView, TouchableOpacity, View } from 'react-native';
+import AppModal from './ui/AppModal';
 import { colors, radius, shadows } from '../theme/tokens';
 import Txt from './ui/Txt';
 
@@ -44,30 +45,30 @@ export default function FilterModal({ visible, onClose, onApply, initialFilters 
     const resetFilters = () => setFilters({ category: undefined, subcategory: undefined, minScore: 0, verifiedOnly: false });
 
     return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+        <AppModal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <View style={{ flex: 1, backgroundColor: 'rgba(30,18,12,0.55)', justifyContent: 'flex-end' }}>
                 <Pressable style={{ flex: 1 }} onPress={onClose} />
 
-                <View style={{ backgroundColor: colors.cream, borderTopLeftRadius: 28, borderTopRightRadius: 28, height: '86%', paddingHorizontal: 22, paddingTop: 18, paddingBottom: 22 }}>
-                    <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: '#d9cdb6', alignSelf: 'center', marginBottom: 18 }} />
+                <View style={{ backgroundColor: colors.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28, height: '86%', paddingHorizontal: 22, paddingTop: 18, paddingBottom: 22 }}>
+                    <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: colors.handle, alignSelf: 'center', marginBottom: 18 }} />
 
                     {/* Header */}
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                         <View>
                             <Txt variant="display" size={26} color={colors.ink}>Filtres</Txt>
                             <TouchableOpacity onPress={resetFilters} style={{ marginTop: 2 }}>
-                                <Txt variant="semibold" size={13} color={colors.bordeaux}>Réinitialiser</Txt>
+                                <Txt variant="semibold" size={13} color={colors.accent}>Réinitialiser</Txt>
                             </TouchableOpacity>
                         </View>
-                        <TouchableOpacity onPress={onClose} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(89,18,31,0.08)', alignItems: 'center', justifyContent: 'center' }}>
-                            <X size={20} color={colors.bordeaux} />
+                        <TouchableOpacity onPress={onClose} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.bordeauxSoft, alignItems: 'center', justifyContent: 'center' }}>
+                            <X size={20} color={colors.accent} />
                         </TouchableOpacity>
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
                         {/* Score minimum */}
                         <Txt variant="displayXBold" size={17} color={colors.ink} style={{ marginBottom: 12 }}>Score minimum</Txt>
-                        <View style={{ flexDirection: 'row', backgroundColor: '#efe6d3', borderRadius: radius.cardSm, padding: 4, marginBottom: 26 }}>
+                        <View style={{ flexDirection: 'row', backgroundColor: colors.chipBg, borderRadius: radius.cardSm, padding: 4, marginBottom: 26 }}>
                             {SCORES.map((score) => {
                                 const isSelected = filters.minScore === score;
                                 return (
@@ -101,18 +102,18 @@ export default function FilterModal({ visible, onClose, onApply, initialFilters 
                                                 paddingVertical: 15,
                                                 borderRadius: radius.cardSm,
                                                 borderWidth: 1.5,
-                                                backgroundColor: isSelected ? 'rgba(89,18,31,0.06)' : colors.white,
-                                                borderColor: isSelected ? colors.bordeaux : '#e7ddc9',
+                                                backgroundColor: isSelected ? colors.bordeauxSoft : colors.card,
+                                                borderColor: isSelected ? colors.accent : colors.border,
                                             }}
                                         >
-                                            <Txt variant="semibold" size={15} color={isSelected ? colors.bordeaux : colors.ink}>
+                                            <Txt variant="semibold" size={15} color={isSelected ? colors.accent : colors.ink}>
                                                 {CATEGORY_LABELS[cat] || cat}
                                             </Txt>
-                                            {isSelected && <Check size={18} color={colors.bordeaux} strokeWidth={3} />}
+                                            {isSelected && <Check size={18} color={colors.accent} strokeWidth={3} />}
                                         </TouchableOpacity>
 
                                         {isSelected && subcategories?.length > 0 && (
-                                            <View style={{ marginLeft: 16, marginTop: 6, borderLeftWidth: 2, borderLeftColor: 'rgba(89,18,31,0.15)', paddingLeft: 16, paddingVertical: 4 }}>
+                                            <View style={{ marginLeft: 16, marginTop: 6, borderLeftWidth: 2, borderLeftColor: colors.bordeauxSoft, paddingLeft: 16, paddingVertical: 4 }}>
                                                 {subcategories.map((sub) => {
                                                     const subSelected = filters.subcategory === sub;
                                                     return (
@@ -121,10 +122,10 @@ export default function FilterModal({ visible, onClose, onApply, initialFilters 
                                                             onPress={() => setFilters((prev) => ({ ...prev, subcategory: prev.subcategory === sub ? undefined : sub }))}
                                                             style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}
                                                         >
-                                                            <View style={{ width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, marginRight: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: subSelected ? colors.bordeaux : 'transparent', borderColor: subSelected ? colors.bordeaux : '#cbbfa8' }}>
+                                                            <View style={{ width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, marginRight: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: subSelected ? colors.bordeaux : 'transparent', borderColor: subSelected ? colors.bordeaux : colors.border }}>
                                                                 {subSelected && <Check size={12} color={colors.white} strokeWidth={4} />}
                                                             </View>
-                                                            <Txt variant={subSelected ? 'semibold' : 'body'} size={14} color={subSelected ? colors.bordeaux : colors.inkSoft}>
+                                                            <Txt variant={subSelected ? 'semibold' : 'body'} size={14} color={subSelected ? colors.accent : colors.inkSoft}>
                                                                 {sub}
                                                             </Txt>
                                                         </TouchableOpacity>
@@ -141,23 +142,23 @@ export default function FilterModal({ visible, onClose, onApply, initialFilters 
                         <TouchableOpacity
                             onPress={() => setFilters((prev) => ({ ...prev, verifiedOnly: !prev.verifiedOnly }))}
                             activeOpacity={0.8}
-                            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white, borderWidth: 1.5, borderColor: '#e7ddc9', padding: 16, borderRadius: radius.cardSm, marginBottom: 24 }}
+                            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border, padding: 16, borderRadius: radius.cardSm, marginBottom: 24 }}
                         >
                             <Txt variant="semibold" size={15} color={colors.ink}>Produits vérifiés uniquement</Txt>
-                            <View style={{ width: 44, height: 26, borderRadius: 13, padding: 3, justifyContent: 'center', backgroundColor: filters.verifiedOnly ? colors.green : '#d9cdb6' }}>
-                                <View style={{ width: 20, height: 20, backgroundColor: colors.white, borderRadius: 10, alignSelf: filters.verifiedOnly ? 'flex-end' : 'flex-start' }} />
+                            <View style={{ width: 44, height: 26, borderRadius: 13, padding: 3, justifyContent: 'center', backgroundColor: filters.verifiedOnly ? colors.green : colors.handle }}>
+                                <View style={{ width: 20, height: 20, backgroundColor: colors.card, borderRadius: 10, alignSelf: filters.verifiedOnly ? 'flex-end' : 'flex-start' }} />
                             </View>
                         </TouchableOpacity>
                     </ScrollView>
 
                     {/* Footer */}
-                    <View style={{ paddingTop: 14, borderTopWidth: 1, borderTopColor: '#e7ddc9' }}>
+                    <View style={{ paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border }}>
                         <TouchableOpacity onPress={handleApply} activeOpacity={0.85} style={[{ backgroundColor: colors.yellow, borderRadius: radius.cta, paddingVertical: 17, alignItems: 'center' }, shadows.listCard]}>
                             <Txt variant="bold" size={16} color={colors.inkOnYellow}>Appliquer</Txt>
                         </TouchableOpacity>
                     </View>
                 </View>
             </View>
-        </Modal>
+        </AppModal>
     );
 }

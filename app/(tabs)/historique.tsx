@@ -3,7 +3,6 @@ import { HelpCircle, ScanLine, Trash2, User, X } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   RefreshControl,
   SectionList,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
+import AppModal from '../components/ui/AppModal';
 import ProductCard, { ProductCardItem } from '../components/ui/ProductCard';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
@@ -206,7 +206,7 @@ export default function HistoriquePage() {
       </View>
 
       {/* ---- Feuille crème ---- */}
-      <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+      <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
         <SectionList
           sections={sections}
           keyExtractor={itemKey}
@@ -254,12 +254,12 @@ export default function HistoriquePage() {
         cancelLabel={t('cancel') || 'Annuler'}
       />
 
-      {/* Menu (Compte / Problème) */}
-      <Modal transparent visible={menuVisible} animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+      {/* Menu (Compte / Problème) — AppModal : le Modal natif figeait l'app. */}
+      <AppModal transparent visible={menuVisible} animationType="fade" onRequestClose={() => setMenuVisible(false)}>
         <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.12)' }}>
             <TouchableWithoutFeedback>
-              <View style={[{ position: 'absolute', top: 70, left: 26, backgroundColor: colors.white, borderRadius: 16, width: 200, paddingVertical: 8 }, shadows.listCard]}>
+              <View style={[{ position: 'absolute', top: 70, left: 26, backgroundColor: colors.card, borderRadius: 16, width: 200, paddingVertical: 8 }, shadows.listCard]}>
                 <TouchableOpacity
                   onPress={() => {
                     setMenuVisible(false);
@@ -284,7 +284,7 @@ export default function HistoriquePage() {
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
     </View>
   );
 }

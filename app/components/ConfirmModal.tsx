@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import AppModal from './ui/AppModal';
 
 type Props = {
   visible: boolean;
@@ -21,7 +22,7 @@ export default function ConfirmModal({
   cancelLabel = 'Cancel',
 }: Props) {
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <AppModal visible={visible} transparent animationType="fade">
       {/* Backdrop */}
       <View className="flex-1 justify-center items-center bg-black/40">
         {/* Modal Content */}
@@ -58,6 +59,6 @@ export default function ConfirmModal({
           </View>
         </View>
       </View>
-    </Modal>
+    </AppModal>
   );
 }

@@ -85,7 +85,7 @@ export default function CosmeticDetail() {
       </View>
 
       {/* ---- Feuille crème ---- */}
-      <View style={{ flex: 1, backgroundColor: colors.cream, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, marginTop: 16, overflow: 'hidden' }}>
+      <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, marginTop: 16, overflow: 'hidden' }}>
         <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
           {/* Ingrédients à risque */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -96,7 +96,7 @@ export default function CosmeticDetail() {
           </View>
 
           {risky.length === 0 ? (
-            <View style={[{ backgroundColor: colors.white, borderRadius: radius.cardSm, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }, shadows.listCard]}>
+            <View style={[{ backgroundColor: colors.card, borderRadius: radius.cardSm, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }, shadows.listCard]}>
               <CheckCircle2 size={22} color={colors.green} />
               <Txt variant="medium" size={14} color={colors.inkSoft} style={{ flex: 1 }}>
                 {hasScore ? t('no_risky_ingredients') : t('composition_not_analyzed')}
@@ -107,7 +107,7 @@ export default function CosmeticDetail() {
               {risky.map((ing, idx) => {
                 const st = dangerStyle(ing.danger_level);
                 return (
-                  <View key={idx} style={[{ backgroundColor: colors.white, borderRadius: radius.cardSm, padding: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }, shadows.listCard]}>
+                  <View key={idx} style={[{ backgroundColor: colors.card, borderRadius: radius.cardSm, padding: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }, shadows.listCard]}>
                     <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: st.bg, alignItems: 'center', justifyContent: 'center' }}>
                       <FlaskConical size={20} color={st.color} />
                     </View>
@@ -128,7 +128,7 @@ export default function CosmeticDetail() {
           {product.ingredients_text ? (
             <>
               <Txt variant="displayXBold" size={20} color={colors.ink} style={{ marginTop: 24, marginBottom: 12 }}>{t('composition_inci')}</Txt>
-              <View style={[{ backgroundColor: colors.white, borderRadius: radius.cardSm, padding: 16 }, shadows.listCard]}>
+              <View style={[{ backgroundColor: colors.card, borderRadius: radius.cardSm, padding: 16 }, shadows.listCard]}>
                 <Txt variant="body" size={13.5} color={colors.inkSoft} style={{ lineHeight: 20 }}>{product.ingredients_text}</Txt>
               </View>
             </>

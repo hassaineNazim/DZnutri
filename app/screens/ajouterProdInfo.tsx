@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Check, ChevronDown } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
+import AppModal from '../components/ui/AppModal';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import StepHeader from '../components/StepHeader';
 import Txt from '../components/ui/Txt';
@@ -43,10 +44,10 @@ export default function AjouterProduitInfoPage() {
   };
 
   const inputStyle = (error?: string) => ({
-    backgroundColor: '#f6efe0',
+    backgroundColor: colors.inputBg,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: error ? colors.red : '#e7ddc9',
+    borderColor: error ? colors.red : colors.border,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 15,
@@ -55,17 +56,17 @@ export default function AjouterProduitInfoPage() {
   });
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: colors.cream }}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: colors.sheet }}>
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 16 }} showsVerticalScrollIndicator={false}>
         <StepHeader step={2} title={t('step_2_title')} />
 
-        <Animated.View entering={FadeInDown.delay(80).springify()} style={[{ backgroundColor: colors.white, padding: 20, borderRadius: radius.card }, shadows.listCard]}>
+        <Animated.View entering={FadeInDown.delay(80).springify()} style={[{ backgroundColor: colors.card, padding: 20, borderRadius: radius.card }, shadows.listCard]}>
           <Txt variant="displayXBold" size={18} color={colors.ink} style={{ marginBottom: 18 }}>{t('product_details')}</Txt>
 
           {/* Code-barres (lecture seule) */}
           <View style={{ marginBottom: 16 }}>
             <Txt variant="medium" size={13} color={colors.inkSoft} style={{ marginBottom: 8, marginLeft: 2 }}>{t('barcode')}</Txt>
-            <View style={{ backgroundColor: '#efe6d3', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12 }}>
+            <View style={{ backgroundColor: colors.chipBg, paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12 }}>
               <Txt variant="medium" size={14} color={colors.inkSoft}>{barcode}</Txt>
             </View>
           </View>
@@ -103,7 +104,7 @@ export default function AjouterProduitInfoPage() {
             </Txt>
             <TouchableOpacity
               onPress={() => setDropdownVisible(true)}
-              style={{ backgroundColor: '#f6efe0', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderColor: '#e7ddc9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+              style={{ backgroundColor: colors.inputBg, paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
             >
               <Txt variant="semibold" size={15} color={colors.ink}>{typeSpecifique.label}</Txt>
               <ChevronDown size={20} color={colors.inkSoft} />
@@ -116,11 +117,11 @@ export default function AjouterProduitInfoPage() {
         </Animated.View>
       </ScrollView>
 
-      {/* Modal dropdown */}
-      <Modal visible={dropdownVisible} transparent animationType="fade" onRequestClose={() => setDropdownVisible(false)}>
+      {/* Dropdown — AppModal : le Modal natif figeait l'app. */}
+      <AppModal visible={dropdownVisible} transparent animationType="fade" onRequestClose={() => setDropdownVisible(false)}>
         <Pressable style={{ flex: 1, backgroundColor: 'rgba(30,18,12,0.55)', justifyContent: 'center', alignItems: 'center' }} onPress={() => setDropdownVisible(false)}>
-          <Pressable style={[{ backgroundColor: colors.cream, width: '82%', borderRadius: 22, overflow: 'hidden' }, shadows.resultCard]} onPress={(e) => e.stopPropagation()}>
-            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#e7ddc9' }}>
+          <Pressable style={[{ backgroundColor: colors.sheet, width: '82%', borderRadius: 22, overflow: 'hidden' }, shadows.resultCard]} onPress={(e) => e.stopPropagation()}>
+            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
               <Txt variant="displayXBold" size={18} color={colors.ink} style={{ textAlign: 'center' }}>Choisir un type</Txt>
             </View>
             <FlatList
@@ -130,18 +131,18 @@ export default function AjouterProduitInfoPage() {
                 const active = item.value === typeSpecifique.value;
                 return (
                   <TouchableOpacity
-                    style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#efe6d3', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: active ? 'rgba(89,18,31,0.06)' : 'transparent' }}
+                    style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.chipBg, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: active ? colors.bordeauxSoft : 'transparent' }}
                     onPress={() => { settypeSpecifique(item); setDropdownVisible(false); }}
                   >
-                    <Txt variant={active ? 'bold' : 'medium'} size={15} color={active ? colors.bordeaux : colors.ink}>{item.label}</Txt>
-                    {active && <Check size={20} color={colors.bordeaux} />}
+                    <Txt variant={active ? 'bold' : 'medium'} size={15} color={active ? colors.accent : colors.ink}>{item.label}</Txt>
+                    {active && <Check size={20} color={colors.accent} />}
                   </TouchableOpacity>
                 );
               }}
             />
           </Pressable>
         </Pressable>
-      </Modal>
+      </AppModal>
     </KeyboardAvoidingView>
   );
 }

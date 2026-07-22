@@ -6,14 +6,14 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import StepHeader from '../components/StepHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
-import { colors, radius, shadows } from '../theme/tokens';
+import { colors, getThemeScheme, radius, shadows } from '../theme/tokens';
 
 const CategoryItem = ({ icon, tint, title, subtitle, onPress, index }: { icon: React.ReactNode; tint: string; title: string; subtitle: string; onPress: () => void; index: number }) => (
   <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.75}
-      style={[{ flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: colors.white, padding: 18, borderRadius: radius.card, marginBottom: 14 }, shadows.listCard]}
+      style={[{ flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: colors.card, padding: 18, borderRadius: radius.card, marginBottom: 14 }, shadows.listCard]}
     >
       <View style={{ width: 54, height: 54, borderRadius: 15, backgroundColor: tint, alignItems: 'center', justifyContent: 'center' }}>
         {icon}
@@ -22,7 +22,7 @@ const CategoryItem = ({ icon, tint, title, subtitle, onPress, index }: { icon: R
         <Txt variant="displayXBold" size={18} color={colors.ink}>{title}</Txt>
         <Txt variant="body" size={13} color={colors.inkSoft} style={{ marginTop: 3 }}>{subtitle}</Txt>
       </View>
-      <ChevronRight size={20} color="#c3b8a6" />
+      <ChevronRight size={20} color={colors.chevron} />
     </TouchableOpacity>
   </Animated.View>
 );
@@ -33,8 +33,8 @@ export default function TypeProduitPage() {
   const { barcode } = useLocalSearchParams();
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.cream }}>
-      <StatusBar barStyle="dark-content" />
+    <View style={{ flex: 1, backgroundColor: colors.sheet }}>
+      <StatusBar barStyle={getThemeScheme() === 'dark' ? 'light-content' : 'dark-content'} />
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 16 }} showsVerticalScrollIndicator={false}>
         <StepHeader step={1} title={t('step_1_title')} />
 

@@ -21,12 +21,12 @@ export default function StepHeader({ step, title, totalSteps = 3 }: StepHeaderPr
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18, gap: 12 }}>
                 <Pressable
                     onPress={() => router.back()}
-                    style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}
+                    style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}
                 >
-                    <ArrowLeft size={20} color={colors.bordeaux} />
+                    <ArrowLeft size={20} color={colors.accent} />
                 </Pressable>
                 <View style={{ flex: 1 }}>
-                    <Txt variant="bold" size={12} color={colors.bordeaux} style={{ letterSpacing: 1.2 }}>
+                    <Txt variant="bold" size={12} color={colors.accent} style={{ letterSpacing: 1.2 }}>
                         {(t('add_product_title') || 'Ajouter un produit').toUpperCase()}
                     </Txt>
                     <Txt variant="display" size={26} color={colors.ink} style={{ marginTop: 2 }}>{title}</Txt>
@@ -34,11 +34,11 @@ export default function StepHeader({ step, title, totalSteps = 3 }: StepHeaderPr
             </View>
 
             {/* Barre de progression */}
-            <View style={{ flexDirection: 'row', height: 6, borderRadius: 3, backgroundColor: '#e6dcc7' }}>
+            <View style={{ flexDirection: 'row', height: 6, borderRadius: 3, backgroundColor: colors.chipBg }}>
                 {[...Array(totalSteps)].map((_, i) => (
                     <View
                         key={i}
-                        style={{ flex: 1, backgroundColor: i < step ? colors.bordeaux : 'transparent', marginLeft: i > 0 ? 2 : 0, borderRadius: 3 }}
+                        style={{ flex: 1, backgroundColor: i < step ? colors.accent : 'transparent', marginLeft: i > 0 ? 2 : 0, borderRadius: 3 }}
                     />
                 ))}
             </View>
