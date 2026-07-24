@@ -1,3 +1,4 @@
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, Check, RefreshCw, X } from 'lucide-react-native';
@@ -16,6 +17,23 @@ import { getAccessToken } from '../services/tokenStore';
 const FRONT_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_dlyit9dlyit9dlyi.png');
 const BACK_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_3ypwh63ypwh63ypw.png');
 const NUTRITION_EXAMPLE = require('../../assets/images/Gemini_Generated_Image_3ypwh63ypwh63ypw.png');
+
+// Réduit la photo brute (souvent 10+ Mpx) avant l'upload : sur un réseau
+// mobile lent, 3 photos non compressées font facilement dépasser le délai
+// d'attente et remontent en "Network Error" côté app. L'OCR n'a pas besoin
+// de la pleine résolution du capteur.
+async function compressForUpload(uri: string): Promise<string> {
+  try {
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 1600 } }],
+      { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG },
+    );
+    return result.uri;
+  } catch {
+    return uri;
+  }
+}
 
 export default function AjouterProduitPhotoPage() {
   const router = useRouter();
@@ -49,9 +67,10 @@ export default function AjouterProduitPhotoPage() {
       // ici, la photo brute suffit pour l'OCR.
       const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
       if (!result.canceled && result.assets?.[0]) {
-        if (activePhotoType === 'front') setImageUri(result.assets[0].uri);
-        else if (activePhotoType === 'ingredients') setImageIngredientsUri(result.assets[0].uri);
-        else if (activePhotoType === 'nutrition') setImageNutritionUri(result.assets[0].uri);
+        const uri = await compressForUpload(result.assets[0].uri);
+        if (activePhotoType === 'front') setImageUri(uri);
+        else if (activePhotoType === 'ingredients') setImageIngredientsUri(uri);
+        else if (activePhotoType === 'nutrition') setImageNutritionUri(uri);
       }
     } catch (error: any) {
       showToast(error?.message || t('photo_error'), 'error');

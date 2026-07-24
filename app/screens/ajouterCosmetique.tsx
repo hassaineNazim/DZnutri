@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft, Camera, Check } from 'lucide-react-native';
 import React, { useState } from 'react';
@@ -10,6 +11,21 @@ import { api } from '../services/axios';
 import { colors, fonts, getThemeScheme, radius, shadows } from '../theme/tokens';
 
 const PINK = '#EC4899';
+
+// Réduit la photo brute avant l'upload (cf. ajouterProdPhoto.tsx) : évite les
+// "Network Error" sur réseau mobile lent avec des fichiers non compressés.
+async function compressForUpload(uri: string): Promise<string> {
+  try {
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 1600 } }],
+      { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG },
+    );
+    return result.uri;
+  } catch {
+    return uri;
+  }
+}
 
 export default function AjouterCosmetique() {
   const router = useRouter();
@@ -33,7 +49,7 @@ export default function AjouterCosmetique() {
       }
       const result = await ImagePicker.launchCameraAsync({ quality: 0.6, allowsEditing: false });
       if (!result.canceled && result.assets?.[0]) {
-        const uri = result.assets[0].uri;
+        const uri = await compressForUpload(result.assets[0].uri);
         if (which === 'front') setFrontUri(uri);
         else setBackUri(uri);
       }
