@@ -2,7 +2,7 @@ import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@
 import { useRouter } from 'expo-router';
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Linking, StatusBar, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Platform, StatusBar, TouchableOpacity, View } from 'react-native';
 import { AccessToken, LoginManager, Settings } from "react-native-fbsdk-next";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
@@ -61,14 +61,20 @@ export default function Login() {
         console.error('[auth] Failed to configure GoogleSignin:', e);
       }
 
-      try {
-        const { status } = await requestTrackingPermissionsAsync();
-        Settings.initializeSDK();
-        if (status === "granted") {
-          await Settings.setAdvertiserTrackingEnabled(true);
+      // Facebook SDK temporairement exclu sur iOS (voir loginWithFacebook
+      // plus bas / plugins/withExcludeFacebookIOS.js) : la demande de
+      // tracking (liée à l'attribution Facebook) et l'init SDK n'ont pas
+      // lieu d'être sur cette plateforme pour l'instant.
+      if (Platform.OS !== 'ios') {
+        try {
+          const { status } = await requestTrackingPermissionsAsync();
+          Settings.initializeSDK();
+          if (status === "granted") {
+            await Settings.setAdvertiserTrackingEnabled(true);
+          }
+        } catch (e) {
+          console.warn('[auth] Tracking permission error:', e);
         }
-      } catch (e) {
-        console.warn('[auth] Tracking permission error:', e);
       }
     };
 
@@ -137,6 +143,13 @@ export default function Login() {
   };
 
   const loginWithFacebook = async () => {
+    // Module natif temporairement exclu sur iOS (bug d'incompatibilité de
+    // react-native-fbsdk-next avec l'API FBSDKCoreKit actuelle — voir
+    // plugins/withExcludeFacebookIOS.js). Android n'est pas concerné.
+    if (Platform.OS === 'ios') {
+      setError('Connexion Facebook temporairement indisponible sur iOS. Utilisez Google ou e-mail.');
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
