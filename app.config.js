@@ -57,7 +57,6 @@ module.exports = {
           backgroundColor: "#ffffff",
         },
       ],
-      "expo-barcode-scanner",
       [
         "react-native-fbsdk-next",
         {
