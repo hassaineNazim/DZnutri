@@ -92,6 +92,7 @@ module.exports = {
         },
       ],
       "expo-secure-store",
+      "./plugins/withFacebookPodfileFix",
       [
         "expo-build-properties",
         {
