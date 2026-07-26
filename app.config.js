@@ -98,6 +98,14 @@ module.exports = {
           android: {
             usesCleartextTraffic: !isProductionProfile,
           },
+          // Google Sign-In embarque des pods Swift (AppCheckCore, dépendance
+          // de GoogleUtilities/RecaptchaInterop) qui ne peuvent pas être liés
+          // en bibliothèques statiques sans modules — échec CocoaPods
+          // ("cannot yet be integrated as static libraries"). useFrameworks
+          // "static" est le contournement officiellement documenté par Expo.
+          ios: {
+            useFrameworks: "static",
+          },
         },
       ],
     ],
