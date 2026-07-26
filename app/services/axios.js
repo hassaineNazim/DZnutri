@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_URL } from '../config/api';
-import { clearTokens, getAccessToken, getRefreshToken, saveTokens } from './tokenStore';
+import { invalidateSession } from './authSession';
+import { getAccessToken, getRefreshToken, saveTokens } from './tokenStore';
 
 // Create axios instance with a sensible timeout and base URL coming from config
 const api = axios.create({
@@ -36,18 +37,29 @@ let refreshPromise = null;
 
 async function performRefresh() {
   const refreshToken = await getRefreshToken();
-  if (!refreshToken) return null;
+  if (!refreshToken) return { accessToken: null, staleSession: false };
   try {
     // Appel direct (hors instance `api`) pour ne pas re-déclencher l'intercepteur.
     const resp = await axios.post(`${API_URL}/auth/refresh`, { refresh_token: refreshToken });
     const { access_token, refresh_token } = resp.data || {};
     if (access_token && refresh_token) {
+      // Une déconnexion ou un changement de compte a pu avoir lieu pendant
+      // l'appel réseau : ne jamais ressusciter l'ancienne session.
+      if ((await getRefreshToken()) !== refreshToken) {
+        return { accessToken: null, staleSession: true };
+      }
       await saveTokens({ access_token, refresh_token });
-      return access_token;
+      return { accessToken: access_token, staleSession: false };
     }
-    return null;
+    return {
+      accessToken: null,
+      staleSession: (await getRefreshToken()) !== refreshToken,
+    };
   } catch {
-    return null;
+    return {
+      accessToken: null,
+      staleSession: (await getRefreshToken()) !== refreshToken,
+    };
   }
 }
 
@@ -64,16 +76,19 @@ api.interceptors.response.use(
           refreshPromise = null;
         });
       }
-      const newAccess = await refreshPromise;
-      if (newAccess) {
+      const refreshResult = await refreshPromise;
+      if (refreshResult.accessToken) {
         original.headers = original.headers || {};
-        original.headers.Authorization = `Bearer ${newAccess}`;
+        original.headers.Authorization = `Bearer ${refreshResult.accessToken}`;
         return api(original);
       }
+      // Une ancienne requête peut finir après une déconnexion ou après la
+      // connexion d'un autre compte. Dans ce cas, ne pas effacer la nouvelle
+      // session : l'erreur d'origine est simplement rejetée.
+      if (refreshResult.staleSession) return Promise.reject(error);
       // Rafraîchissement impossible (refresh token absent/expiré/révoqué) :
-      // on nettoie la session locale. La navigation vers /auth est gérée par
-      // les écrans qui détectent l'absence de token.
-      await clearTokens();
+      // on nettoie la session locale. Le garde global redirige vers /auth.
+      await invalidateSession('expired');
     }
 
     // Logs réseau utiles au diagnostic sur appareil (dev uniquement).

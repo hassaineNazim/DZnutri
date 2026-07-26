@@ -69,6 +69,8 @@ export default function AlternativesList({ barcode, currentScore }: Props) {
         return (
             <TouchableOpacity
                 className="w-40 mr-4 bg-white dark:bg-[#1F2937] rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700"
+                accessibilityRole="button"
+                accessibilityLabel={`${item.product_name || 'Nom inconnu'}, ${item.brand || ''}, score ${item.custom_score ?? 'inconnu'}`}
                 onPress={() => {
                     router.push({
                         pathname: '/screens/productDetail',
@@ -79,6 +81,7 @@ export default function AlternativesList({ barcode, currentScore }: Props) {
             >
                 <Image
                     source={{ uri: item.image_url || 'https://via.placeholder.com/150' }}
+                    accessible={false}
                     className="w-full h-24 rounded-xl bg-gray-50 dark:bg-gray-800 mb-3"
                     resizeMode="contain"
                 />

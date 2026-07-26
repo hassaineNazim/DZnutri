@@ -8,7 +8,23 @@ import { useUserProfile } from '../../hooks/useUserProfile';
 import { useTranslation } from '../../i18n';
 import { colors, fonts, radius, shadows } from '../../theme/tokens';
 
-const COMMON_ALLERGIES = ['gluten', 'peanuts', 'lactose', 'eggs', 'soy', 'fish', 'shellfish', 'nuts'];
+// Les 14 familles réglementaires courantes sont couvertes ; « shellfish »
+// regroupe les crustacés et mollusques pour préserver les profils existants.
+const COMMON_ALLERGIES = [
+    'gluten',
+    'peanuts',
+    'lactose',
+    'eggs',
+    'soy',
+    'fish',
+    'shellfish',
+    'nuts',
+    'celery',
+    'mustard',
+    'sesame',
+    'lupin',
+    'sulphites',
+];
 const DIET_TYPES = ['none', 'vegan', 'vegetarian', 'keto', 'paleo'];
 const ACTIVITY_LEVELS = ['sedentary', 'light', 'moderate', 'active', 'very_active'];
 
@@ -146,13 +162,21 @@ export default function HealthProfilePage() {
             <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
             {/* ---- Entête bordeaux ---- */}
             <View style={{ paddingHorizontal: 22, paddingTop: 16, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Pressable onPress={() => router.back()} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }}>
+                <Pressable
+                    onPress={() => router.back()}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('back')}
+                    style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }}
+                >
                     <ArrowLeft size={20} color={colors.bordeaux} />
                 </Pressable>
                 <Txt variant="displayXBold" size={20} color={colors.creamTitle}>{t('health_profile')}</Txt>
                 <Pressable
                     onPress={handleSave}
                     disabled={isUpdating}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('save')}
+                    accessibilityState={{ disabled: isUpdating, busy: isUpdating }}
                     style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center' }}
                 >
                     {isUpdating ? <ActivityIndicator size="small" color={colors.inkOnYellow} /> : <Save size={20} color={colors.inkOnYellow} />}
@@ -196,19 +220,19 @@ export default function HealthProfilePage() {
                             <View style={{ flexDirection: 'row', gap: 12, marginBottom: 14 }}>
                                 <View style={{ flex: 1 }}>
                                     <Txt variant="medium" size={12} color={colors.inkSoft} style={{ marginBottom: 6 }}>{t('height')}</Txt>
-                                    <TextInput style={numInputStyle} placeholder="175" placeholderTextColor={colors.inkMeta} keyboardType="numeric" value={formData.height} onChangeText={(v) => setFormData((prev) => ({ ...prev, height: v }))} />
+                                    <TextInput accessibilityLabel={t('height')} style={numInputStyle} placeholder="175" placeholderTextColor={colors.inkMeta} keyboardType="numeric" value={formData.height} onChangeText={(v) => setFormData((prev) => ({ ...prev, height: v }))} />
                                 </View>
                                 <View style={{ flex: 1 }}>
                                     <Txt variant="medium" size={12} color={colors.inkSoft} style={{ marginBottom: 6 }}>{t('weight')}</Txt>
-                                    <TextInput style={numInputStyle} placeholder="70" placeholderTextColor={colors.inkMeta} keyboardType="numeric" value={formData.weight} onChangeText={(v) => setFormData((prev) => ({ ...prev, weight: v }))} />
+                                    <TextInput accessibilityLabel={t('weight')} style={numInputStyle} placeholder="70" placeholderTextColor={colors.inkMeta} keyboardType="numeric" value={formData.weight} onChangeText={(v) => setFormData((prev) => ({ ...prev, weight: v }))} />
                                 </View>
                             </View>
 
                             <Txt variant="medium" size={12} color={colors.inkSoft} style={{ marginBottom: 6 }}>{t('birth_date')}</Txt>
                             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-                                <TextInput style={[numInputStyle, { flex: 1 }]} placeholder="JJ" placeholderTextColor={colors.inkMeta} keyboardType="numeric" maxLength={2} value={formData.birth_day} onChangeText={(v) => setFormData((prev) => ({ ...prev, birth_day: v }))} />
-                                <TextInput style={[numInputStyle, { flex: 1 }]} placeholder="MM" placeholderTextColor={colors.inkMeta} keyboardType="numeric" maxLength={2} value={formData.birth_month} onChangeText={(v) => setFormData((prev) => ({ ...prev, birth_month: v }))} />
-                                <TextInput style={[numInputStyle, { flex: 1.4 }]} placeholder="AAAA" placeholderTextColor={colors.inkMeta} keyboardType="numeric" maxLength={4} value={formData.birth_year} onChangeText={(v) => setFormData((prev) => ({ ...prev, birth_year: v }))} />
+                                <TextInput accessibilityLabel={`${t('birth_date')}, jour`} style={[numInputStyle, { flex: 1 }]} placeholder="JJ" placeholderTextColor={colors.inkMeta} keyboardType="numeric" maxLength={2} value={formData.birth_day} onChangeText={(v) => setFormData((prev) => ({ ...prev, birth_day: v }))} />
+                                <TextInput accessibilityLabel={`${t('birth_date')}, mois`} style={[numInputStyle, { flex: 1 }]} placeholder="MM" placeholderTextColor={colors.inkMeta} keyboardType="numeric" maxLength={2} value={formData.birth_month} onChangeText={(v) => setFormData((prev) => ({ ...prev, birth_month: v }))} />
+                                <TextInput accessibilityLabel={`${t('birth_date')}, année`} style={[numInputStyle, { flex: 1.4 }]} placeholder="AAAA" placeholderTextColor={colors.inkMeta} keyboardType="numeric" maxLength={4} value={formData.birth_year} onChangeText={(v) => setFormData((prev) => ({ ...prev, birth_year: v }))} />
                             </View>
 
                             <Txt variant="medium" size={12} color={colors.inkSoft} style={{ marginBottom: 8 }}>{t('gender')}</Txt>
@@ -216,7 +240,7 @@ export default function HealthProfilePage() {
                                 {['male', 'female'].map((g) => {
                                     const active = formData.gender === g;
                                     return (
-                                        <TouchableOpacity key={g} onPress={() => setFormData((prev) => ({ ...prev, gender: g }))} style={{ flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center', backgroundColor: active ? colors.card : 'transparent' }}>
+                                        <TouchableOpacity key={g} onPress={() => setFormData((prev) => ({ ...prev, gender: g }))} accessibilityRole="radio" accessibilityLabel={t(g)} accessibilityState={{ selected: active }} style={{ flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center', backgroundColor: active ? colors.card : 'transparent' }}>
                                             <Txt variant="semibold" size={14} color={active ? colors.accent : colors.inkSoft}>{t(g)}</Txt>
                                         </TouchableOpacity>
                                     );
@@ -231,6 +255,9 @@ export default function HealthProfilePage() {
                                         <TouchableOpacity
                                             key={level}
                                             onPress={() => setFormData((prev) => ({ ...prev, activity_level: level }))}
+                                            accessibilityRole="radio"
+                                            accessibilityLabel={t(level)}
+                                            accessibilityState={{ selected: active }}
                                             style={{ marginRight: 8, paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill, borderWidth: 1.5, backgroundColor: active ? colors.bordeaux : 'transparent', borderColor: active ? colors.bordeaux : colors.border }}
                                         >
                                             <Txt variant="semibold" size={13} color={active ? colors.cream : colors.inkSoft}>{t(level)}</Txt>
@@ -247,7 +274,7 @@ export default function HealthProfilePage() {
                             {DIET_TYPES.map((type) => {
                                 const active = formData.diet_type === type;
                                 return (
-                                    <TouchableOpacity key={type} onPress={() => setFormData((prev) => ({ ...prev, diet_type: type }))} style={{ marginRight: 12, alignItems: 'center' }}>
+                                    <TouchableOpacity key={type} onPress={() => setFormData((prev) => ({ ...prev, diet_type: type }))} accessibilityRole="radio" accessibilityLabel={t(type)} accessibilityState={{ selected: active }} style={{ marginRight: 12, alignItems: 'center' }}>
                                         <View style={{ width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 6, backgroundColor: active ? colors.bordeaux : colors.card, borderWidth: active ? 0 : 1.5, borderColor: colors.border }}>
                                             <Leaf size={24} color={active ? colors.cream : colors.inkMeta} />
                                         </View>
@@ -266,6 +293,9 @@ export default function HealthProfilePage() {
                                     <TouchableOpacity
                                         key={allergy}
                                         onPress={() => toggleAllergy(allergy)}
+                                        accessibilityRole="checkbox"
+                                        accessibilityLabel={t(allergy)}
+                                        accessibilityState={{ checked: active }}
                                         style={{ marginRight: 8, marginBottom: 8, paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.cardSm, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5, backgroundColor: active ? 'rgba(210,75,51,0.1)' : colors.card, borderColor: active ? colors.red : colors.border }}
                                     >
                                         {active && <AlertTriangle size={14} color={colors.red} />}
@@ -280,6 +310,7 @@ export default function HealthProfilePage() {
                         <Card>
                             <View style={{ flexDirection: 'row', gap: 8, marginBottom: formData.disliked_ingredients.length > 0 ? 14 : 0 }}>
                                 <TextInput
+                                    accessibilityLabel={t('disliked_ingredients')}
                                     style={{ flex: 1, backgroundColor: colors.inputBg, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: colors.ink, fontFamily: fonts.sans }}
                                     placeholder={t('dislike_placeholder')}
                                     placeholderTextColor={colors.inkMeta}
@@ -287,13 +318,13 @@ export default function HealthProfilePage() {
                                     onChangeText={setNewDislike}
                                     onSubmitEditing={addDislike}
                                 />
-                                <TouchableOpacity onPress={addDislike} style={{ backgroundColor: colors.bordeaux, width: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                                <TouchableOpacity onPress={addDislike} accessibilityRole="button" accessibilityLabel={t('add')} style={{ backgroundColor: colors.bordeaux, width: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
                                     <Plus size={24} color={colors.cream} />
                                 </TouchableOpacity>
                             </View>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                                 {formData.disliked_ingredients.map((item, index) => (
-                                    <TouchableOpacity key={index} onPress={() => removeDislike(item)} style={{ marginRight: 8, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: colors.chipBg, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <TouchableOpacity key={index} onPress={() => removeDislike(item)} accessibilityRole="button" accessibilityLabel={`${t('delete')} ${item}`} style={{ marginRight: 8, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: colors.chipBg, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                         <Txt variant="medium" size={13} color={colors.ink}>{item}</Txt>
                                         <X size={14} color={colors.inkSoft} />
                                     </TouchableOpacity>

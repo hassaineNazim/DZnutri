@@ -27,13 +27,8 @@ export const saveToHistory = async (product: Product): Promise<void> => {
 
 
 export const fetchHistory = async (): Promise<Product[]> => {
-  try {
-    const response = await api.get('/api/history');
-    return response.data;
-  } catch (error) {
-    console.error("Erreur lors de la récupération de l'historique:", error);
-    return []; 
-  }
+  const response = await api.get('/api/history');
+  return response.data;
 };
 
 export const deleteFromHistory = async (itemId: number) => {

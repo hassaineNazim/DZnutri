@@ -1,4 +1,4 @@
-import { AntDesign } from "@expo/vector-icons";
+import AntDesign from "@expo/vector-icons/AntDesign";
 import { colorScheme } from "nativewind";
 
 import React, { useRef, useState } from 'react';
@@ -46,6 +46,9 @@ export default function Dropdown({ data, onChange, placeholder }: DropDownProps)
       <TouchableOpacity
         ref={buttonRef}
         onPress={toggleExpanded}
+        accessibilityRole="button"
+        accessibilityLabel={selectedValue ? selectedValue.label : placeholder}
+        accessibilityState={{ expanded }}
         className="flex-row items-center justify-between px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
         activeOpacity={0.7}
       >
@@ -59,7 +62,7 @@ export default function Dropdown({ data, onChange, placeholder }: DropDownProps)
       </TouchableOpacity>
 
       <Modal visible={expanded} transparent animationType="fade">
-        <TouchableWithoutFeedback onPress={() => setExpanded(false)}>
+        <TouchableWithoutFeedback onPress={() => setExpanded(false)} accessible={false}>
           <View className="flex-1">
             <View
               style={{ top: dropdownTop }}
@@ -69,7 +72,13 @@ export default function Dropdown({ data, onChange, placeholder }: DropDownProps)
                 data={data}
                 keyExtractor={(item) => item.value}
                 renderItem={({ item }) => (
-                  <TouchableOpacity onPress={() => onSelect(item)} className="p-4">
+                  <TouchableOpacity
+                    onPress={() => onSelect(item)}
+                    accessibilityRole="radio"
+                    accessibilityLabel={item.label}
+                    accessibilityState={{ selected: selectedValue?.value === item.value }}
+                    className="p-4"
+                  >
                     <Text className="text-base text-gray-900 dark:text-gray-100">{item.label}</Text>
                   </TouchableOpacity>
                 )}

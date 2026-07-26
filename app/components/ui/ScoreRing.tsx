@@ -63,7 +63,12 @@ export default function ScoreRing({
   }));
 
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+    <View
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={hasScore ? `Score ${value} sur 100` : 'Score indisponible'}
+      style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
+    >
       <Svg width={size} height={size}>
         {/* Piste (vide) */}
         <Circle

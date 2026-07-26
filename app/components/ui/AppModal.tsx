@@ -28,7 +28,11 @@ type Props = {
 export default function AppModal({ visible, children }: Props) {
   if (!visible) return null;
   return (
-    <View style={[StyleSheet.absoluteFill, { zIndex: 1000, elevation: 1000 }]}>
+    <View
+      accessibilityViewIsModal
+      importantForAccessibility="yes"
+      style={[StyleSheet.absoluteFill, { zIndex: 1000, elevation: 1000 }]}
+    >
       {children}
     </View>
   );

@@ -1,6 +1,7 @@
+import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { Search, SlidersHorizontal, X } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StatusBar, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import FilterModal from '../components/FilterModal';
@@ -22,6 +23,13 @@ type Product = {
   custom_score?: number;
 };
 
+type SearchFilters = {
+  category?: string;
+  subcategory?: string;
+  minScore?: number;
+  verifiedOnly: boolean;
+};
+
 export default function Rech() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -30,57 +38,93 @@ export default function Rech() {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [filters, setFilters] = useState<{
-    category?: string;
-    subcategory?: string;
-    minScore?: number;
-    verifiedOnly: boolean;
-  }>({
+  const [filters, setFilters] = useState<SearchFilters>({
     verifiedOnly: false,
   });
+  const [searchError, setSearchError] = useState(false);
 
   const inputRef = useRef<TextInput | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const requestSequence = useRef(0);
   const filtersActive = Object.keys(filters).length > 1 || filters.verifiedOnly;
 
-  const searchProducts = async () => {
-    if (!query.trim() && Object.keys(filters).length === 1 && !filters.verifiedOnly) return;
+  const runSearch = useCallback(async (searchQuery: string, searchFilters: SearchFilters) => {
+    if (!searchQuery.trim() && Object.keys(searchFilters).length === 1 && !searchFilters.verifiedOnly) {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      requestSequence.current += 1;
+      setLoading(false);
+      setSearchError(false);
+      setHasSearched(false);
+      setResults([]);
+      return;
+    }
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const requestId = ++requestSequence.current;
     setLoading(true);
     setHasSearched(true);
+    setSearchError(false);
     try {
       const params = new URLSearchParams();
-      if (query.trim()) params.append('q', query);
-      if (filters.category) params.append('category', filters.category);
-      if (filters.subcategory) params.append('subcategory', filters.subcategory);
-      if (filters.minScore) params.append('min_score', filters.minScore.toString());
-      if (filters.verifiedOnly) params.append('verified_only', 'true');
+      if (searchQuery.trim()) params.append('q', searchQuery.trim());
+      if (searchFilters.category) params.append('category', searchFilters.category);
+      if (searchFilters.subcategory) params.append('subcategory', searchFilters.subcategory);
+      if (searchFilters.minScore !== undefined) params.append('min_score', searchFilters.minScore.toString());
+      if (searchFilters.verifiedOnly) params.append('verified_only', 'true');
 
-      const response = await api.get(`/api/search?${params.toString()}`);
-      setResults(response.data || []);
-    } catch (error) {
+      const response = await api.get(`/api/search?${params.toString()}`, {
+        signal: controller.signal,
+      });
+      if (requestId === requestSequence.current) setResults(response.data || []);
+    } catch (error: unknown) {
+      if (axios.isCancel(error) || controller.signal.aborted) return;
       console.error('Search error:', error);
+      if (requestId === requestSequence.current) setSearchError(true);
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) setLoading(false);
     }
-  };
+  }, []);
+
+  const searchProducts = () => runSearch(query, filters);
 
   // Relance la recherche quand les filtres changent.
   useEffect(() => {
     if (hasSearched) {
-      searchProducts();
+      runSearch(query, filters);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   // Recherche « live » : 400 ms après la fin de saisie (dès 2 caractères).
   useEffect(() => {
-    if (query.trim().length < 2) return;
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length === 0) {
+      runSearch('', filters);
+      return;
+    }
+    if (trimmedQuery.length < 2) {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      requestSequence.current += 1;
+      setLoading(false);
+      return;
+    }
     const timer = setTimeout(() => {
-      searchProducts();
+      runSearch(query, filters);
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
+
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+    },
+    [],
+  );
 
   const clearFilter = (patch: Partial<typeof filters>) => setFilters((prev) => ({ ...prev, ...patch }));
 
@@ -99,11 +143,16 @@ export default function Rech() {
         {/* Barre de recherche + filtre */}
         <View style={{ flexDirection: 'row', gap: 12, marginTop: 18 }}>
           <View style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.cardSm, paddingHorizontal: 14, paddingVertical: 12 }, shadows.listCard]}>
-            <TouchableOpacity onPress={searchProducts}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t('search')}
+              onPress={searchProducts}
+            >
               <Search size={20} color={colors.inkSoft} />
             </TouchableOpacity>
             <TextInput
               ref={inputRef}
+              accessibilityLabel={t('search_products')}
               style={{ marginLeft: 10, flex: 1, fontSize: 15, color: colors.ink, fontFamily: fonts.sans }}
               placeholder={t('search_products')}
               placeholderTextColor={colors.inkMeta}
@@ -114,12 +163,10 @@ export default function Rech() {
             />
             {query.length > 0 && (
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={t('clear_search')}
                 onPress={() => {
                   setQuery('');
-                  if (!filters.category) {
-                    setHasSearched(false);
-                    setResults([]);
-                  }
                   inputRef.current?.focus();
                 }}
                 style={{ padding: 4, backgroundColor: colors.chipBg, borderRadius: 20 }}
@@ -131,6 +178,9 @@ export default function Rech() {
 
           <TouchableOpacity
             onPress={() => setFilterModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t('open_filters')}
+            accessibilityState={{ selected: filtersActive }}
             style={[
               { width: 48, height: 48, borderRadius: radius.cardSm, alignItems: 'center', justifyContent: 'center', backgroundColor: filtersActive ? colors.yellow : colors.card },
               shadows.listCard,
@@ -186,7 +236,21 @@ export default function Rech() {
               </Animated.View>
             )}
             ListEmptyComponent={
-              hasSearched ? (
+              searchError ? (
+                <View style={{ marginTop: 50, alignItems: 'center', paddingHorizontal: 20 }}>
+                  <Txt variant="medium" size={15} color={colors.red} style={{ textAlign: 'center' }}>
+                    {t('search_error')}
+                  </Txt>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={t('retry')}
+                    onPress={searchProducts}
+                    style={{ marginTop: 14, backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 18, paddingVertical: 11 }}
+                  >
+                    <Txt variant="bold" size={14} color={colors.inkOnYellow}>{t('retry')}</Txt>
+                  </TouchableOpacity>
+                </View>
+              ) : hasSearched ? (
                 <View style={{ marginTop: 50, alignItems: 'center' }}>
                   <Txt variant="medium" size={15} color={colors.inkSoft} style={{ textAlign: 'center' }}>
                     {t('no_products_found')}
@@ -219,10 +283,15 @@ export default function Rech() {
 }
 
 function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  const { t } = useTranslation();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(244,234,214,0.16)', paddingLeft: 12, paddingRight: 8, paddingVertical: 6, borderRadius: radius.pill }}>
       <Txt variant="semibold" size={12} color={colors.cream}>{label}</Txt>
-      <TouchableOpacity onPress={onRemove}>
+      <TouchableOpacity
+        onPress={onRemove}
+        accessibilityRole="button"
+        accessibilityLabel={`${t('delete')} ${label}`}
+      >
         <X size={13} color={colors.rose2} />
       </TouchableOpacity>
     </View>

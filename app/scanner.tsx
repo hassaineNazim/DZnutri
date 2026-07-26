@@ -161,7 +161,12 @@ export default function Scanner() {
         <Txt variant="medium" size={16} color={colors.cream} style={{ marginBottom: 16, textAlign: 'center' }}>
           {t('camera_permission_needed')}
         </Txt>
-        <TouchableOpacity onPress={requestPermission} style={{ backgroundColor: colors.yellow, paddingHorizontal: 24, paddingVertical: 14, borderRadius: radius.cta }}>
+        <TouchableOpacity
+          onPress={requestPermission}
+          accessibilityRole="button"
+          accessibilityLabel={t('give_camera_permission')}
+          style={{ backgroundColor: colors.yellow, paddingHorizontal: 24, paddingVertical: 14, borderRadius: radius.cta }}
+        >
           <Txt variant="bold" size={15} color={colors.inkOnYellow}>{t('give_camera_permission')}</Txt>
         </TouchableOpacity>
       </View>
@@ -185,10 +190,21 @@ export default function Scanner() {
       <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
         {/* Entête : fermer + flash */}
         <View style={{ paddingHorizontal: 22, paddingTop: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Pressable onPress={() => router.back()} style={styles.roundGlass}>
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={t('close')}
+            style={styles.roundGlass}
+          >
             <X size={20} color={colors.cream} strokeWidth={2.2} />
           </Pressable>
-          <Pressable onPress={() => setTorch((v) => !v)} style={[styles.roundGlass, torch && { backgroundColor: 'rgba(240,138,60,0.35)' }]}>
+          <Pressable
+            onPress={() => setTorch((v) => !v)}
+            accessibilityRole="switch"
+            accessibilityLabel={t('flash')}
+            accessibilityState={{ checked: torch }}
+            style={[styles.roundGlass, torch && { backgroundColor: 'rgba(240,138,60,0.35)' }]}
+          >
             <Zap size={20} color={colors.orangeAlt} fill={torch ? colors.orangeAlt : 'none'} />
           </Pressable>
         </View>
@@ -219,6 +235,9 @@ export default function Scanner() {
           <View style={{ flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: radius.pill, padding: 4 }}>
             <TouchableOpacity
               onPress={() => setMode('food')}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: mode === 'food' }}
+              accessibilityLabel={t('food')}
               style={{ paddingHorizontal: 20, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: mode === 'food' ? colors.yellow : 'transparent' }}
               activeOpacity={0.85}
             >
@@ -228,6 +247,9 @@ export default function Scanner() {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setMode('cosmetic')}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: mode === 'cosmetic' }}
+              accessibilityLabel={t('cosmetic')}
               style={{ paddingHorizontal: 20, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: mode === 'cosmetic' ? '#EC4899' : 'transparent' }}
               activeOpacity={0.85}
             >
@@ -253,6 +275,7 @@ export default function Scanner() {
           l'écran. Un overlay absolu dans la même hiérarchie est fiable. */}
       {(scanResult.status === 'found' || scanResult.status === 'notFound') && (
         <Pressable
+          accessible={false}
           style={[
             StyleSheet.absoluteFill,
             {
@@ -267,7 +290,7 @@ export default function Scanner() {
           onPress={resetScanner}
         >
           {scanResult.status === 'found' && (
-            <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 380 }}>
+            <Pressable accessible={false} onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 380 }}>
               <View style={[{ backgroundColor: colors.sheet, borderRadius: radius.sheet, padding: 20 }, shadows.resultCard]}>
                 {/* Bandeau succès */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -282,6 +305,7 @@ export default function Scanner() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
                   <Image
                     source={{ uri: scanResult.product.image_url || 'https://via.placeholder.com/100' }}
+                    accessible={false}
                     style={{ width: 64, height: 64, borderRadius: 15, backgroundColor: colors.thumbBg }}
                     resizeMode="contain"
                   />
@@ -304,6 +328,8 @@ export default function Scanner() {
 
                 <TouchableOpacity
                   onPress={() => navigateToProductDetails(scanResult.product)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('product_details')}
                   style={{ marginTop: 18, backgroundColor: colors.dark, borderRadius: radius.cta, paddingVertical: 18, alignItems: 'center' }}
                   activeOpacity={0.85}
                 >
@@ -314,7 +340,7 @@ export default function Scanner() {
           )}
 
           {scanResult.status === 'notFound' && (
-            <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%' }}>
+            <Pressable accessible={false} onPress={(e) => e.stopPropagation()} style={{ width: '100%' }}>
               <View style={{ backgroundColor: colors.sheet, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, alignItems: 'center' }}>
                 <View style={{ width: 48, height: 6, borderRadius: 3, backgroundColor: colors.handle, marginBottom: 22 }} />
                 <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.yellow, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
@@ -329,11 +355,18 @@ export default function Scanner() {
                 <TouchableOpacity
                   style={{ width: '100%', backgroundColor: colors.dark, borderRadius: radius.cta, paddingVertical: 16, alignItems: 'center', marginBottom: 12 }}
                   onPress={() => goToAddFlow(scanResult.barcode)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('add_product')}
                   activeOpacity={0.85}
                 >
                   <Txt variant="bold" size={16} color={colors.cream}>{t('add_product')}</Txt>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={resetScanner} style={{ padding: 12 }}>
+                <TouchableOpacity
+                  onPress={resetScanner}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('cancel')}
+                  style={{ padding: 12 }}
+                >
                   <Txt variant="semibold" size={14} color={colors.inkSoft}>{t('cancel')}</Txt>
                 </TouchableOpacity>
               </View>

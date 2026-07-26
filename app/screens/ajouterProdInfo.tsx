@@ -76,6 +76,7 @@ export default function AjouterProduitInfoPage() {
           <View style={{ marginBottom: 16 }}>
             <Txt variant="medium" size={13} color={colors.inkSoft} style={{ marginBottom: 8, marginLeft: 2 }}>{t('product_name')}</Txt>
             <TextInput
+              accessibilityLabel={t('product_name')}
               style={inputStyle(nameError)}
               placeholder={t('product_name_placeholder')}
               placeholderTextColor={colors.inkMeta}
@@ -89,6 +90,7 @@ export default function AjouterProduitInfoPage() {
           <View style={{ marginBottom: 16 }}>
             <Txt variant="medium" size={13} color={colors.inkSoft} style={{ marginBottom: 8, marginLeft: 2 }}>{t('brand')}</Txt>
             <TextInput
+              accessibilityLabel={t('brand')}
               style={inputStyle(brandError)}
               placeholder={t('brand_placeholder')}
               placeholderTextColor={colors.inkMeta}
@@ -105,6 +107,9 @@ export default function AjouterProduitInfoPage() {
             </Txt>
             <TouchableOpacity
               onPress={() => setDropdownVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`Type spécifique, ${typeSpecifique.label}`}
+              accessibilityState={{ expanded: dropdownVisible }}
               style={{ backgroundColor: colors.inputBg, paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
             >
               <Txt variant="semibold" size={15} color={colors.ink}>{typeSpecifique.label}</Txt>
@@ -112,7 +117,7 @@ export default function AjouterProduitInfoPage() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity onPress={handleNext} activeOpacity={0.85} style={{ backgroundColor: colors.yellow, paddingVertical: 16, borderRadius: radius.cta, alignItems: 'center' }}>
+          <TouchableOpacity onPress={handleNext} accessibilityRole="button" accessibilityLabel={t('next')} activeOpacity={0.85} style={{ backgroundColor: colors.yellow, paddingVertical: 16, borderRadius: radius.cta, alignItems: 'center' }}>
             <Txt variant="bold" size={16} color={colors.inkOnYellow}>{t('next')}</Txt>
           </TouchableOpacity>
         </Animated.View>
@@ -120,8 +125,8 @@ export default function AjouterProduitInfoPage() {
 
       {/* Dropdown — AppModal : le Modal natif figeait l'app. */}
       <AppModal visible={dropdownVisible} transparent animationType="fade" onRequestClose={() => setDropdownVisible(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(30,18,12,0.55)', justifyContent: 'center', alignItems: 'center' }} onPress={() => setDropdownVisible(false)}>
-          <Pressable style={[{ backgroundColor: colors.sheet, width: '82%', borderRadius: 22, overflow: 'hidden' }, shadows.resultCard]} onPress={(e) => e.stopPropagation()}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('close')} style={{ flex: 1, backgroundColor: 'rgba(30,18,12,0.55)', justifyContent: 'center', alignItems: 'center' }} onPress={() => setDropdownVisible(false)}>
+          <Pressable accessible={false} style={[{ backgroundColor: colors.sheet, width: '82%', borderRadius: 22, overflow: 'hidden' }, shadows.resultCard]} onPress={(e) => e.stopPropagation()}>
             <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
               <Txt variant="displayXBold" size={18} color={colors.ink} style={{ textAlign: 'center' }}>Choisir un type</Txt>
             </View>
@@ -132,6 +137,9 @@ export default function AjouterProduitInfoPage() {
                 const active = item.value === typeSpecifique.value;
                 return (
                   <TouchableOpacity
+                    accessibilityRole="radio"
+                    accessibilityLabel={item.label}
+                    accessibilityState={{ selected: active }}
                     style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.chipBg, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: active ? colors.bordeauxSoft : 'transparent' }}
                     onPress={() => { settypeSpecifique(item); setDropdownVisible(false); }}
                   >

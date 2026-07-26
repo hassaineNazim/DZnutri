@@ -47,7 +47,7 @@ export default function FilterModal({ visible, onClose, onApply, initialFilters 
     return (
         <AppModal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <View style={{ flex: 1, backgroundColor: 'rgba(30,18,12,0.55)', justifyContent: 'flex-end' }}>
-                <Pressable style={{ flex: 1 }} onPress={onClose} />
+                <Pressable accessibilityRole="button" accessibilityLabel="Fermer les filtres" style={{ flex: 1 }} onPress={onClose} />
 
                 <View style={{ backgroundColor: colors.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28, height: '86%', paddingHorizontal: 22, paddingTop: 18, paddingBottom: 22 }}>
                     <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: colors.handle, alignSelf: 'center', marginBottom: 18 }} />
@@ -56,11 +56,11 @@ export default function FilterModal({ visible, onClose, onApply, initialFilters 
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                         <View>
                             <Txt variant="display" size={26} color={colors.ink}>Filtres</Txt>
-                            <TouchableOpacity onPress={resetFilters} style={{ marginTop: 2 }}>
+                            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Réinitialiser les filtres" onPress={resetFilters} style={{ marginTop: 2 }}>
                                 <Txt variant="semibold" size={13} color={colors.accent}>Réinitialiser</Txt>
                             </TouchableOpacity>
                         </View>
-                        <TouchableOpacity onPress={onClose} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.bordeauxSoft, alignItems: 'center', justifyContent: 'center' }}>
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Fermer les filtres" onPress={onClose} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.bordeauxSoft, alignItems: 'center', justifyContent: 'center' }}>
                             <X size={20} color={colors.accent} />
                         </TouchableOpacity>
                     </View>
@@ -75,6 +75,9 @@ export default function FilterModal({ visible, onClose, onApply, initialFilters 
                                     <TouchableOpacity
                                         key={score}
                                         onPress={() => setFilters((prev) => ({ ...prev, minScore: score }))}
+                                        accessibilityRole="radio"
+                                        accessibilityLabel={`Score minimum ${score}`}
+                                        accessibilityState={{ selected: isSelected }}
                                         style={{ flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 11, backgroundColor: isSelected ? colors.yellow : 'transparent' }}
                                     >
                                         <Txt variant="bold" size={14} color={isSelected ? colors.inkOnYellow : colors.inkSoft}>{score}+</Txt>
@@ -93,6 +96,9 @@ export default function FilterModal({ visible, onClose, onApply, initialFilters 
                                     <View key={cat} style={{ marginBottom: 8 }}>
                                         <TouchableOpacity
                                             onPress={() => setFilters((prev) => ({ ...prev, category: isSelected ? undefined : cat, subcategory: undefined }))}
+                                            accessibilityRole="checkbox"
+                                            accessibilityLabel={CATEGORY_LABELS[cat] || cat}
+                                            accessibilityState={{ checked: isSelected, expanded: isSelected }}
                                             activeOpacity={0.8}
                                             style={{
                                                 flexDirection: 'row',
@@ -120,6 +126,9 @@ export default function FilterModal({ visible, onClose, onApply, initialFilters 
                                                         <TouchableOpacity
                                                             key={sub}
                                                             onPress={() => setFilters((prev) => ({ ...prev, subcategory: prev.subcategory === sub ? undefined : sub }))}
+                                                            accessibilityRole="checkbox"
+                                                            accessibilityLabel={sub}
+                                                            accessibilityState={{ checked: subSelected }}
                                                             style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}
                                                         >
                                                             <View style={{ width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, marginRight: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: subSelected ? colors.bordeaux : 'transparent', borderColor: subSelected ? colors.bordeaux : colors.border }}>
@@ -141,6 +150,9 @@ export default function FilterModal({ visible, onClose, onApply, initialFilters 
                         {/* Vérifiés uniquement */}
                         <TouchableOpacity
                             onPress={() => setFilters((prev) => ({ ...prev, verifiedOnly: !prev.verifiedOnly }))}
+                            accessibilityRole="switch"
+                            accessibilityLabel="Produits vérifiés uniquement"
+                            accessibilityState={{ checked: filters.verifiedOnly }}
                             activeOpacity={0.8}
                             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border, padding: 16, borderRadius: radius.cardSm, marginBottom: 24 }}
                         >
@@ -153,7 +165,7 @@ export default function FilterModal({ visible, onClose, onApply, initialFilters 
 
                     {/* Footer */}
                     <View style={{ paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border }}>
-                        <TouchableOpacity onPress={handleApply} activeOpacity={0.85} style={[{ backgroundColor: colors.yellow, borderRadius: radius.cta, paddingVertical: 17, alignItems: 'center' }, shadows.listCard]}>
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Appliquer les filtres" onPress={handleApply} activeOpacity={0.85} style={[{ backgroundColor: colors.yellow, borderRadius: radius.cta, paddingVertical: 17, alignItems: 'center' }, shadows.listCard]}>
                             <Txt variant="bold" size={16} color={colors.inkOnYellow}>Appliquer</Txt>
                         </TouchableOpacity>
                     </View>

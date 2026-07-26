@@ -47,7 +47,14 @@ export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
           };
 
           const tab = (
-            <Pressable key={route.key} onPress={onPress} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+            <Pressable
+              key={route.key}
+              onPress={onPress}
+              accessibilityRole="tab"
+              accessibilityLabel={t(meta.labelKey) || meta.fallback}
+              accessibilityState={{ selected: isFocused }}
+              style={{ flex: 1, alignItems: 'center', gap: 6 }}
+            >
               <Icon size={24} color={color} strokeWidth={1.8} />
               <Txt variant={isFocused ? 'bold' : 'medium'} size={11} color={color}>
                 {t(meta.labelKey) || meta.fallback}
@@ -63,6 +70,8 @@ export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
                   <Pressable
                     onPress={() => router.push('/scanner')}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('scan_product')}
                     style={[
                       {
                         width: 62,

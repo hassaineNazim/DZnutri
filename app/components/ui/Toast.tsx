@@ -42,6 +42,9 @@ const Toast = ({ message, type = 'success', onHide, visible }: ToastProps) => {
 
     return (
         <Animated.View
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            accessibilityLabel={message}
             entering={SlideInUp.springify().damping(15)}
             exiting={SlideOutUp}
             style={{

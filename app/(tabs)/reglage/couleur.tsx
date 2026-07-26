@@ -1,1 +1,1 @@
-export default function CouleurPage () {}
+export { default } from './index';

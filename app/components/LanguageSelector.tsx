@@ -104,6 +104,8 @@ export default function LanguageSelector({
                     <TouchableOpacity
                         style={{ flex: 1 }}
                         activeOpacity={1}
+                        accessibilityRole="button"
+                        accessibilityLabel="Fermer le sélecteur de langue"
                         onPress={handleClose}
                     />
                 </Animated.View>
@@ -125,6 +127,8 @@ export default function LanguageSelector({
                         </View>
                         <TouchableOpacity
                             onPress={handleClose}
+                            accessibilityRole="button"
+                            accessibilityLabel="Fermer le sélecteur de langue"
                             className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 items-center justify-center"
                         >
                             <X size={18} color={isDark ? '#9CA3AF' : '#6B7280'} />
@@ -139,6 +143,9 @@ export default function LanguageSelector({
                                 <TouchableOpacity
                                     key={lang.value}
                                     activeOpacity={0.7}
+                                    accessibilityRole="radio"
+                                    accessibilityLabel={lang.label}
+                                    accessibilityState={{ selected: isSelected }}
                                     onPress={() => {
                                         onSelect(lang.value);
                                         handleClose(); // Optional: Close on select

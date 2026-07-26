@@ -5,7 +5,8 @@ import { ActivityIndicator, Alert, ScrollView, StatusBar, TouchableOpacity, View
 import { BackButton } from '../../components/ui/FormKit';
 import Txt from '../../components/ui/Txt';
 import { api } from '../../services/axios';
-import { clearTokens, getRefreshToken } from '../../services/tokenStore';
+import { invalidateSession } from '../../services/authSession';
+import { getRefreshToken } from '../../services/tokenStore';
 import { colors, radius, shadows } from '../../theme/tokens';
 
 interface UserData {
@@ -42,7 +43,7 @@ function Row({
   last?: boolean;
 }) {
   return (
-    <TouchableRow onPress={onPress} last={last}>
+    <TouchableRow onPress={onPress} label={label} value={value} last={last}>
       <IconTile tint={tint}>{icon}</IconTile>
       <View style={{ flex: 1, marginLeft: 14 }}>
         <Txt variant="semibold" size={16} color={danger ? colors.red : colors.ink}>{label}</Txt>
@@ -54,11 +55,25 @@ function Row({
 }
 
 // Ligne cliquable (ou statique) avec séparateur.
-function TouchableRow({ children, onPress, last }: { children: React.ReactNode; onPress?: () => void; last?: boolean }) {
+function TouchableRow({
+  children,
+  onPress,
+  label,
+  value,
+  last,
+}: {
+  children: React.ReactNode;
+  onPress?: () => void;
+  label: string;
+  value?: string | null;
+  last?: boolean;
+}) {
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`${label}${value ? `, ${value}` : ''}`}
       activeOpacity={onPress ? 0.65 : 1}
       style={{
         flexDirection: 'row',
@@ -87,7 +102,7 @@ export default function ComptePage() {
       console.log('Erreur lors de la récupération du profil', error);
       // @ts-ignore
       if (error.response && error.response.status === 401) {
-        await clearTokens();
+        await invalidateSession('expired');
         router.replace('/auth');
       }
     } finally {
@@ -113,8 +128,7 @@ export default function ComptePage() {
             if (refreshToken) {
               try { await api.post('/auth/logout', { refresh_token: refreshToken }); } catch {}
             }
-            await clearTokens();
-            router.replace('/auth');
+            await invalidateSession('logout');
           } catch (error) {
             if (__DEV__) console.log('Erreur lors de la déconnexion', error);
           }
@@ -179,8 +193,13 @@ export default function ComptePage() {
             <Row
               icon={<Key size={19} color={colors.orange} />}
               tint="rgba(240,138,60,0.16)"
-              label="Changer le mot de passe"
-              onPress={() => { /* TODO */ }}
+              label="Réinitialiser le mot de passe"
+              onPress={() =>
+                router.push({
+                  pathname: '/auth/forgot-password',
+                  params: user?.email ? { email: user.email } : {},
+                })
+              }
               showArrow
             />
             <Row icon={<LogOut size={19} color={colors.red} />} tint="rgba(210,75,51,0.14)" label="Se déconnecter" onPress={logout} danger last />

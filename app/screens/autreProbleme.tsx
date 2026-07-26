@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StatusBar, TextInput, TouchableOpacity, View } from 'react-native';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
-import { reportProduct } from '../services/report';
+import { api } from '../services/axios';
 import { colors, fonts, getThemeScheme, shadows } from '../theme/tokens';
 
 export default function AutreProblemePage() {
@@ -38,18 +38,19 @@ export default function AutreProblemePage() {
         }
         setLoading(true);
         try {
-            let uploadedImageUrl = null;
+            const formData = new FormData();
+            formData.append('barcode', 'GENERAL_ISSUE');
+            formData.append('type', 'userreportapp');
+            formData.append('description', description.trim());
             if (image) {
-                const formData = new FormData();
-                formData.append('file', { uri: image, type: 'image/jpeg', name: 'report_image.jpg' } as any);
-                formData.append('upload_preset', 'dznutri_reports');
-                formData.append('cloud_name', 'df8kgpe6d');
-                const uploadRes = await fetch('https://api.cloudinary.com/v1_1/df8kgpe6d/image/upload', { method: 'POST', body: formData });
-                const uploadData = await uploadRes.json();
-                if (uploadData.secure_url) uploadedImageUrl = uploadData.secure_url;
+                formData.append('image', {
+                    uri: image,
+                    type: 'image/jpeg',
+                    name: 'report_image.jpg',
+                } as any);
             }
 
-            await reportProduct('GENERAL_ISSUE', description, 'userreportapp', uploadedImageUrl);
+            await api.post('/api/reports/with-image', formData, { timeout: 60000 });
 
             Alert.alert('Merci', 'Votre signalement a été envoyé.', [{ text: 'OK', onPress: () => router.back() }]);
         } catch (error) {
@@ -75,6 +76,8 @@ export default function AutreProblemePage() {
                             if (router.canGoBack()) router.back();
                             else router.push('/screens/reportUser');
                         }}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('close')}
                         style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}
                     >
                         <X size={20} color={colors.accent} />
@@ -82,7 +85,14 @@ export default function AutreProblemePage() {
                     <Txt variant="displayXBold" size={20} color={colors.ink}>{t('help') || 'Aide'}</Txt>
                 </View>
 
-                <TouchableOpacity onPress={handleSubmit} disabled={loading || !canSend} style={{ paddingHorizontal: 8, paddingVertical: 8 }}>
+                <TouchableOpacity
+                    onPress={handleSubmit}
+                    disabled={loading || !canSend}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('send')}
+                    accessibilityState={{ disabled: loading || !canSend, busy: loading }}
+                    style={{ paddingHorizontal: 8, paddingVertical: 8 }}
+                >
                     {loading ? (
                         <ActivityIndicator color={colors.accent} />
                     ) : (
@@ -99,6 +109,7 @@ export default function AutreProblemePage() {
                 </Txt>
 
                 <TextInput
+                    accessibilityLabel="Description du problème"
                     style={{ fontSize: 17, color: colors.ink, fontFamily: fonts.sans, borderBottomWidth: 1.5, borderBottomColor: colors.handle, paddingBottom: 10, marginBottom: 32 }}
                     placeholder="Ex : le code-barres n'est pas reconnu…"
                     placeholderTextColor={colors.inkMeta}
@@ -114,6 +125,8 @@ export default function AutreProblemePage() {
                         <Image source={{ uri: image }} style={{ width: '100%', height: '100%', borderRadius: 14 }} />
                         <TouchableOpacity
                             onPress={() => setImage(null)}
+                            accessibilityRole="button"
+                            accessibilityLabel="Supprimer la photo"
                             style={{ position: 'absolute', top: -8, right: -8, backgroundColor: colors.ink, borderRadius: 14, padding: 5, zIndex: 10 }}
                         >
                             <X size={16} color={colors.cream} />
@@ -122,6 +135,8 @@ export default function AutreProblemePage() {
                 ) : (
                     <TouchableOpacity
                         onPress={pickImage}
+                        accessibilityRole="button"
+                        accessibilityLabel="Ajouter une photo"
                         activeOpacity={0.75}
                         style={{ width: 128, height: 128, backgroundColor: colors.card, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.border }}
                     >

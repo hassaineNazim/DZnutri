@@ -3,7 +3,22 @@
 // EAS qui ne sont PAS le profil "production" (ex: "preview", pour tester
 // contre un backend local en LAN sans HTTPS). Le profil "production" garde
 // la posture par défaut d'Android (HTTPS obligatoire).
-const isProductionProfile = process.env.EAS_BUILD_PROFILE === "production";
+const easBuildProfile = process.env.EAS_BUILD_PROFILE || "";
+const isProductionProfile = easBuildProfile.startsWith("production");
+
+// Identifiants OAuth publics. Le même client iOS est injecté dans la
+// configuration native ET exposé au runtime afin d'éviter toute divergence
+// entre le schéma URL généré par le plugin et GoogleSignin.configure().
+const googleIosClientId =
+  process.env.GOOGLE_IOS_CLIENT_ID ||
+  "899058288095-sav0ru4ncgbluoj3juvsk7bproklf21h.apps.googleusercontent.com";
+const googleWebClientId =
+  process.env.GOOGLE_WEB_CLIENT_ID ||
+  "899058288095-137a1fct9pf5hql01n3ofqaa25dirnst.apps.googleusercontent.com";
+const googleIosUrlScheme = `com.googleusercontent.apps.${googleIosClientId.replace(
+  ".apps.googleusercontent.com",
+  "",
+)}`;
 
 module.exports = {
   expo: {
@@ -16,13 +31,11 @@ module.exports = {
     scheme: "dznutri",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
-    // Sans ce bloc, Android affiche la barre de statut par défaut (blanche)
-    // au démarrage et tant qu'aucun écran n'a encore posé son <StatusBar> —
-    // moche sur nos écrans à entête bordeaux/sombre. Bordeaux = couleur de
-    // la grande majorité des écrans (accueil, scan, fiches produit...).
+    // Pendant le splash, la barre doit reprendre son fond blanc. Chaque écran
+    // pose ensuite explicitement sa propre couleur (bordeaux ou feuille).
     androidStatusBar: {
-      backgroundColor: "#59121F",
-      barStyle: "light-content",
+      backgroundColor: "#ffffff",
+      barStyle: "dark-content",
       translucent: false,
     },
     ios: {
@@ -36,6 +49,10 @@ module.exports = {
       },
       package: "com.Nazim.dznutri",
       permissions: ["android.permission.CAMERA"],
+      // Le SDK Facebook ajoute AD_ID transitivement. DZnutri n'utilise ni
+      // publicité ciblée ni mesure publicitaire : on retire donc explicitement
+      // cette permission du manifeste final.
+      blockedPermissions: ["com.google.android.gms.permission.AD_ID"],
       googleServicesFile: "./google-services.json",
     },
     web: {
@@ -48,6 +65,7 @@ module.exports = {
     },
     plugins: [
       "expo-router",
+      "expo-localization",
       [
         "expo-splash-screen",
         {
@@ -66,12 +84,9 @@ module.exports = {
           scheme: "fb1118044030243255",
           advertiserIDCollectionEnabled: false,
           autoLogAppEventsEnabled: false,
-          isAutoInitEnabled: true,
-          iosUserTrackingPermission:
-            "This identifier will be used to deliver personalized ads to you.",
+          isAutoInitEnabled: false,
         },
       ],
-      "expo-tracking-transparency",
       "expo-font",
       [
         "expo-notifications",
@@ -86,12 +101,13 @@ module.exports = {
         {
           androidClientId:
             "632935078884-ftovu7icqv86p0p3il3s3kk3332ffob2.apps.googleusercontent.com",
-          iosClientId: "REMPLACER_PAR_VOTRE_IOS_CLIENT_ID.apps.googleusercontent.com",
-          iosUrlScheme: "com.googleusercontent.apps.REMPLACER_PAR_VOTRE_IOS_CLIENT_ID",
+          iosClientId: googleIosClientId,
+          iosUrlScheme: googleIosUrlScheme,
         },
       ],
       "expo-secure-store",
       "./plugins/withExcludeFacebookIOS",
+      "./plugins/withPrivacyManifest",
       [
         "expo-build-properties",
         {
@@ -120,7 +136,11 @@ module.exports = {
         projectId: "388f92c2-6ce6-43bd-bc1d-430a055da834",
       },
       facebookAppId: "1118044030243255",
-      apiUrl: "https://api.votre-domaine.com",
+      googleIosClientId,
+      googleWebClientId,
+      apiUrl:
+        process.env.EXPO_PUBLIC_API_URL ||
+        "https://dznutri-backend-production.up.railway.app",
     },
   },
 };

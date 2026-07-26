@@ -43,6 +43,8 @@ export default function ConfirmModal({
           <View className="flex-row justify-end gap-2">
             <Pressable
               onPress={onCancel}
+              accessibilityRole="button"
+              accessibilityLabel={cancelLabel}
               className="py-2 px-3 rounded-lg active:opacity-70"
             >
               <Text className="text-gray-700 dark:text-gray-400">
@@ -52,6 +54,8 @@ export default function ConfirmModal({
             
             <Pressable
               onPress={onConfirm}
+              accessibilityRole="button"
+              accessibilityLabel={confirmLabel}
               className="py-2 px-3 bg-red-600 rounded-lg active:opacity-70"
             >
               <Text className="text-white font-medium">{confirmLabel}</Text>

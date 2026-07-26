@@ -34,8 +34,8 @@ const LIGHT = {
 
   // Textes (sur feuille/cartes)
   ink: '#1e1712', // texte principal
-  inkSoft: '#8b8073', // texte secondaire gris-brun
-  inkMeta: '#b7ad9e', // texte tertiaire / méta
+  inkSoft: '#62594F', // texte secondaire — contraste AA sur la feuille crème
+  inkMeta: '#70665B', // texte tertiaire — contraste AA sur la feuille crème
   rose: '#cf9ea7', // texte rosé sur bordeaux
   rose2: '#dba9b1',
   rose3: '#e8b6be',
@@ -56,7 +56,7 @@ const LIGHT = {
   yellowC: '#F0C02E', // C / Moyen
   orange: '#E08A3C', // Moyen / D
   orangeAlt: '#EF8A3C',
-  red: '#D24B33', // Médiocre / Risque / E
+  red: '#B83A28', // Médiocre / Risque / E — contraste AA sur blanc/crème
   redAlt: '#E0492F',
   laser: '#ff3b30', // laser de scan
 
@@ -74,7 +74,7 @@ const DARK: typeof LIGHT = {
   bordeauxSoft: 'rgba(242,194,46,0.12)',
   ink: '#F0E7D5',
   inkSoft: '#b4a794',
-  inkMeta: '#8a7e6e',
+  inkMeta: '#918576',
   border: '#3d332a',
   separator: '#362d24',
   inputBg: '#2a221b',

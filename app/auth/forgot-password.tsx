@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -10,8 +10,9 @@ import { colors } from '../theme/tokens';
 
 export default function ForgotPassword() {
     const router = useRouter();
+    const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
     const { t } = useTranslation();
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(typeof emailParam === 'string' ? emailParam : '');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);

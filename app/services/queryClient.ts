@@ -15,4 +15,10 @@ export const queryClient = new QueryClient({
 // Create a persister
 export const persister = createAsyncStoragePersister({
     storage: AsyncStorage,
+    // Nouvelle clé publique : l'ancienne clé pouvait contenir le profil santé.
+    key: 'DZNUTRI_PUBLIC_QUERY_CACHE_V2',
 });
+
+export async function clearLegacyPrivateQueryCache() {
+    await AsyncStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
+}

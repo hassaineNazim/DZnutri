@@ -86,6 +86,7 @@ export default function ProductRatings({ barcode }: { barcode?: string }) {
         </Text>
         <StarRating value={myRating} onChange={setMyRating} size={34} />
         <TextInput
+          accessibilityLabel={t('your_review_placeholder')}
           className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 mt-3 text-gray-900 dark:text-white"
           placeholder={t('your_review_placeholder')}
           placeholderTextColor="#9CA3AF"
@@ -96,6 +97,9 @@ export default function ProductRatings({ barcode }: { barcode?: string }) {
         <TouchableOpacity
           disabled={submitting}
           onPress={submit}
+          accessibilityRole="button"
+          accessibilityLabel={alreadyRated ? t('update_my_rating') : t('send_my_rating')}
+          accessibilityState={{ disabled: submitting, busy: submitting }}
           className="bg-emerald-500 py-3 rounded-xl items-center mt-3 active:bg-emerald-600"
         >
           {submitting ? (

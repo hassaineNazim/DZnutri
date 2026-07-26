@@ -31,6 +31,9 @@ jobs:
             auth bdproduitdz routers
 
       - name: Tests (pytest)
+        env:
+          DATABASE_URL: postgresql+asyncpg://dznutri:dznutri@localhost:5432/dznutri
+          JWT_SECRET_KEY: ci-test-secret-not-for-production
         run: python -m pytest tests -q
 
       - name: Audit des dépendances Python (informatif)
@@ -56,9 +59,20 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Audit npm (informatif)
-        continue-on-error: true
-        run: npm audit --omit=dev
+      - name: Vérifier les types TypeScript
+        run: npm run typecheck
+
+      - name: Tests unitaires mobile
+        run: npm test
+
+      - name: Vérifier le bundle Android de production
+        env:
+          EAS_BUILD_PROFILE: production
+          EXPO_NO_TELEMETRY: "1"
+        run: npm run export:android
+
+      - name: Bloquer les vulnérabilités npm critiques/élevées non autorisées
+        run: npm run audit:production
 
   admin:
     name: Admin (React / CRA)

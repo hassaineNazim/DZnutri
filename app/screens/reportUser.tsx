@@ -76,6 +76,8 @@ function Row({ icon, tint, label, onPress, last = false }: { icon?: React.ReactN
     return (
         <TouchableOpacity
             onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={label}
             activeOpacity={0.65}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 15, borderBottomWidth: last ? 0 : 1, borderBottomColor: colors.separator }}
         >

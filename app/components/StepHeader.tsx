@@ -21,6 +21,8 @@ export default function StepHeader({ step, title, totalSteps = 3 }: StepHeaderPr
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18, gap: 12 }}>
                 <Pressable
                     onPress={() => router.back()}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('back')}
                     style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}
                 >
                     <ArrowLeft size={20} color={colors.accent} />

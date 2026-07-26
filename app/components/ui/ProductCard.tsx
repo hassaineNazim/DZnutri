@@ -3,7 +3,7 @@
  * Fond blanc, vignette (image réelle ou placeholder rayé crème), nom Playfair,
  * marque, pastille de statut colorée + heure relative, et anneau de score.
  */
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { AlertTriangle } from 'lucide-react-native';
 import React from 'react';
 import { Image, TouchableOpacity, View } from 'react-native';
@@ -86,6 +86,10 @@ export default function ProductCard({ item, onPress, onLongPress, selected = fal
     <TouchableOpacity
       onPress={onPress}
       onLongPress={onLongPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.product_name || t('product_unknown')}, ${brand}, ${t(band.labelKey) || band.label}${typeof item.custom_score === 'number' ? `, ${t('score')} ${item.custom_score}` : ''}`}
+      accessibilityState={{ selected }}
+      accessibilityHint={onLongPress ? t('long_press_select') : undefined}
       activeOpacity={0.85}
       style={[
         {
@@ -106,6 +110,7 @@ export default function ProductCard({ item, onPress, onLongPress, selected = fal
         {item.image_url ? (
           <Image
             source={{ uri: item.image_url }}
+            accessible={false}
             style={{ width: THUMB, height: THUMB, borderRadius: 15, backgroundColor: colors.thumbBg }}
             resizeMode="contain"
           />

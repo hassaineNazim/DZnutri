@@ -1,14 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Redirect, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import { Settings } from 'react-native-fbsdk-next';
+import { Redirect } from "expo-router";
+import { useEffect, useState } from "react";
 import "../global.css";
 import { ONBOARDING_KEY } from "./onboarding";
 import { api } from "./services/axios";
 import { getAccessToken } from "./services/tokenStore";
-
-// Call this before your app component renders
-Settings.initializeSDK();
 
 export default function Index() {
     const [isLoading, setIsLoading] = useState(true);
@@ -16,55 +12,49 @@ export default function Index() {
     const [seenOnboarding, setSeenOnboarding] = useState(true);
 
     useEffect(() => {
-        checkLoginStatus();
-    }, []);
+        let cancelled = false;
 
-    // Re-validate token whenever the screen regains focus
-    useFocusEffect(
-        useCallback(() => {
-            checkLoginStatus(true);
-        }, [])
-    );
-
-    const checkLoginStatus = async (validateRemote: boolean = false) => {
-        setIsLoading(true);
-        let loggedIn = false;
-        try {
+        const bootstrap = async () => {
+            let loggedIn = false;
             try {
-                const seen = await AsyncStorage.getItem(ONBOARDING_KEY);
-                setSeenOnboarding(seen === '1');
-            } catch {
-                setSeenOnboarding(true);
-            }
-            const token = await getAccessToken();
-            if (!token) {
-                loggedIn = false;
-            } else if (validateRemote) {
-                try {
-                    // Passe par l'instance `api` : l'intercepteur rafraîchit
-                    // automatiquement un access token expiré via le refresh token.
-                    await api.get('/auth/me');
-                    loggedIn = true;
-                } catch (e: any) {
-                    if (e?.response?.status === 401) {
-                        // Rafraîchissement impossible : session terminée
-                        // (tokens déjà nettoyés par l'intercepteur).
-                        loggedIn = false;
-                    } else {
-                        // Erreur réseau/serveur : on reste connecté (optimiste).
+                const [seen, token] = await Promise.all([
+                    AsyncStorage.getItem(ONBOARDING_KEY).catch(() => '1'),
+                    getAccessToken(),
+                ]);
+                if (!cancelled) setSeenOnboarding(seen === '1');
+
+                if (token) {
+                    try {
+                        // Une seule validation distante au démarrage. L'intercepteur
+                        // gère le refresh et le garde global gère une éventuelle 401.
+                        await api.get('/auth/me');
                         loggedIn = true;
+                    } catch (error: unknown) {
+                        const status =
+                            typeof error === 'object' &&
+                            error !== null &&
+                            'response' in error
+                                ? (error as { response?: { status?: number } }).response?.status
+                                : undefined;
+                        // Hors 401, on autorise le mode dégradé hors-ligne.
+                        loggedIn = status !== 401 && Boolean(await getAccessToken());
                     }
                 }
-            } else {
-                loggedIn = true;
+            } catch {
+                loggedIn = false;
+            } finally {
+                if (!cancelled) {
+                    setIsLoggedIn(loggedIn);
+                    setIsLoading(false);
+                }
             }
-        } catch {
-            loggedIn = false;
-        } finally {
-            setIsLoggedIn(loggedIn);
-            setIsLoading(false);
-        }
-    };
+        };
+
+        bootstrap();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     if (isLoading) {
         return null;

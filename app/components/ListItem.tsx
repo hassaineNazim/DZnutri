@@ -1,4 +1,4 @@
-import { MaterialIcons } from "@expo/vector-icons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import React, { useEffect } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import Animated, { useAnimatedProps, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
@@ -75,11 +75,15 @@ export default function ListItem({ item, onPress, onDelete, onLongPress, selecte
     <TouchableOpacity
       onPress={onPress}
       onLongPress={onLongPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.product_name || t('product_unknown')}, ${item.brand || t('brand_unknown')}, ${t('score')} ${score}`}
+      accessibilityState={{ selected }}
+      accessibilityHint={onLongPress ? t('long_press_select') : undefined}
       className={`flex-row items-center p-3 rounded-2xl mb-3 bg-white dark:bg-[#1F2937] shadow-sm border ${selected ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-transparent'}`}
       activeOpacity={0.7}
     >
       {item.image_url ? (
-        <Image source={{ uri: item.image_url }} className="w-16 h-16 rounded-xl mr-4 bg-gray-100 dark:bg-gray-800" resizeMode="contain" />
+        <Image source={{ uri: item.image_url }} accessible={false} className="w-16 h-16 rounded-xl mr-4 bg-gray-100 dark:bg-gray-800" resizeMode="contain" />
       ) : (
         <View className="w-16 h-16 rounded-xl mr-4 bg-gray-100 dark:bg-gray-800 justify-center items-center">
           <MaterialIcons name={isCosmetic ? 'spa' : 'fastfood'} size={24} color={isCosmetic ? '#EC4899' : '#9CA3AF'} />

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getLocales } from 'expo-localization';
 import { useEffect, useState } from 'react';
 import { I18nManager } from 'react-native';
 // optional expo updates reload
@@ -103,6 +104,7 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     add_in_30s: 'Ajoutez-le à la base en 30 s.',
     product_not_found_q: 'Produit introuvable ?',
     add: 'Ajouter',
+    delete: 'Supprimer',
     additives: 'Additifs',
     detected: 'détectés',
     risk: 'Risque',
@@ -250,8 +252,13 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     eggs: "Œufs",
     soy: "Soja",
     fish: "Poisson",
-    shellfish: "Crustacés",
+    shellfish: "Crustacés et mollusques",
     nuts: "Fruits à coque",
+    celery: "Céleri",
+    mustard: "Moutarde",
+    sesame: "Sésame",
+    lupin: "Lupin",
+    sulphites: "Sulfites",
     allergen_warning_title: "Attention : Allergènes détectés",
     allergen_warning_desc: "Ce produit contient des ingrédients signalés dans votre profil santé.",
     diabetes: "Diabète",
@@ -263,9 +270,36 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     dislike_placeholder: "Ex: Coriandre",
     smart_alerts: "Alertes Intelligentes",
     smart_alerts_desc: "Recevez des alertes si un produit contient vos allergènes.",
-
-
-
+    login: "Se connecter",
+    signup: "S'inscrire",
+    username: "Nom d'utilisateur",
+    password: "Mot de passe",
+    reset_password: "Réinitialiser le mot de passe",
+    new_password: "Nouveau mot de passe",
+    reset: "Réinitialiser",
+    enter_credentials: "Entrez vos identifiants pour continuer.",
+    enter_new_password: "Entrez votre code et votre nouveau mot de passe.",
+    help: "Aide",
+    send: "Envoyer",
+    no_favorites: "Aucun favori pour le moment",
+    score: "Score",
+    verified_only: "Produits vérifiés",
+    allergen_warning_disclaimer: "Détection indicative : vérifiez toujours l'étiquette et les traces éventuelles sur l'emballage.",
+    history_load_error: "Impossible de charger votre historique.",
+    search_error: "La recherche a échoué. Vérifiez votre connexion puis réessayez.",
+    retry: "Réessayer",
+    back: "Retour",
+    invalid_product_link: "Ce lien produit est invalide ou incomplet.",
+    close: "Fermer",
+    open_filters: "Ouvrir les filtres",
+    clear_search: "Effacer la recherche",
+    scan_product: "Scanner un produit",
+    flash: "Flash",
+    long_press_select: "Maintenez pour sélectionner",
+    about_mission_title: "Notre mission",
+    about_mission_body: "Aider les consommateurs algériens à mieux comprendre les produits du quotidien grâce à des informations claires et vérifiables.",
+    about_independence_title: "Notre engagement",
+    about_independence_body: "DZnutri ne remplace pas un avis médical. Les scores et alertes sont des outils d'information à confronter à l'étiquette du produit.",
 
   },
   en: {
@@ -357,6 +391,7 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     add_in_30s: 'Add it to the database in 30 s.',
     product_not_found_q: 'Product not found?',
     add: 'Add',
+    delete: 'Delete',
     additives: 'Additives',
     detected: 'detected',
     risk: 'Risk',
@@ -502,8 +537,13 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     eggs: "Eggs",
     soy: "Soy",
     fish: "Fish",
-    shellfish: "Shellfish",
+    shellfish: "Crustaceans and molluscs",
     nuts: "Tree nuts",
+    celery: "Celery",
+    mustard: "Mustard",
+    sesame: "Sesame",
+    lupin: "Lupin",
+    sulphites: "Sulphites",
     allergen_warning_title: "Warning: Allergens detected",
     allergen_warning_desc: "This product contains ingredients flagged in your health profile.",
     diabetes: "Diabetes",
@@ -515,7 +555,38 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     dislike_placeholder: "Ex: Cilantro",
     smart_alerts: "Smart Alerts",
     smart_alerts_desc: "Get alerts if a product contains your allergens.",
-
+    welcome_back: "Welcome back!",
+    join_community: "Join the DZnutri community.",
+    login: "Sign in",
+    signup: "Sign up",
+    username: "Username",
+    password: "Password",
+    reset_password: "Reset password",
+    new_password: "New password",
+    reset: "Reset",
+    enter_credentials: "Enter your credentials to continue.",
+    enter_new_password: "Enter your code and your new password.",
+    help: "Help",
+    send: "Send",
+    no_favorites: "No favorites yet",
+    score: "Score",
+    verified_only: "Verified products",
+    allergen_warning_disclaimer: "This is an indicative match. Always check the label and possible traces on the package.",
+    history_load_error: "Unable to load your history.",
+    search_error: "Search failed. Check your connection and try again.",
+    retry: "Try again",
+    back: "Back",
+    invalid_product_link: "This product link is invalid or incomplete.",
+    close: "Close",
+    open_filters: "Open filters",
+    clear_search: "Clear search",
+    scan_product: "Scan a product",
+    flash: "Flash",
+    long_press_select: "Long press to select",
+    about_mission_title: "Our mission",
+    about_mission_body: "Help Algerian consumers understand everyday products through clear and verifiable information.",
+    about_independence_title: "Our commitment",
+    about_independence_body: "DZnutri does not replace medical advice. Scores and alerts are informational tools that must be checked against the product label.",
 
   },
   ar: {
@@ -607,6 +678,7 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     add_in_30s: 'أضفه إلى القاعدة في 30 ثانية.',
     product_not_found_q: 'لم يتم العثور على المنتج؟',
     add: 'إضافة',
+    delete: 'حذف',
     additives: 'المضافات',
     detected: 'مكتشفة',
     risk: 'خطر',
@@ -753,8 +825,13 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     eggs: "بيض",
     soy: "صويا",
     fish: "سمك",
-    shellfish: "محار",
+    shellfish: "قشريات ورخويات",
     nuts: "مكسرات",
+    celery: "كرفس",
+    mustard: "خردل",
+    sesame: "سمسم",
+    lupin: "ترمس",
+    sulphites: "كبريتيت",
     allergen_warning_title: "تنبيه: تم رصد مسببات حساسية",
     allergen_warning_desc: "يحتوي هذا المنتج على مكونات مسجلة في ملفك الصحي.",
     diabetes: "سكري",
@@ -766,9 +843,37 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     dislike_placeholder: "مثال: كزبرة",
     smart_alerts: "تنبيهات ذكية",
     smart_alerts_desc: "احصل على تنبيهات إذا كان المنتج يحتوي على مسببات الحساسية الخاصة بك.",
-
-
-
+    join_community: "انضم إلى مجتمع DZnutri.",
+    login: "تسجيل الدخول",
+    signup: "إنشاء حساب",
+    username: "اسم المستخدم",
+    password: "كلمة المرور",
+    reset_password: "إعادة تعيين كلمة المرور",
+    new_password: "كلمة المرور الجديدة",
+    reset: "إعادة تعيين",
+    enter_credentials: "أدخل بياناتك للمتابعة.",
+    enter_new_password: "أدخل الرمز وكلمة المرور الجديدة.",
+    help: "مساعدة",
+    send: "إرسال",
+    no_favorites: "لا توجد مفضلات بعد",
+    score: "النتيجة",
+    verified_only: "المنتجات الموثقة",
+    allergen_warning_disclaimer: "الكشف استرشادي فقط. تحقّق دائماً من الملصق وآثار مسببات الحساسية على العبوة.",
+    history_load_error: "تعذّر تحميل السجل.",
+    search_error: "فشل البحث. تحقّق من الاتصال ثم أعد المحاولة.",
+    retry: "إعادة المحاولة",
+    back: "رجوع",
+    invalid_product_link: "رابط المنتج غير صالح أو غير مكتمل.",
+    close: "إغلاق",
+    open_filters: "فتح عوامل التصفية",
+    clear_search: "مسح البحث",
+    scan_product: "مسح منتج",
+    flash: "الفلاش",
+    long_press_select: "اضغط مطولاً للتحديد",
+    about_mission_title: "مهمتنا",
+    about_mission_body: "مساعدة المستهلك الجزائري على فهم المنتجات اليومية من خلال معلومات واضحة وقابلة للتحقق.",
+    about_independence_title: "التزامنا",
+    about_independence_body: "لا يعوّض DZnutri الاستشارة الطبية. النتائج والتنبيهات أدوات معلومات يجب مقارنتها بملصق المنتج.",
 
   }
 };
@@ -777,26 +882,11 @@ let currentLang: SupportedLang = 'fr';
 let followSystem: boolean = true;
 const listeners: ((lang: SupportedLang) => void)[] = [];
 
-let reactNativeLocalize: any = null;
-try {
-  reactNativeLocalize = require('react-native-localize');
-} catch {
-  reactNativeLocalize = null;
-}
-
 function detectSystemLang(): SupportedLang {
   try {
-    if (reactNativeLocalize && typeof reactNativeLocalize.getLocales === 'function') {
-      const locales = reactNativeLocalize.getLocales();
-      if (locales && locales.length > 0) {
-        const code = locales[0].languageCode;
-        if (code === 'ar') return 'ar';
-        if (code === 'en') return 'en';
-        return 'fr';
-      }
-    }
-    if (typeof navigator !== 'undefined' && (navigator as any).language) {
-      const code = ((navigator as any).language as string).split('-')[0];
+    const locales = getLocales();
+    if (locales.length > 0) {
+      const code = locales[0].languageCode;
       if (code === 'ar') return 'ar';
       if (code === 'en') return 'en';
       return 'fr';

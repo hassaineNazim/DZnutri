@@ -85,10 +85,10 @@ export default function AjouterCosmetique() {
   };
 
   const PhotoCard = ({ uri, onPress, label, hint }: { uri: string | null; onPress: () => void; label: string; hint: string }) => (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={{ flex: 1 }}>
+    <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityLabel={`${label}. ${hint}`} activeOpacity={0.8} style={{ flex: 1 }}>
       <View style={{ backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 2, borderStyle: 'dashed', borderColor: '#e2b7cf', overflow: 'hidden', height: 160 }}>
         {uri ? (
-          <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          <Image source={{ uri }} accessible={false} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 12 }}>
             <Camera size={28} color={PINK} />
@@ -121,7 +121,7 @@ export default function AjouterCosmetique() {
       <StatusBar barStyle={getThemeScheme() === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.sheet} />
       {/* Entête */}
       <View style={{ paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <Pressable onPress={() => router.back()} style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}>
+        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={t('back')} style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }, shadows.listCard]}>
           <ArrowLeft size={20} color={colors.accent} />
         </Pressable>
         <Txt variant="displayXBold" size={20} color={colors.ink}>{t('add_cosmetic_title')}</Txt>
@@ -138,12 +138,12 @@ export default function AjouterCosmetique() {
         </View>
 
         <View style={{ marginTop: 20, gap: 12 }}>
-          <TextInput style={inputStyle} placeholder={t('product_name_optional')} placeholderTextColor={colors.inkMeta} value={productName} onChangeText={setProductName} />
-          <TextInput style={inputStyle} placeholder={t('brand_optional')} placeholderTextColor={colors.inkMeta} value={brand} onChangeText={setBrand} />
-          <TextInput style={inputStyle} placeholder={t('category_optional')} placeholderTextColor={colors.inkMeta} value={category} onChangeText={setCategory} />
+          <TextInput accessibilityLabel={t('product_name_optional')} style={inputStyle} placeholder={t('product_name_optional')} placeholderTextColor={colors.inkMeta} value={productName} onChangeText={setProductName} />
+          <TextInput accessibilityLabel={t('brand_optional')} style={inputStyle} placeholder={t('brand_optional')} placeholderTextColor={colors.inkMeta} value={brand} onChangeText={setBrand} />
+          <TextInput accessibilityLabel={t('category_optional')} style={inputStyle} placeholder={t('category_optional')} placeholderTextColor={colors.inkMeta} value={category} onChangeText={setCategory} />
         </View>
 
-        <TouchableOpacity disabled={loading} onPress={submit} activeOpacity={0.85} style={{ backgroundColor: PINK, paddingVertical: 16, borderRadius: radius.cta, alignItems: 'center', marginTop: 22 }}>
+        <TouchableOpacity disabled={loading} onPress={submit} accessibilityRole="button" accessibilityLabel={t('send_for_validation')} accessibilityState={{ disabled: loading, busy: loading }} activeOpacity={0.85} style={{ backgroundColor: PINK, paddingVertical: 16, borderRadius: radius.cta, alignItems: 'center', marginTop: 22 }}>
           {loading ? <ActivityIndicator color={colors.white} /> : <Txt variant="bold" size={16} color={colors.white}>{t('send_for_validation')}</Txt>}
         </TouchableOpacity>
       </ScrollView>

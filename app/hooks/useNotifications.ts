@@ -1,8 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useToast } from '../context/ToastContext';
 import { api } from '../services/axios';
+import { subscribeToSessionEnd } from '../services/authSession';
+import { getAccessToken } from '../services/tokenStore';
 
 const POLL_INTERVAL_MS = 15000; // 15s while the app is in the foreground
 const MAX_PROCESSED_IDS = 500;  // cap to keep the Set from growing unbounded
@@ -10,6 +11,13 @@ const MAX_PROCESSED_IDS = 500;  // cap to keep the Set from growing unbounded
 export const useNotifications = () => {
     const { showToast } = useToast();
     const processedIds = useRef(new Set<number>()); // To avoid spamming on re-renders
+    const pendingToasts = useRef(new Set<ReturnType<typeof setTimeout>>());
+
+    const clearSessionNotifications = useCallback(() => {
+        pendingToasts.current.forEach(clearTimeout);
+        pendingToasts.current.clear();
+        processedIds.current.clear();
+    }, []);
 
     const markAsRead = useCallback(async (id: number) => {
         try {
@@ -21,7 +29,9 @@ export const useNotifications = () => {
 
     const checkNotifications = useCallback(async () => {
         try {
-            const token = await AsyncStorage.getItem('userToken');
+            // Les jetons natifs vivent dans SecureStore. Lire directement
+            // AsyncStorage ici désactivait silencieusement les notifications.
+            const token = await getAccessToken();
             if (!token) return;
 
             const response = await api.get('/api/notifications?unread_only=true');
@@ -39,10 +49,12 @@ export const useNotifications = () => {
                     if (processedIds.current.has(notif.id)) return;
                     processedIds.current.add(notif.id);
 
-                    setTimeout(() => {
+                    const timeoutId = setTimeout(() => {
+                        pendingToasts.current.delete(timeoutId);
                         showToast(notif.message, notif.type || 'success');
                         markAsRead(notif.id);
                     }, index * 3500); // 3.5s delay between each toast
+                    pendingToasts.current.add(timeoutId);
                 });
             }
         } catch (error) {
@@ -52,6 +64,9 @@ export const useNotifications = () => {
 
     useEffect(() => {
         let intervalId: ReturnType<typeof setInterval> | null = null;
+        const unsubscribeSessionEnd = subscribeToSessionEnd(() => {
+            clearSessionNotifications();
+        });
 
         const startPolling = () => {
             if (intervalId) return;
@@ -77,9 +92,11 @@ export const useNotifications = () => {
 
         return () => {
             stopPolling();
+            clearSessionNotifications();
+            unsubscribeSessionEnd();
             subscription.remove();
         };
-    }, [checkNotifications]);
+    }, [checkNotifications, clearSessionNotifications]);
 
     return { checkNotifications };
 };

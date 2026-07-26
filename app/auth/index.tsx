@@ -1,6 +1,6 @@
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@react-native-google-signin/google-signin";
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Platform, StatusBar, TouchableOpacity, View } from 'react-native';
 import { AccessToken, LoginManager, Settings } from "react-native-fbsdk-next";
@@ -10,7 +10,7 @@ import Txt from '../components/ui/Txt';
 import { API_URL } from '../config/api';
 import { useTranslation } from '../i18n';
 import { registerForPushAndSendToServer } from '../services/PushNotif';
-import { saveTokens } from '../services/tokenStore';
+import { startSession } from '../services/authSession';
 import { colors, radius } from '../theme/tokens';
 
 // --- Icônes monochromes (fidèles au handoff) --------------------------------
@@ -49,36 +49,17 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        await GoogleSignin.configure({
-          iosClientId: '899058288095-sav0ru4ncgbluoj3juvsk7bproklf21h.apps.googleusercontent.com',
-          webClientId: '899058288095-137a1fct9pf5hql01n3ofqaa25dirnst.apps.googleusercontent.com',
-          offlineAccess: true,
-          forceCodeForRefreshToken: true,
-        });
-      } catch (e) {
-        console.error('[auth] Failed to configure GoogleSignin:', e);
-      }
-
-      // Facebook SDK temporairement exclu sur iOS (voir loginWithFacebook
-      // plus bas / plugins/withExcludeFacebookIOS.js) : la demande de
-      // tracking (liée à l'attribution Facebook) et l'init SDK n'ont pas
-      // lieu d'être sur cette plateforme pour l'instant.
-      if (Platform.OS !== 'ios') {
-        try {
-          const { status } = await requestTrackingPermissionsAsync();
-          Settings.initializeSDK();
-          if (status === "granted") {
-            await Settings.setAdvertiserTrackingEnabled(true);
-          }
-        } catch (e) {
-          console.warn('[auth] Tracking permission error:', e);
-        }
-      }
-    };
-
-    initializeAuth();
+    const extra = Constants.expoConfig?.extra;
+    GoogleSignin.configure({
+      iosClientId: extra?.googleIosClientId,
+      webClientId: extra?.googleWebClientId,
+      offlineAccess: true,
+      forceCodeForRefreshToken: true,
+    });
+    // Le module Facebook est temporairement exclu du build iOS par
+    // withExcludeFacebookIOS ; Android peut toujours initialiser le SDK sans
+    // déclencher de demande de suivi publicitaire.
+    if (Platform.OS !== 'ios') Settings.initializeSDK();
   }, []);
 
   const handleGoogleSignIn = async () => {
@@ -106,7 +87,7 @@ export default function Login() {
           const data = await backendResponse.json();
 
           if (backendResponse.ok && data?.access_token) {
-            await saveTokens(data);
+            await startSession(data);
             await registerForPushAndSendToServer();
             router.replace('/(tabs)/historique');
           } else {
@@ -186,7 +167,7 @@ export default function Login() {
       const data = await backendResponse.json();
 
       if (backendResponse.ok && data?.access_token) {
-        await saveTokens(data);
+        await startSession(data);
         await registerForPushAndSendToServer();
         router.replace('/(tabs)/historique');
       } else {
@@ -247,6 +228,9 @@ export default function Login() {
           <TouchableOpacity
             disabled={loading}
             onPress={handleGoogleSignIn}
+            accessibilityRole="button"
+            accessibilityLabel={t('continue_google')}
+            accessibilityState={{ disabled: loading, busy: loading }}
             activeOpacity={0.85}
             style={[styles.btn, { backgroundColor: colors.yellow }]}
           >
@@ -263,6 +247,9 @@ export default function Login() {
           <TouchableOpacity
             disabled={loading}
             onPress={loginWithFacebook}
+            accessibilityRole="button"
+            accessibilityLabel={t('continue_facebook')}
+            accessibilityState={{ disabled: loading, busy: loading }}
             activeOpacity={0.85}
             style={[styles.btn, { backgroundColor: colors.cream }]}
           >
@@ -279,6 +266,9 @@ export default function Login() {
           <TouchableOpacity
             disabled={loading}
             onPress={() => router.push('/auth/login-email')}
+            accessibilityRole="button"
+            accessibilityLabel={t('continue_email')}
+            accessibilityState={{ disabled: loading }}
             activeOpacity={0.85}
             style={[styles.btn, { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: 'rgba(244,234,214,0.35)', paddingVertical: 16 }]}
           >
@@ -288,7 +278,14 @@ export default function Login() {
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', marginTop: 8 }}>
             <Txt variant="body" size={14} color={colors.rose}>{t('no_account')} </Txt>
-            <TouchableOpacity disabled={loading} onPress={() => router.push('/auth/register')} activeOpacity={0.7}>
+            <TouchableOpacity
+              disabled={loading}
+              onPress={() => router.push('/auth/register')}
+              accessibilityRole="link"
+              accessibilityLabel={t('create_account')}
+              accessibilityState={{ disabled: loading }}
+              activeOpacity={0.7}
+            >
               <Txt variant="bold" size={14} color={colors.yellow}>{t('create_account')}</Txt>
             </TouchableOpacity>
           </View>
@@ -303,11 +300,19 @@ export default function Login() {
             {t('terms_privacy')}
           </Txt>
           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 6 }}>
-            <TouchableOpacity onPress={() => Linking.openURL(`${API_URL}/legal/privacy`)}>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(`${API_URL}/legal/privacy`)}
+              accessibilityRole="link"
+              accessibilityLabel={t('privacy_policy')}
+            >
               <Txt variant="bold" size={11.5} color={colors.rose}>{t('privacy_policy')}</Txt>
             </TouchableOpacity>
             <Txt variant="body" size={11.5} color="#a37780">·</Txt>
-            <TouchableOpacity onPress={() => Linking.openURL(`${API_URL}/legal/terms`)}>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(`${API_URL}/legal/terms`)}
+              accessibilityRole="link"
+              accessibilityLabel={t('terms_of_service')}
+            >
               <Txt variant="bold" size={11.5} color={colors.rose}>{t('terms_of_service')}</Txt>
             </TouchableOpacity>
           </View>

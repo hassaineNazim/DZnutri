@@ -98,10 +98,12 @@ function Chevron() {
 }
 
 // --- Primitives d'affichage -------------------------------------------------
-function RoundBtn({ children, onPress }: { children: React.ReactNode; onPress?: () => void }) {
+function RoundBtn({ children, onPress, label }: { children: React.ReactNode; onPress?: () => void; label: string }) {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }}
     >
       {children}
@@ -136,6 +138,8 @@ function Row({
     <TouchableOpacity
       onPress={onPress}
       disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`${label}${value ? `, ${value}` : ''}`}
       activeOpacity={onPress ? 0.65 : 1}
       style={{
         flexDirection: 'row',
@@ -196,10 +200,10 @@ export default function SettingsPage() {
       {/* ---- Entête bordeaux ---- */}
       <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 26 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <RoundBtn onPress={() => router.back()}>
+          <RoundBtn label={t('back')} onPress={() => router.back()}>
             <IconArrowLeft />
           </RoundBtn>
-          <RoundBtn onPress={() => router.push('/reglage/compte')}>
+          <RoundBtn label={t('account')} onPress={() => router.push('/reglage/compte')}>
             <IconProfile />
           </RoundBtn>
         </View>
@@ -256,6 +260,9 @@ export default function SettingsPage() {
                   <Switch
                     value={isDarkMode}
                     onValueChange={toggleTheme}
+                    accessibilityRole="switch"
+                    accessibilityLabel={t('theme_dark')}
+                    accessibilityState={{ checked: isDarkMode }}
                     trackColor={{ false: colors.handle, true: colors.green }}
                     thumbColor={colors.white}
                   />
@@ -318,6 +325,8 @@ export default function SettingsPage() {
             </Txt>
             <TouchableOpacity
               onPress={() => setIsRestarting(false)}
+              accessibilityRole="button"
+              accessibilityLabel={t('close')}
               activeOpacity={0.85}
               style={{ marginTop: 20, backgroundColor: colors.bordeauxSoft, borderRadius: radius.cta, paddingVertical: 13, paddingHorizontal: 26 }}
             >

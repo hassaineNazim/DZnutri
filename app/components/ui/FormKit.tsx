@@ -13,13 +13,18 @@ import {
   View,
 } from 'react-native';
 import { colors, fonts, radius } from '../../theme/tokens';
+import { useTranslation } from '../../i18n';
 import Txt from './Txt';
 
 // Bouton retour rond crème (coin haut-gauche des écrans).
-export function BackButton({ onPress }: { onPress: () => void }) {
+export function BackButton({ onPress, accessibilityLabel }: { onPress: () => void; accessibilityLabel?: string }) {
+  const { t } = useTranslation();
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? t('back')}
+      hitSlop={6}
       style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }}
     >
       <ArrowLeft size={20} color={colors.bordeaux} />
@@ -38,6 +43,7 @@ export function Field({ label, style, ...inputProps }: FieldProps) {
         </Txt>
       ) : null}
       <TextInput
+        accessibilityLabel={inputProps.accessibilityLabel ?? label ?? inputProps.placeholder}
         placeholderTextColor={colors.inkMeta}
         {...inputProps}
         style={[
@@ -77,6 +83,9 @@ export function PrimaryButton({
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       activeOpacity={0.85}
       style={[
         { backgroundColor: colors.yellow, borderRadius: radius.cta, paddingVertical: 17, alignItems: 'center', opacity: disabled ? 0.55 : 1 },
@@ -95,7 +104,13 @@ export function PrimaryButton({
 // Lien texte secondaire (centré).
 export function LinkButton({ label, onPress, color }: { label: string; onPress: () => void; color?: string }) {
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={{ paddingVertical: 12, alignItems: 'center' }}>
+    <TouchableOpacity
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      activeOpacity={0.7}
+      style={{ paddingVertical: 12, alignItems: 'center' }}
+    >
       <Txt variant="semibold" size={14} color={color ?? colors.rose}>{label}</Txt>
     </TouchableOpacity>
   );

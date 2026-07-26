@@ -7,7 +7,7 @@ import Txt from '../components/ui/Txt';
 import { API_URL } from '../config/api';
 import { useTranslation } from '../i18n';
 import { registerForPushAndSendToServer } from '../services/PushNotif';
-import { saveTokens } from '../services/tokenStore';
+import { startSession } from '../services/authSession';
 import { colors } from '../theme/tokens';
 
 export default function Register() {
@@ -86,7 +86,7 @@ export default function Register() {
             const data = await response.json();
 
             if (response.ok && data?.access_token) {
-                await saveTokens(data);
+                await startSession(data);
                 await registerForPushAndSendToServer();
                 router.replace('/(tabs)/historique');
             } else {

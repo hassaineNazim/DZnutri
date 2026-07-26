@@ -1,1 +1,1 @@
-export default function soutenirPage () {}
+export { default } from './index';

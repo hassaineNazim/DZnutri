@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { HelpCircle, ScanLine, Trash2, User, X } from 'lucide-react-native';
+import { AlertCircle, HelpCircle, RefreshCw, ScanLine, Trash2, User, X } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -59,16 +59,19 @@ export default function HistoriquePage() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const { t } = useTranslation();
   const router = useRouter();
 
   const loadHistory = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
+      setLoadError(false);
       const serverHistory = await fetchHistory();
       setHistory(serverHistory);
     } catch (error) {
       console.error(error);
+      setLoadError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -151,7 +154,12 @@ export default function HistoriquePage() {
         {selecting ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 46 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Pressable onPress={clearSelection} style={styles.roundBtnCream}>
+              <Pressable
+                onPress={clearSelection}
+                accessibilityRole="button"
+                accessibilityLabel={t('cancel')}
+                style={styles.roundBtnCream}
+              >
                 <X size={20} color={colors.bordeaux} />
               </Pressable>
               <Txt variant="displayXBold" size={22} color={colors.creamTitle}>
@@ -160,6 +168,8 @@ export default function HistoriquePage() {
             </View>
             <Pressable
               onPress={() => selectedIds.length && setConfirmVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('confirm_delete_title')}
               style={[styles.roundBtnCream, { backgroundColor: colors.redAlt }]}
             >
               <Trash2 size={20} color={colors.white} />
@@ -168,11 +178,18 @@ export default function HistoriquePage() {
         ) : (
           <>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Pressable onPress={() => setMenuVisible(true)} style={styles.roundBtnCream}>
+              <Pressable
+                onPress={() => setMenuVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('account')}
+                style={styles.roundBtnCream}
+              >
                 <User size={22} color={colors.bordeaux} />
               </Pressable>
               <TouchableOpacity
                 onPress={() => router.push('/scanner')}
+                accessibilityRole="button"
+                accessibilityLabel={t('scan_product')}
                 activeOpacity={0.85}
                 style={{
                   flexDirection: 'row',
@@ -235,12 +252,30 @@ export default function HistoriquePage() {
             </Animated.View>
           )}
           ListEmptyComponent={
-            <View style={{ alignItems: 'center', marginTop: 70, opacity: 0.5 }}>
-              <Trash2 size={56} color={colors.inkSoft} />
-              <Txt variant="medium" size={16} color={colors.inkSoft} style={{ marginTop: 16, textAlign: 'center' }}>
-                {t('history_empty')}
-              </Txt>
-            </View>
+            loadError ? (
+              <View style={{ alignItems: 'center', marginTop: 70, paddingHorizontal: 24 }}>
+                <AlertCircle size={52} color={colors.red} />
+                <Txt variant="medium" size={16} color={colors.ink} style={{ marginTop: 16, textAlign: 'center' }}>
+                  {t('history_load_error')}
+                </Txt>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={t('retry')}
+                  onPress={() => loadHistory()}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 18, backgroundColor: colors.yellow, paddingHorizontal: 18, paddingVertical: 12, borderRadius: radius.pill }}
+                >
+                  <RefreshCw size={17} color={colors.inkOnYellow} />
+                  <Txt variant="bold" size={14} color={colors.inkOnYellow}>{t('retry')}</Txt>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ alignItems: 'center', marginTop: 70, opacity: 0.65 }}>
+                <Trash2 size={56} color={colors.inkSoft} />
+                <Txt variant="medium" size={16} color={colors.inkSoft} style={{ marginTop: 16, textAlign: 'center' }}>
+                  {t('history_empty')}
+                </Txt>
+              </View>
+            )
           }
         />
       </View>
@@ -260,15 +295,17 @@ export default function HistoriquePage() {
 
       {/* Menu (Compte / Problème) — AppModal : le Modal natif figeait l'app. */}
       <AppModal transparent visible={menuVisible} animationType="fade" onRequestClose={() => setMenuVisible(false)}>
-        <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+        <TouchableWithoutFeedback onPress={() => setMenuVisible(false)} accessible={false}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.12)' }}>
-            <TouchableWithoutFeedback>
+            <TouchableWithoutFeedback accessible={false}>
               <View style={[{ position: 'absolute', top: 70, left: 26, backgroundColor: colors.card, borderRadius: 16, width: 200, paddingVertical: 8 }, shadows.listCard]}>
                 <TouchableOpacity
                   onPress={() => {
                     setMenuVisible(false);
                     router.push('/reglage/compte');
                   }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('account')}
                   style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, gap: 12 }}
                 >
                   <User size={18} color={colors.inkSoft} />
@@ -279,6 +316,8 @@ export default function HistoriquePage() {
                     setMenuVisible(false);
                     router.push('../screens/reportUser');
                   }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('a_problem')}
                   style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, gap: 12 }}
                 >
                   <HelpCircle size={18} color={colors.inkSoft} />

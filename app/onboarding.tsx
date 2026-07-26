@@ -92,6 +92,7 @@ export default function Onboarding() {
             </Txt>
             <Image
               source={require('../assets/images/mascotte-betterave.png')}
+              accessible={false}
               style={{ width: 110, height: 110, marginTop: -30, resizeMode: 'contain' }}
             />
           </View>
@@ -102,6 +103,8 @@ export default function Onboarding() {
 
           <TouchableOpacity
             onPress={finish}
+            accessibilityRole="button"
+            accessibilityLabel={t('start')}
             activeOpacity={0.85}
             style={{ marginTop: 20, backgroundColor: colors.yellow, borderRadius: radius.cta, paddingVertical: 22, alignItems: 'center' }}
           >

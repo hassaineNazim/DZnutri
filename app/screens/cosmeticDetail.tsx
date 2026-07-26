@@ -4,11 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StatusBar, View } from 'react-native';
 import { BackButton } from '../components/ui/FormKit';
 import ProductRatings from '../components/ProductRatings';
+import RouteParamError from '../components/ui/RouteParamError';
 import ScoreRing from '../components/ui/ScoreRing';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { CosmeticProduct, fetchCosmetic } from '../services/cosmetics';
 import { colors, radius, scoreBand, shadows } from '../theme/tokens';
+import { parseObjectRouteParam } from '../utils/routeParams';
 
 // 1 = faible, 2 = modéré, 3 = élevé — labelKey est une clé i18n.
 const dangerStyle = (level: number) => {
@@ -21,7 +23,7 @@ export default function CosmeticDetail() {
   const router = useRouter();
   const { t } = useTranslation();
   const { product: productJson } = useLocalSearchParams();
-  const initial: CosmeticProduct | null = productJson ? JSON.parse(productJson as string) : null;
+  const initial = parseObjectRouteParam<CosmeticProduct>(productJson);
   const [product, setProduct] = useState<CosmeticProduct | null>(initial);
   const [loading, setLoading] = useState(false);
 
@@ -36,7 +38,7 @@ export default function CosmeticDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.barcode]);
 
-  if (!product) return null;
+  if (!product) return <RouteParamError onBack={() => router.back()} />;
 
   const risky = product.risky_ingredients ?? [];
   const score = product.cosmetic_score;

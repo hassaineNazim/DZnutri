@@ -117,12 +117,12 @@ export default function AjouterProduitPhotoPage() {
       </Txt>
       {uri ? (
         <View style={{ width: '100%', height: 250, borderRadius: radius.card, overflow: 'hidden' }}>
-          <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          <Image source={{ uri }} accessible={false} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
           <View style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(20,17,16,0.4)', alignItems: 'center', justifyContent: 'center' }}>
             <Animated.View entering={ZoomIn} style={{ backgroundColor: colors.green, borderRadius: 20, padding: 8, marginBottom: 10 }}>
               <Check size={24} color={colors.white} />
             </Animated.View>
-            <TouchableOpacity onPress={onPress} style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityLabel={`${t('retake_photo')}, ${label}`} style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <RefreshCw size={14} color={colors.white} />
               <Txt variant="semibold" size={12} color={colors.white}>{t('retake_photo')}</Txt>
             </TouchableOpacity>
@@ -131,6 +131,8 @@ export default function AjouterProduitPhotoPage() {
       ) : (
         <TouchableOpacity
           onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('take_photo')}, ${label}`}
           activeOpacity={0.75}
           style={{ width: '100%', height: 190, backgroundColor: colors.card, borderRadius: radius.card, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
         >
@@ -160,6 +162,9 @@ export default function AjouterProduitPhotoPage() {
             <TouchableOpacity
               onPress={handleSubmission}
               disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel={t('submit_product')}
+              accessibilityState={{ disabled: loading, busy: loading }}
               activeOpacity={0.85}
               style={{ paddingVertical: 16, borderRadius: radius.cta, alignItems: 'center', backgroundColor: loading ? '#e6c94f' : colors.yellow }}
             >
@@ -177,7 +182,7 @@ export default function AjouterProduitPhotoPage() {
               <Txt variant="displayXBold" size={20} color={colors.ink} style={{ flex: 1 }}>
                 {activePhotoType === 'front' ? t('take_photo_front') : activePhotoType === 'ingredients' ? t('take_photo_ingredients') : t('take_photo_nutrition') || 'Tableau Nutritionnel'}
               </Txt>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ backgroundColor: colors.bordeauxSoft, padding: 8, borderRadius: 20 }}>
+              <TouchableOpacity onPress={() => setModalVisible(false)} accessibilityRole="button" accessibilityLabel={t('close')} style={{ backgroundColor: colors.bordeauxSoft, padding: 8, borderRadius: 20 }}>
                 <X size={20} color={colors.accent} />
               </TouchableOpacity>
             </View>
@@ -185,6 +190,7 @@ export default function AjouterProduitPhotoPage() {
             <View style={{ backgroundColor: colors.chipBg, borderRadius: 18, padding: 8, marginBottom: 18 }}>
               <Image
                 source={activePhotoType === 'front' ? FRONT_EXAMPLE : activePhotoType === 'ingredients' ? BACK_EXAMPLE : NUTRITION_EXAMPLE}
+                accessible={false}
                 style={{ width: '100%', height: 250, borderRadius: 12 }}
                 resizeMode="contain"
               />
@@ -194,7 +200,7 @@ export default function AjouterProduitPhotoPage() {
               {activePhotoType === 'front' ? t('photo_instruction_front') : activePhotoType === 'ingredients' ? t('photo_instruction_back') : t('photo_instruction_nutrition') || 'Prenez une photo claire du tableau des valeurs nutritionnelles.'}
             </Txt>
 
-            <TouchableOpacity onPress={handleCameraLaunch} activeOpacity={0.85} style={{ backgroundColor: colors.yellow, paddingVertical: 16, borderRadius: radius.cta, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+            <TouchableOpacity onPress={handleCameraLaunch} accessibilityRole="button" accessibilityLabel={t('open_camera')} activeOpacity={0.85} style={{ backgroundColor: colors.yellow, paddingVertical: 16, borderRadius: radius.cta, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
               <Camera size={20} color={colors.inkOnYellow} />
               <Txt variant="bold" size={16} color={colors.inkOnYellow}>{t('open_camera')}</Txt>
             </TouchableOpacity>

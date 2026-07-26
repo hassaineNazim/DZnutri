@@ -12,6 +12,8 @@ const CategoryItem = ({ icon, tint, title, subtitle, onPress, index }: { icon: R
   <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
     <TouchableOpacity
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${subtitle}`}
       activeOpacity={0.75}
       style={[{ flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: colors.card, padding: 18, borderRadius: radius.card, marginBottom: 14 }, shadows.listCard]}
     >

@@ -5,12 +5,14 @@ import { Image, ScrollView, StatusBar, TouchableOpacity, View } from 'react-nati
 import AlternativesList from '../components/AlternativesList';
 import ProductRatings from '../components/ProductRatings';
 import ReportModal from '../components/ReportModal';
+import RouteParamError from '../components/ui/RouteParamError';
 import ScoreRing from '../components/ui/ScoreRing';
 import Txt from '../components/ui/Txt';
 import { useAllergenCheck } from '../hooks/useAllergenCheck';
 import { useProductFavorite } from '../hooks/useProductFavorite';
 import { useTranslation } from '../i18n';
 import { colors, gradeColors, radius, scoreBand, scoreGrade } from '../theme/tokens';
+import { parseObjectRouteParam } from '../utils/routeParams';
 
 type Product = {
   id: string;
@@ -123,6 +125,9 @@ function AllergenWarning({ ingredients }: { ingredients?: string }) {
             </View>
           ))}
         </View>
+        <Txt variant="body" size={11.5} color="#8f3c30" style={{ lineHeight: 16, marginTop: 8 }}>
+          {t('allergen_warning_disclaimer')}
+        </Txt>
       </View>
     </View>
   );
@@ -133,9 +138,9 @@ export default function ProductDetail() {
   const router = useRouter();
   const { t } = useTranslation();
   const { product: productJson } = useLocalSearchParams();
-  const product: Product | null = productJson ? JSON.parse(productJson as string) : null;
+  const product = parseObjectRouteParam<Product>(productJson);
   const [reportModalVisible, setReportModalVisible] = useState(false);
-  const [fullProduct, setFullProduct] = useState<Product>(product!);
+  const [fullProduct, setFullProduct] = useState<Product | null>(product);
 
   const barcodeToUse = product?.barcode || product?.id;
   const { isFavorite, toggleFavorite } = useProductFavorite(barcodeToUse || '', product);
@@ -152,7 +157,7 @@ export default function ProductDetail() {
     }
   }, [fullProduct?.barcode, fullProduct?.ingredients_text]);
 
-  if (!product || !fullProduct) return null;
+  if (!product || !fullProduct) return <RouteParamError onBack={() => router.back()} />;
 
   const nv = (key: string) => Math.round(Number(fullProduct.nutriments?.[key + '_100g'] ?? 0) * 10) / 10;
   const energy = Math.round(nv('energy-kcal'));
@@ -176,14 +181,14 @@ export default function ProductDetail() {
       {/* Entête bordeaux */}
       <View style={{ paddingHorizontal: 22, paddingTop: 14 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <RoundBtn onPress={() => router.back()}>
+          <RoundBtn onPress={() => router.back()} label={t('back')}>
             <ArrowLeft size={20} color={colors.bordeaux} />
           </RoundBtn>
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <RoundBtn onPress={() => toggleFavorite()}>
+            <RoundBtn onPress={() => toggleFavorite()} label={t('favorites')} selected={isFavorite}>
               <Heart size={20} color={isFavorite ? colors.red : colors.bordeaux} fill={isFavorite ? colors.red : 'none'} />
             </RoundBtn>
-            <RoundBtn onPress={() => setReportModalVisible(true)}>
+            <RoundBtn onPress={() => setReportModalVisible(true)} label={t('report_error_title')}>
               <MoreHorizontal size={20} color={colors.bordeaux} />
             </RoundBtn>
           </View>
@@ -192,7 +197,7 @@ export default function ProductDetail() {
         {/* Bandeau produit */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 20, marginBottom: 4 }}>
           {fullProduct.image_url ? (
-            <Image source={{ uri: fullProduct.image_url }} style={{ width: 104, height: 104, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)' }} resizeMode="contain" />
+            <Image source={{ uri: fullProduct.image_url }} accessible={false} style={{ width: 104, height: 104, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)' }} resizeMode="contain" />
           ) : (
             <View style={{ width: 104, height: 104, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)' }} />
           )}
@@ -299,10 +304,13 @@ export default function ProductDetail() {
   );
 }
 
-function RoundBtn({ children, onPress }: { children: React.ReactNode; onPress: () => void }) {
+function RoundBtn({ children, onPress, label, selected }: { children: React.ReactNode; onPress: () => void; label: string; selected?: boolean }) {
   return (
     <TouchableOpacity
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={selected === undefined ? undefined : { selected }}
       activeOpacity={0.75}
       style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }}
     >

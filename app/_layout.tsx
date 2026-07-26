@@ -1,17 +1,13 @@
-import {
-  DMSans_400Regular,
-  DMSans_500Medium,
-  DMSans_600SemiBold,
-  DMSans_700Bold,
-} from '@expo-google-fonts/dm-sans';
-import {
-  PlayfairDisplay_500Medium,
-  PlayfairDisplay_700Bold,
-  PlayfairDisplay_800ExtraBold,
-  PlayfairDisplay_900Black,
-  PlayfairDisplay_900Black_Italic,
-  useFonts,
-} from '@expo-google-fonts/playfair-display';
+import { DMSans_400Regular } from '@expo-google-fonts/dm-sans/400Regular';
+import { DMSans_500Medium } from '@expo-google-fonts/dm-sans/500Medium';
+import { DMSans_600SemiBold } from '@expo-google-fonts/dm-sans/600SemiBold';
+import { DMSans_700Bold } from '@expo-google-fonts/dm-sans/700Bold';
+import { PlayfairDisplay_500Medium } from '@expo-google-fonts/playfair-display/500Medium';
+import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display/700Bold';
+import { PlayfairDisplay_800ExtraBold } from '@expo-google-fonts/playfair-display/800ExtraBold';
+import { PlayfairDisplay_900Black } from '@expo-google-fonts/playfair-display/900Black';
+import { PlayfairDisplay_900Black_Italic } from '@expo-google-fonts/playfair-display/900Black_Italic';
+import { useFonts } from 'expo-font';
 import { Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
@@ -20,8 +16,9 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import NotificationListener from './components/NotificationListener';
+import SessionExpiryListener from './components/SessionExpiryListener';
 import { ToastProvider } from './context/ToastContext';
-import { persister, queryClient } from './services/queryClient';
+import { clearLegacyPrivateQueryCache, persister, queryClient } from './services/queryClient';
 import { loadStoredThemeScheme, ThemeProvider, useTheme } from './theme/ThemeContext';
 
 // On garde le splash affiché tant que les polices du redesign ne sont pas prêtes,
@@ -67,7 +64,10 @@ export default function RootLayout() {
   // Préférence de thème chargée AVANT le premier rendu (pas de flash clair).
   const [themeReady, setThemeReady] = useState(false);
   useEffect(() => {
-    loadStoredThemeScheme().finally(() => setThemeReady(true));
+    Promise.allSettled([
+      loadStoredThemeScheme(),
+      clearLegacyPrivateQueryCache(),
+    ]).finally(() => setThemeReady(true));
   }, []);
 
   const [fontsLoaded, fontError] = useFonts({
@@ -95,9 +95,21 @@ export default function RootLayout() {
   }
 
   return (
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        dehydrateOptions: {
+          // Les données liées au compte (profil santé et favoris) restent
+          // uniquement en mémoire et sont purgées à chaque fin de session.
+          shouldDehydrateQuery: (query) =>
+            !['userProfile', 'favorite', 'favorites_list'].includes(String(query.queryKey[0])),
+        },
+      }}
+    >
       <ToastProvider>
         <NotificationListener />
+        <SessionExpiryListener />
         <SafeAreaProvider>
           <ThemeProvider>
             <ThemedApp onLayoutRootView={onLayoutRootView} />

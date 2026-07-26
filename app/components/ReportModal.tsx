@@ -66,6 +66,8 @@ export default function ReportModal({ visible, onClose, barcode }: Props) {
         // inatteignables). Avec inset 0, l'overlay suit le redimensionnement de
         // la fenêtre quand le clavier s'ouvre (adjustResize d'Android).
         <View
+            accessibilityViewIsModal
+            accessibilityLabel={t('report_error_title')}
             style={{
                 position: 'absolute',
                 top: 0,
@@ -80,7 +82,12 @@ export default function ReportModal({ visible, onClose, barcode }: Props) {
             pointerEvents="auto"
         >
             {/* Voile cliquable pour fermer */}
-            <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+            <Pressable
+                style={StyleSheet.absoluteFillObject}
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel={t('close')}
+            />
 
             {/* `padding` sur LES DEUX plateformes : sur Android, si la fenêtre est
                 déjà redimensionnée par le clavier, le chevauchement mesuré est ~0
@@ -132,6 +139,7 @@ export default function ReportModal({ visible, onClose, barcode }: Props) {
 
                     {/* Champ de saisie */}
                     <TextInput
+                        accessibilityLabel={t('report_placeholder')}
                         style={{
                             backgroundColor: colors.card,
                             borderWidth: 1.5,
@@ -157,6 +165,9 @@ export default function ReportModal({ visible, onClose, barcode }: Props) {
                     <TouchableOpacity
                         onPress={handleSubmit}
                         disabled={loading}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('send_report')}
+                        accessibilityState={{ disabled: loading, busy: loading }}
                         activeOpacity={0.85}
                         style={{ marginTop: 18, backgroundColor: colors.yellow, borderRadius: radius.cta, paddingVertical: 17, alignItems: 'center' }}
                     >
@@ -171,6 +182,9 @@ export default function ReportModal({ visible, onClose, barcode }: Props) {
                     <TouchableOpacity
                         onPress={onClose}
                         disabled={loading}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('close_cancel')}
+                        accessibilityState={{ disabled: loading }}
                         activeOpacity={0.85}
                         style={{ marginTop: 11, backgroundColor: colors.bordeauxSoft, borderRadius: radius.cta, paddingVertical: 15, alignItems: 'center' }}
                     >
