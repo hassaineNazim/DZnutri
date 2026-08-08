@@ -27,7 +27,7 @@ module.exports = {
     host: "lan",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/bet_holding_phone_V2.png",
+    icon: "./assets/images/logoRemo.png",
     scheme: "dznutri",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -44,8 +44,8 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/bet_default_logo.png",
-        backgroundColor: "#ffffff",
+        foregroundImage: "./assets/images/logoRemo.png",
+        backgroundColor: "#3b0010",
       },
       package: "com.Nazim.dznutri",
       permissions: ["android.permission.CAMERA"],
@@ -58,7 +58,7 @@ module.exports = {
     web: {
       bundler: "metro",
       output: "static",
-      favicon: "./assets/images/bet_holding_phone_V2.png",
+      favicon: "./assets/images/logoRemo.png",
       history: {
         origin: false,
       },
@@ -69,10 +69,10 @@ module.exports = {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/bet_holding_phone_V2.png",
+          image: "./assets/images/logoRemo.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#ffffff",
+          backgroundColor: "#3b0010",
         },
       ],
       [
