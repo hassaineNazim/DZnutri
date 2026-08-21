@@ -17,10 +17,10 @@ RUN npm run build
 
 # ---- Image finale nginx ----
 FROM nginx:alpine
-# BACKEND_HOST : hôte:port du backend pour le reverse-proxy (nginx.conf.template).
-# Défaut = nom du service dans docker-compose local ; à surcharger en prod
-# (ex: Railway) avec l'hôte réseau privé du service backend.
-ENV BACKEND_HOST=backend:8000
+# URL complète du backend pour le reverse-proxy. Le domaine public Railway est
+# utilisé par défaut : le réseau privé résout le service mais n'ouvre pas son
+# port de façon fiable (502/504 observés en production).
+ENV BACKEND_URL=https://dznutri-backend-production.up.railway.app
 # Fichier *.template dans /etc/nginx/templates/ : l'image nginx officielle le
 # passe par envsubst vers /etc/nginx/conf.d/ au démarrage du conteneur.
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template

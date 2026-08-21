@@ -112,23 +112,23 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
   if (!submission) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden">
+    <div className="admin-form-modal-backdrop fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <div className="admin-form-modal-card bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden">
 
         {/* En-tête */}
-        <div className="flex justify-between items-center p-6 border-b bg-gray-50">
+        <div className="admin-form-modal-header flex justify-between items-center p-6 border-b bg-gray-50">
           <h2 className="text-xl font-bold text-gray-800">
             {submission.status === 'flagged' ? '🚨 Correction signalement' : `Validation #${submission.id}`}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors"><X size={24} /></button>
+          <button onClick={onClose} className="admin-modal-close" aria-label="Fermer"><X size={22} /></button>
         </div>
 
         {/* Corps (scrollable) */}
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
+        <div className="admin-form-modal-body flex-1 overflow-y-auto p-6 bg-gray-50/50">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
             {/* COLONNE GAUCHE : FORMULAIRE DE DONNÉES */}
-            <div className="space-y-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div className="admin-form-section space-y-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Données Produit</h3>
 
               {/* Identité */}
@@ -278,17 +278,17 @@ const ApprovalModal = ({ submission, onClose, onConfirm, loading }) => {
         </div>
 
         {/* Pied de page (Actions) */}
-        <div className="flex justify-end items-center p-5 border-t bg-white gap-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div className="admin-form-modal-footer flex justify-end items-center p-5 border-t bg-white gap-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+            className="admin-outline-button"
           >
             Annuler
           </button>
           <button
             onClick={handleConfirm}
             disabled={loading}
-            className="px-8 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold shadow-md hover:shadow-lg flex items-center transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+            className="admin-success-button"
           >
             {loading && (
               <svg className="animate-spin h-4 w-4 mr-2 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

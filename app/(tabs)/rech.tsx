@@ -6,6 +6,7 @@ import { ActivityIndicator, StatusBar, TextInput, TouchableOpacity, View } from 
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import FilterModal from '../components/FilterModal';
 import ProductCard from '../components/ui/ProductCard';
+import CollapsibleHeader, { useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { api } from '../services/axios';
@@ -42,11 +43,13 @@ export default function Rech() {
     verifiedOnly: false,
   });
   const [searchError, setSearchError] = useState(false);
+  const { scrollY, onScroll } = useCollapsibleHeader();
 
   const inputRef = useRef<TextInput | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const requestSequence = useRef(0);
   const filtersActive = Object.keys(filters).length > 1 || filters.verifiedOnly;
+  const searchHeaderHeight = filtersActive ? 310 : 250;
 
   const runSearch = useCallback(async (searchQuery: string, searchFilters: SearchFilters) => {
     if (!searchQuery.trim() && Object.keys(searchFilters).length === 1 && !searchFilters.verifiedOnly) {
@@ -132,6 +135,7 @@ export default function Rech() {
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
       {/* ---- Entête bordeaux ---- */}
+      <CollapsibleHeader title={t('rech') || t('search')} scrollY={scrollY} expandedHeight={searchHeaderHeight}>
       <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 18 }}>
         <Txt variant="bold" size={12} color={colors.yellow} style={{ letterSpacing: 1.2 }}>
           {(t('search_subtitle') || 'Trouvez des produits sains').toUpperCase()}
@@ -208,20 +212,23 @@ export default function Rech() {
           </View>
         )}
       </View>
+      </CollapsibleHeader>
 
       {/* ---- Feuille crème : résultats ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
         {loading ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: searchHeaderHeight }}>
             <ActivityIndicator size="large" color={colors.green} />
           </View>
         ) : (
           <Animated.FlatList
             data={results}
             keyExtractor={(item) => item.barcode || item.id}
-            contentContainerStyle={{ padding: 22, paddingBottom: 120 }}
+            contentContainerStyle={{ padding: 22, paddingTop: searchHeaderHeight + 22, paddingBottom: 120 }}
             itemLayoutAnimation={Layout.springify()}
             showsVerticalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
             renderItem={({ item, index }) => (
               <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 45).springify()} style={{ marginBottom: 12 }}>
                 <ProductCard

@@ -49,6 +49,8 @@ function ThemedApp({ onLayoutRootView }: { onLayoutRootView: () => void }) {
           <Stack.Screen name="screens/typeProd" options={{ headerShown: false }} />
           <Stack.Screen name="screens/ajouterProdInfo" options={{ headerShown: false }} />
           <Stack.Screen name="screens/ajouterProdPhoto" options={{ headerShown: false }} />
+          <Stack.Screen name="screens/unsupportedProduct" options={{ headerShown: false }} />
+          <Stack.Screen name="screens/faqDetail" options={{ headerShown: false }} />
 
           <Stack.Screen name="screens/productDetail" options={{
             headerShown: false,

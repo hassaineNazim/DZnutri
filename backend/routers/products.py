@@ -35,7 +35,7 @@ def get_off_client() -> httpx.AsyncClient:
             verify=certifi.where(),
             timeout=OFF_TIMEOUT,
             # Open Food Facts demande un User-Agent identifiant pour ne pas bloquer.
-            headers={"User-Agent": "DZnutri/1.0 (dznutriment@gmail.com)"},
+            headers={"User-Agent": "RemoScan/2.0 (dznutriment@gmail.com)"},
         )
     return _off_client
 

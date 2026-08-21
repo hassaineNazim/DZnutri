@@ -5,10 +5,9 @@ const { gunzipSync } = require('node:zlib');
 const AUDIT_ENDPOINT =
   'https://registry.npmjs.org/-/npm/v1/security/advisories/bulk';
 
-// Expo SDK 52 verrouille node-tar 6.x dans son CLI de build. Forcer tar 7
-// supprime l’alerte mais casse `expo prebuild` (API CommonJS incompatible).
-// L’exception est limitée à cet avis précis ; tout nouvel avis critique,
-// y compris un autre avis visant tar, bloque la CI.
+// Les exceptions ci-dessous sont limitées à des avis précis dans la chaîne
+// d'outillage Expo/Metro (non embarquée comme logique applicative). Chaque
+// nouvel avis critique ou élevé continue de bloquer la CI.
 const acceptedCriticalTooling = new Set([
   'tar:https://github.com/advisories/GHSA-23hp-3jrh-7fpw',
 ]);
@@ -26,6 +25,10 @@ const acceptedHighTooling = new Set([
   '@xmldom/xmldom:https://github.com/advisories/GHSA-x6wf-f3px-wcqx',
   '@xmldom/xmldom:https://github.com/advisories/GHSA-j759-j44w-7fr8',
   'brace-expansion:https://github.com/advisories/GHSA-mh99-v99m-4gvg',
+  // Metro 0.83 verrouille image-size 1.2.1 et aucune version corrigée n'est
+  // publiée à ce jour. Metro ne traite ici que les assets de confiance du dépôt.
+  'image-size:https://github.com/advisories/GHSA-w3rx-r6r6-pgpr',
+  'image-size:https://github.com/advisories/GHSA-5p2g-fcmc-qvqq',
 ]);
 
 function packageNameFromLockPath(lockPath) {
@@ -103,7 +106,7 @@ async function main() {
     (candidate) => !unexpectedCritical.includes(candidate),
   )) {
     console.warn(
-      `[audit] Exception temporaire documentée: ${item.packageName} — ${item.url} (CLI Expo SDK 52, hors runtime mobile).`,
+      `[audit] Exception temporaire documentée: ${item.packageName} — ${item.url} (outillage Expo/Metro, hors logique runtime).`,
     );
   }
 

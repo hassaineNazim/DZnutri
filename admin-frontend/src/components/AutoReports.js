@@ -1,10 +1,10 @@
-import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import api from '../api/auth';
 import { reportsAPI } from '../api/reports';
 import EditProductModal from './EditProductModal';
 import ReportCard from './ReportCard';
 import { useToast } from './Toast';
+import { PageHeader, StatePanel, StatusBadge } from './AdminUI';
 
 const AutoReports = () => {
     const [reports, setReports] = useState([]);
@@ -100,37 +100,25 @@ const AutoReports = () => {
         }
     };
 
-    if (loading) return (
-        <div className="text-center py-12">
-            <RefreshCw className="h-8 w-8 text-gray-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-500">Chargement...</p>
-        </div>
-    );
+    if (loading) return <StatePanel loading>Chargement des signalements…</StatePanel>;
 
     if (error) return (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="text-sm text-red-700">{error}</div>
-        </div>
+        <div className="admin-error-panel">{error}</div>
     );
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-                    <AlertTriangle className="h-6 w-6 text-red-500 mr-2" />
-                    Signalements Automatiques
-                </h1>
-                <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                    {reports.length} en attente
-                </span>
-            </div>
+        <div className="admin-page">
+            <PageHeader
+                eyebrow="Contrôle qualité"
+                title="Signalements"
+                accent="automatiques"
+                aside={<StatusBadge>{reports.length} en attente</StatusBadge>}
+            />
 
             {reports.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-lg shadow">
-                    <p className="text-gray-500">Aucun signalement automatique.</p>
-                </div>
+                <StatePanel>Aucun signalement automatique.</StatePanel>
             ) : (
-                <div className="space-y-6">
+                <div className="report-list">
                     {reports.map((report) => (
                         <ReportCard
                             key={report.id}
@@ -138,6 +126,8 @@ const AutoReports = () => {
                             onResolve={handleResolve}
                             onIgnore={handleIgnore}
                             image={products[report.barcode]?.image_url}
+                            product={products[report.barcode]}
+                            loading={modalLoading}
                             hideDetails={true}
                         />
                     ))}

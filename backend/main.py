@@ -109,8 +109,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="DZnutri API",
-    description="API for DZnutri product management system",
+    title="Remo Scan API",
+    description="API du service d'analyse de produits Remo Scan",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -199,7 +199,7 @@ if _env == "production":
     if not allowed_origins:
         logger.warning(
             "ALLOWED_ORIGINS vide en production : aucune origine cross-site ne "
-            "sera autorisée. Définissez vos domaines (ex: https://admin.dznutri.com)."
+            "sera autorisée. Définissez vos domaines (ex: https://admin.remoscan.app)."
         )
     app.add_middleware(
         CORSMiddleware,
@@ -221,7 +221,7 @@ else:
 @app.get("/")
 async def root():
     """Health check endpoint"""
-    return {"message": "DZnutri API is running", "status": "healthy"}
+    return {"message": "Remo Scan API is running", "status": "healthy"}
 
 
 @app.get("/health")

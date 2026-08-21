@@ -1,0 +1,42 @@
+# Dépendances et sorties générées
+node_modules/
+.expo/
+dist/
+dist-sdk55/
+web-build/
+admin-frontend/build/
+.venv/
+**/__pycache__/
+*.tsbuildinfo
+*.log
+
+# Secrets et certificats locaux
+*.env
+!*.env.example
+*.pem
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+backend/dz-nutri-app-0903244cb317.json
+backend/dznutri-632fbb70c039.json
+
+# Le build mobile n'utilise pas ces projets/dossiers
+admin-frontend/
+backend/
+Redesign app scan alimentaire*/
+.git/
+.github/
+.claude/
+.vscode/
+app-example/
+
+# Fichiers système et caches
+.DS_Store
+.kotlin/
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+android/local.properties

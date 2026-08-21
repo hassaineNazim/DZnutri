@@ -17,6 +17,7 @@ class UserTable(Base):
     created_at = Column(DateTime, server_default=func.now())
     email = Column(String, unique=True, index=True, nullable=True) # Ajout de l'email
     google_id = Column(String, unique=True, nullable=True) # Pour stocker l'ID unique de Google 
+    apple_id = Column(String, unique=True, nullable=True)  # Identifiant stable Sign in with Apple
 
     hashed_password = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)

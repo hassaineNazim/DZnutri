@@ -1,8 +1,9 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { ChevronRight, Heart, Key, LogOut, Mail, User as UserIcon } from 'lucide-react-native';
+import { ChevronRight, Heart, Key, LogOut, Mail, Trash2, User as UserIcon } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StatusBar, TouchableOpacity, View } from 'react-native';
 import { BackButton } from '../../components/ui/FormKit';
+import CollapsibleHeader, { useCollapsibleHeader } from '../../components/ui/CollapsibleHeader';
 import Txt from '../../components/ui/Txt';
 import { api } from '../../services/axios';
 import { invalidateSession } from '../../services/authSession';
@@ -93,6 +94,8 @@ export default function ComptePage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const { scrollY, onScroll } = useCollapsibleHeader();
 
   const fetchUser = useCallback(async () => {
     try {
@@ -137,6 +140,36 @@ export default function ComptePage() {
     ]);
   };
 
+  const deleteAccount = () => {
+    if (deleting) return;
+    Alert.alert(
+      'Supprimer définitivement le compte ?',
+      "Votre profil santé, votre historique, vos favoris, vos notes et vos données de compte seront supprimés. Cette action est irréversible.",
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer mon compte',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setDeleting(true);
+              await api.delete('/auth/account');
+              await invalidateSession('logout');
+              router.replace('/auth');
+            } catch (error: any) {
+              Alert.alert(
+                'Suppression impossible',
+                error?.response?.data?.detail || 'Une erreur est survenue. Réessayez dans quelques instants.',
+              );
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const getInitials = (name: string) =>
     name.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2);
 
@@ -152,6 +185,7 @@ export default function ComptePage() {
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
       {/* ---- Entête bordeaux : avatar + identité ---- */}
+      <CollapsibleHeader title="Compte" scrollY={scrollY} expandedHeight={300} compactLeft={<BackButton onPress={() => router.back()} />}>
       <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 28 }}>
         <BackButton onPress={() => router.back()} />
         <View style={{ alignItems: 'center', marginTop: 12 }}>
@@ -168,10 +202,11 @@ export default function ComptePage() {
           </Txt>
         </View>
       </View>
+      </CollapsibleHeader>
 
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 24, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 324, paddingBottom: 40 }} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
           <Section title="Informations personnelles">
             <Row icon={<UserIcon size={19} color={colors.accent} />} tint="rgba(89,18,31,0.1)" label="Nom d'utilisateur" value={user?.username} />
             <Row icon={<Mail size={19} color="#b98a09" />} tint="rgba(242,194,46,0.2)" label="Email" value={user?.email} last />
@@ -203,6 +238,18 @@ export default function ComptePage() {
               showArrow
             />
             <Row icon={<LogOut size={19} color={colors.red} />} tint="rgba(210,75,51,0.14)" label="Se déconnecter" onPress={logout} danger last />
+          </Section>
+
+          <Section title="Zone sensible">
+            <Row
+              icon={deleting ? <ActivityIndicator size="small" color={colors.red} /> : <Trash2 size={19} color={colors.red} />}
+              tint="rgba(210,75,51,0.14)"
+              label={deleting ? 'Suppression en cours…' : 'Supprimer mon compte'}
+              value="Efface définitivement vos données personnelles"
+              onPress={deleteAccount}
+              danger
+              last
+            />
           </Section>
         </ScrollView>
       </View>

@@ -1,14 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
+import * as Updates from 'expo-updates';
 import { useEffect, useState } from 'react';
 import { I18nManager } from 'react-native';
-// optional expo updates reload
-let Updates: any = null;
-try {
-  Updates = require('expo-updates');
-} catch {
-  Updates = null;
-}
 
 export type SupportedLang = 'fr' | 'en' | 'ar';
 const STORAGE_KEY = 'appLang';
@@ -168,6 +162,12 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     cosmetics_subtitle: "Produits de la salle de bain",
     other_category: "Autre produit",
     other_subtitle: "Aucune des catégories ci-dessus",
+    unsupported_product_title: "Cette catégorie arrive bientôt",
+    unsupported_product_body: "Pour le moment, Remo Scan analyse uniquement les produits alimentaires et les cosmétiques. Nous préférons proposer des résultats fiables avant d'ouvrir de nouvelles catégories.",
+    unsupported_product_hint: "Vous pouvez revenir en arrière et choisir Alimentation ou Cosmétiques. Les autres familles de produits seront ajoutées progressivement.",
+    understood: "J'ai compris",
+    best_alternatives: "Meilleures alternatives",
+    alternatives_found: "alternatives trouvées",
     product_details: "Détails du produit",
     barcode: "Code-barres",
     product_name: "Nom du produit",
@@ -298,8 +298,22 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     long_press_select: "Maintenez pour sélectionner",
     about_mission_title: "Notre mission",
     about_mission_body: "Aider les consommateurs algériens à mieux comprendre les produits du quotidien grâce à des informations claires et vérifiables.",
+    about_story_title: "Notre histoire",
+    about_story_body: "Remo Scan est né d'un projet universitaire imaginé par deux étudiants en informatique. Nous avons décidé de le poursuivre au-delà de la faculté pour aider les consommateurs algériens à mieux comprendre ce qu'ils achètent et à faire des choix plus éclairés. Le projet est indépendant et à but non lucratif.",
     about_independence_title: "Notre engagement",
-    about_independence_body: "DZnutri ne remplace pas un avis médical. Les scores et alertes sont des outils d'information à confronter à l'étiquette du produit.",
+    about_independence_body: "Remo Scan ne remplace pas un avis médical. Les scores et alertes sont des outils d'information à confronter à l'étiquette du produit.",
+    faq_mission_title: "Quelle est la mission de Remo Scan ?",
+    faq_mission_body: "Notre mission est de rendre les étiquettes plus simples à comprendre pour les consommateurs algériens. Remo Scan rassemble les informations nutritionnelles, les additifs et les ingrédients à surveiller dans une présentation claire, afin d'aider chacun à décider en connaissance de cause.",
+    faq_independent_title: "Remo Scan est-il indépendant ?",
+    faq_independent_body: "Oui. Remo Scan est un projet indépendant, sans publicité ni classement payé par les marques. Une entreprise ne peut pas acheter une meilleure note. Nos évaluations reposent sur les données disponibles et sur des règles identiques pour tous les produits.",
+    faq_funding_title: "Comment est financée l'application ?",
+    faq_funding_body: "Remo Scan est un projet à but non lucratif développé par ses deux fondateurs. Son fonctionnement repose actuellement sur leurs moyens propres et leur temps bénévole. Aucun financement de marque n'influence les scores ou les résultats affichés.",
+    faq_scoring_title: "Comment sont notés les produits ?",
+    faq_scoring_body: "Les produits alimentaires sont évalués à partir de leurs données nutritionnelles, de leur niveau de transformation et des additifs détectés. Les cosmétiques sont analysés selon les ingrédients INCI et leurs niveaux de risque documentés. Une donnée manquante peut limiter la précision : vérifiez toujours l'étiquette du produit.",
+    faq_team_title: "Qui est derrière Remo Scan ?",
+    faq_team_body: "Nous sommes deux étudiants en informatique. Remo Scan a commencé comme un projet de faculté, puis nous avons choisi de continuer à le développer pour aider les consommateurs algériens à mieux comprendre les produits du quotidien. C'est un projet indépendant et à but non lucratif.",
+    faq_transparency_title: "À retenir",
+    faq_transparency_body: "Remo Scan est un outil d'information. Il ne remplace ni l'étiquette officielle du produit ni l'avis d'un professionnel de santé.",
 
   },
   en: {
@@ -455,6 +469,12 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     cosmetics_subtitle: "Bathroom products",
     other_category: "Other product",
     other_subtitle: "None of the above",
+    unsupported_product_title: "This category is coming soon",
+    unsupported_product_body: "For now, Remo Scan analyzes food and cosmetic products only. We prefer to provide reliable results before opening additional categories.",
+    unsupported_product_hint: "Go back and choose Food or Cosmetics. Other product families will be added progressively.",
+    understood: "Got it",
+    best_alternatives: "Best alternatives",
+    alternatives_found: "alternatives found",
     product_details: "Product Details",
     barcode: "Barcode",
     product_name: "Product Name",
@@ -556,7 +576,7 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     smart_alerts: "Smart Alerts",
     smart_alerts_desc: "Get alerts if a product contains your allergens.",
     welcome_back: "Welcome back!",
-    join_community: "Join the DZnutri community.",
+    join_community: "Join the Remo Scan community.",
     login: "Sign in",
     signup: "Sign up",
     username: "Username",
@@ -585,8 +605,22 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     long_press_select: "Long press to select",
     about_mission_title: "Our mission",
     about_mission_body: "Help Algerian consumers understand everyday products through clear and verifiable information.",
+    about_story_title: "Our story",
+    about_story_body: "Remo Scan began as a university project created by two computer science students. We decided to continue it beyond university to help Algerian consumers understand what they buy and make more informed choices. It is an independent, non-profit project.",
     about_independence_title: "Our commitment",
-    about_independence_body: "DZnutri does not replace medical advice. Scores and alerts are informational tools that must be checked against the product label.",
+    about_independence_body: "Remo Scan does not replace medical advice. Scores and alerts are informational tools that must be checked against the product label.",
+    faq_mission_title: "What is Remo Scan's mission?",
+    faq_mission_body: "Our mission is to make labels easier for Algerian consumers to understand. Remo Scan brings nutrition facts, additives, and ingredients to watch into one clear view so everyone can make informed decisions.",
+    faq_independent_title: "Is Remo Scan independent?",
+    faq_independent_body: "Yes. Remo Scan is independent, with no advertising or paid rankings from brands. A company cannot buy a better score. The same rules apply to every product.",
+    faq_funding_title: "How is the app funded?",
+    faq_funding_body: "Remo Scan is a non-profit project developed by its two founders. It currently relies on their own resources and volunteer time. No brand funding influences scores or displayed results.",
+    faq_scoring_title: "How are products scored?",
+    faq_scoring_body: "Food products are assessed using nutrition data, processing level, and detected additives. Cosmetics are analyzed from their INCI ingredients and documented risk levels. Missing data can reduce accuracy, so always check the product label.",
+    faq_team_title: "Who is behind Remo Scan?",
+    faq_team_body: "We are two computer science students. Remo Scan began as a university project, and we chose to keep developing it to help Algerian consumers understand everyday products. It is independent and non-profit.",
+    faq_transparency_title: "Keep in mind",
+    faq_transparency_body: "Remo Scan is an information tool. It does not replace the official product label or professional medical advice.",
 
   },
   ar: {
@@ -742,6 +776,12 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     cosmetics_subtitle: "منتجات الحمام",
     other_category: "منتج آخر",
     other_subtitle: "لا شيء مما سبق",
+    unsupported_product_title: "هذه الفئة ستتوفر قريبًا",
+    unsupported_product_body: "في الوقت الحالي، يحلل Remo Scan المنتجات الغذائية ومستحضرات التجميل فقط. نفضل تقديم نتائج موثوقة قبل إضافة فئات جديدة.",
+    unsupported_product_hint: "يمكنك الرجوع واختيار الأغذية أو مستحضرات التجميل. ستضاف فئات المنتجات الأخرى تدريجيًا.",
+    understood: "فهمت",
+    best_alternatives: "أفضل البدائل",
+    alternatives_found: "بدائل متوفرة",
     product_details: "تفاصيل المنتج",
     barcode: "الباركود",
     product_name: "اسم المنتج",
@@ -843,7 +883,7 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     dislike_placeholder: "مثال: كزبرة",
     smart_alerts: "تنبيهات ذكية",
     smart_alerts_desc: "احصل على تنبيهات إذا كان المنتج يحتوي على مسببات الحساسية الخاصة بك.",
-    join_community: "انضم إلى مجتمع DZnutri.",
+    join_community: "انضم إلى مجتمع Remo Scan.",
     login: "تسجيل الدخول",
     signup: "إنشاء حساب",
     username: "اسم المستخدم",
@@ -872,8 +912,22 @@ const translations: Record<SupportedLang, Record<string, string>> = {
     long_press_select: "اضغط مطولاً للتحديد",
     about_mission_title: "مهمتنا",
     about_mission_body: "مساعدة المستهلك الجزائري على فهم المنتجات اليومية من خلال معلومات واضحة وقابلة للتحقق.",
+    about_story_title: "قصتنا",
+    about_story_body: "بدأ Remo Scan كمشروع جامعي أنشأه طالبان في علوم الحاسوب. قررنا مواصلة تطويره بعد الجامعة لمساعدة المستهلك الجزائري على فهم ما يشتريه واتخاذ قرارات أوضح. المشروع مستقل وغير ربحي.",
     about_independence_title: "التزامنا",
-    about_independence_body: "لا يعوّض DZnutri الاستشارة الطبية. النتائج والتنبيهات أدوات معلومات يجب مقارنتها بملصق المنتج.",
+    about_independence_body: "لا يعوّض Remo Scan الاستشارة الطبية. النتائج والتنبيهات أدوات معلومات يجب مقارنتها بملصق المنتج.",
+    faq_mission_title: "ما هي مهمة Remo Scan؟",
+    faq_mission_body: "مهمتنا هي تبسيط فهم الملصقات للمستهلك الجزائري. يجمع Remo Scan المعلومات الغذائية والمضافات والمكونات التي تستحق الانتباه في عرض واضح يساعد الجميع على اتخاذ قرارات مدروسة.",
+    faq_independent_title: "هل Remo Scan مستقل؟",
+    faq_independent_body: "نعم. Remo Scan مشروع مستقل بلا إعلانات أو ترتيب مدفوع من العلامات التجارية. لا يمكن لأي شركة شراء نتيجة أفضل، وتطبق القواعد نفسها على جميع المنتجات.",
+    faq_funding_title: "كيف يتم تمويل التطبيق؟",
+    faq_funding_body: "Remo Scan مشروع غير ربحي يطوره مؤسساه. يعتمد حاليًا على مواردهما الخاصة ووقتهما التطوعي، ولا يؤثر أي تمويل تجاري على النتائج المعروضة.",
+    faq_scoring_title: "كيف يتم تقييم المنتجات؟",
+    faq_scoring_body: "تقيّم الأغذية حسب بياناتها الغذائية ودرجة التصنيع والمضافات المكتشفة. وتحلل مستحضرات التجميل حسب مكونات INCI ومستويات المخاطر الموثقة. قد تقل الدقة عند نقص البيانات، لذلك تحقق دائمًا من ملصق المنتج.",
+    faq_team_title: "من يقف وراء Remo Scan؟",
+    faq_team_body: "نحن طالبان في علوم الحاسوب. بدأ Remo Scan كمشروع جامعي ثم قررنا مواصلة تطويره لمساعدة المستهلك الجزائري على فهم المنتجات اليومية. المشروع مستقل وغير ربحي.",
+    faq_transparency_title: "تذكير",
+    faq_transparency_body: "Remo Scan أداة معلومات ولا يعوض الملصق الرسمي للمنتج أو استشارة مختص صحي.",
 
   }
 };

@@ -15,8 +15,8 @@ module.exports = function (api) {
     ]);
   }
 
-  // react-native-reanimated/plugin DOIT rester en dernier.
-  plugins.push("react-native-reanimated/plugin");
+  // Reanimated 4 délègue les worklets à ce plugin, qui doit rester en dernier.
+  plugins.push("react-native-worklets/plugin");
 
   return {
     presets: [

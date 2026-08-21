@@ -43,7 +43,7 @@ async def send_password_reset_email(email: EmailStr, token: str):
         return
 
     message = MessageSchema(
-        subject="Réinitialisation de mot de passe DZNutri",
+        subject="Réinitialisation de mot de passe Remo Scan",
         recipients=[email],
         body=html,
         subtype=MessageType.html

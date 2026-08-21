@@ -15,6 +15,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
 import AppModal from '../components/ui/AppModal';
 import ProductCard, { ProductCardItem } from '../components/ui/ProductCard';
+import CollapsibleHeader, { useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { colors, radius, shadows } from '../theme/tokens';
@@ -62,6 +63,7 @@ export default function HistoriquePage() {
   const [loadError, setLoadError] = useState(false);
   const { t } = useTranslation();
   const router = useRouter();
+  const { scrollY, onScroll } = useCollapsibleHeader();
 
   const loadHistory = useCallback(async (isRefresh = false) => {
     try {
@@ -150,6 +152,29 @@ export default function HistoriquePage() {
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
       {/* ---- Entête bordeaux ---- */}
+      <CollapsibleHeader
+        title={selecting ? `${selectedIds.length} ${t('selected')}` : t('historique')}
+        scrollY={scrollY}
+        expandedHeight={selecting ? 94 : 310}
+        compactLeft={
+          selecting ? (
+            <Pressable onPress={clearSelection} accessibilityRole="button" accessibilityLabel={t('cancel')} style={[styles.roundBtnCream, styles.compactBtn]}>
+              <X size={18} color={colors.bordeaux} />
+            </Pressable>
+          ) : undefined
+        }
+        compactRight={
+          selecting ? (
+            <Pressable onPress={() => setConfirmVisible(true)} accessibilityRole="button" accessibilityLabel={t('confirm_delete_title')} style={[styles.roundBtnCream, styles.compactBtn, { backgroundColor: colors.redAlt }]}>
+              <Trash2 size={17} color={colors.white} />
+            </Pressable>
+          ) : (
+            <Pressable onPress={() => router.push('/scanner')} accessibilityRole="button" accessibilityLabel={t('scan_product')} style={[styles.roundBtnCream, styles.compactBtn, { backgroundColor: colors.yellow }]}>
+              <ScanLine size={18} color={colors.inkOnYellow} />
+            </Pressable>
+          )
+        }
+      >
       <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 18 }}>
         {selecting ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 46 }}>
@@ -225,14 +250,17 @@ export default function HistoriquePage() {
           </>
         )}
       </View>
+      </CollapsibleHeader>
 
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
         <SectionList
           sections={sections}
           keyExtractor={itemKey}
-          contentContainerStyle={{ padding: 22, paddingBottom: 120 }}
+          contentContainerStyle={{ padding: 22, paddingTop: selecting ? 116 : 332, paddingBottom: 120 }}
           stickySectionHeadersEnabled={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />
           }
@@ -362,5 +390,9 @@ const styles = {
     backgroundColor: colors.cream,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
+  },
+  compactBtn: {
+    width: 38,
+    height: 38,
   },
 };

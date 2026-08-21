@@ -3,6 +3,7 @@ import { Activity } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StatusBar, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import CollapsibleHeader, { useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { fetchHistoryStats } from '../services/saveHistorique';
@@ -25,6 +26,7 @@ export default function AnalysePage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
+  const { scrollY, onScroll } = useCollapsibleHeader();
 
   useFocusEffect(
     useCallback(() => {
@@ -69,6 +71,7 @@ export default function AnalysePage() {
       <StatusBar barStyle="light-content" backgroundColor={colors.dark} />
 
       {/* Entête sombre */}
+      <CollapsibleHeader title={t('your_report') || 'Votre bilan'} scrollY={scrollY} expandedHeight={300} backgroundColor={colors.dark}>
       <View style={{ backgroundColor: colors.dark, paddingHorizontal: 26, paddingTop: 18, paddingBottom: 24 }}>
         <Txt variant="bold" size={12} color={colors.yellow} style={{ letterSpacing: 1.2 }}>
           {t('report') || 'BILAN'} · {monthLabel}
@@ -95,9 +98,10 @@ export default function AnalysePage() {
           </View>
         </View>
       </View>
+      </CollapsibleHeader>
 
       {/* Corps crème */}
-      <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 322, paddingBottom: 120 }} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
         <Txt variant="displayXBold" size={24} color={colors.ink}>{t('distribution') || 'Répartition'}</Txt>
         <Txt variant="body" size={13} color={colors.inkSoft} style={{ marginTop: 2 }}>{t('by_quality') || 'par qualité'}</Txt>
 

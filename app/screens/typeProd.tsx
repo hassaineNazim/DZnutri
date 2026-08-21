@@ -68,7 +68,7 @@ export default function TypeProduitPage() {
           icon={<MoreHorizontal size={28} color={colors.inkSoft} />}
           title={t('other_category')}
           subtitle={t('other_subtitle')}
-          onPress={() => { /* Future logic */ }}
+          onPress={() => router.push('/screens/unsupportedProduct' as any)}
         />
       </ScrollView>
     </View>

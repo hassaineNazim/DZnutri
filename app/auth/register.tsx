@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, ScrollView, StatusBar, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { BackButton, Field, FormError, LinkButton, PrimaryButton } from '../components/ui/FormKit';
 import Txt from '../components/ui/Txt';
@@ -178,6 +178,18 @@ export default function Register() {
                         {error ? <FormError>{error}</FormError> : null}
                         <PrimaryButton label={t('signup') || "S'inscrire"} loading={loading} onPress={handleRegister} style={{ marginTop: 8 }} />
                         <LinkButton label={t('cancel') || 'Annuler'} onPress={() => router.back()} />
+                        <Txt variant="body" size={11.5} color={colors.rose2} style={{ textAlign: 'center', lineHeight: 17, marginTop: 8 }}>
+                            {t('terms_privacy')}
+                        </Txt>
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 6 }}>
+                            <TouchableOpacity onPress={() => Linking.openURL(`${API_URL}/legal/privacy`)} accessibilityRole="link" accessibilityLabel={t('privacy_policy')}>
+                                <Txt variant="bold" size={11.5} color={colors.yellow}>{t('privacy_policy')}</Txt>
+                            </TouchableOpacity>
+                            <Txt variant="body" size={11.5} color={colors.rose2}>·</Txt>
+                            <TouchableOpacity onPress={() => Linking.openURL(`${API_URL}/legal/terms`)} accessibilityRole="link" accessibilityLabel={t('terms_of_service')}>
+                                <Txt variant="bold" size={11.5} color={colors.yellow}>{t('terms_of_service')}</Txt>
+                            </TouchableOpacity>
+                        </View>
                     </Animated.View>
                 </ScrollView>
             </KeyboardAvoidingView>

@@ -1,73 +1,61 @@
 import { useEffect, useState } from 'react';
 import api from '../api/auth';
+import { PageHeader, StatePanel, StatusBadge } from './AdminUI';
 import ReportTable from './ReportTable';
 
 const AdditiveReports = () => {
-    const [additives, setAdditives] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+  const [additives, setAdditives] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchAdditives = async () => {
-            try {
-                // Instance partagée `api` : token, refresh silencieux et baseURL gérés.
-                const response = await api.get('/api/admin/pending-additives');
-                setAdditives(response.data);
-            } catch (err) {
-                console.error("Error fetching additives:", err);
-                setError("Impossible de charger les additifs.");
-            } finally {
-                setLoading(false);
-            }
-        };
+  useEffect(() => {
+    const fetchAdditives = async () => {
+      try {
+        const response = await api.get('/api/admin/pending-additives');
+        setAdditives(response.data);
+      } catch (err) {
+        console.error('Error fetching additives:', err);
+        setError('Impossible de charger les additifs.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAdditives();
+  }, []);
 
-        fetchAdditives();
-    }, []);
+  const columns = [
+    {
+      header: 'Code additif',
+      accessor: 'code',
+      render: (item) => <span className="admin-table-code">{item.code}</span>,
+    },
+    { header: 'Apparitions', accessor: 'count' },
+    {
+      header: 'Statut',
+      accessor: 'status',
+      render: (item) => <StatusBadge tone="soft">{item.status || 'nouveau'}</StatusBadge>,
+    },
+  ];
 
+  if (loading) return <StatePanel loading>Chargement des additifs…</StatePanel>;
+  if (error) return <div className="admin-error-panel">{error}</div>;
 
-    const columns = [
-        { header: 'Code Additif', accessor: 'code' },
-        { header: 'Apparitions', accessor: 'count' },
-        {
-            header: 'Statut',
-            accessor: 'status',
-            render: (item) => (
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.status === 'new' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                    {item.status}
-                </span>
-            )
-        },
-    ];
-
-    // Custom action column render for this specific table
-
-    if (loading) return <div className="p-4">Chargement...</div>;
-    if (error) return <div className="p-4 text-red-600">{error}</div>;
-
-    return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-900">Additifs Inconnus</h1>
-                <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                    {additives.length} détectés
-                </span>
-            </div>
-
-            {/* We use a slightly modified table here or just the generic one if it fits. 
-          Since ReportTable is generic, we can pass a custom render for actions if we modify ReportTable,
-          OR we can just use the generic onAction for a primary action and maybe add a secondary one.
-          For simplicity, let's use the generic one but maybe we need to extend it for multiple actions later.
-          For now, let's just use the generic one with a "Gérer" button that could open a modal with Add/Ignore options.
-      */}
-            <ReportTable
-                data={additives}
-                columns={columns}
-                onAction={(item) => alert(`Gérer ${item.code}`)}
-                actionLabel="Gérer"
-            />
-        </div>
-    );
+  return (
+    <div className="admin-page">
+      <PageHeader
+        eyebrow="Base de connaissances"
+        title="Additifs"
+        accent="inconnus"
+        aside={<StatusBadge tone="yellow">{additives.length} détectés</StatusBadge>}
+      />
+      <ReportTable
+        data={additives}
+        columns={columns}
+        onAction={(item) => window.alert(`Gestion de ${item.code} bientôt disponible`)}
+        actionLabel="Gérer"
+      />
+    </div>
+  );
 };
 
 export default AdditiveReports;

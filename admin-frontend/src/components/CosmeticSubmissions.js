@@ -1,5 +1,7 @@
+import { Edit3, Image, Search, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { cosmeticsAPI } from '../api/cosmetics';
+import { PageHeader, StatePanel, StatusBadge } from './AdminUI';
 import { useToast } from './Toast';
 
 const CosmeticSubmissionCard = ({ submission, onDone }) => {
@@ -11,25 +13,18 @@ const CosmeticSubmissionCard = ({ submission, onDone }) => {
   const [busy, setBusy] = useState(false);
 
   const approve = async () => {
-    if (!name.trim()) {
-      toast.error('Le nom du produit est requis');
-      return;
-    }
+    if (!name.trim()) return toast.error('Le nom du produit est requis');
     setBusy(true);
     try {
       await cosmeticsAPI.approveSubmission(submission.id, {
-        product_name: name.trim(),
-        brand: brand.trim() || null,
-        category: category.trim() || null,
-        ingredients_text: ingredients.trim() || null,
+        product_name: name.trim(), brand: brand.trim() || null,
+        category: category.trim() || null, ingredients_text: ingredients.trim() || null,
       });
       toast.success('Cosmétique approuvé et publié');
       onDone(submission.id);
-    } catch (e) {
-      toast.error(e?.response?.data?.detail || "Erreur lors de l'approbation");
-    } finally {
-      setBusy(false);
-    }
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || "Erreur lors de l'approbation");
+    } finally { setBusy(false); }
   };
 
   const reject = async () => {
@@ -38,148 +33,180 @@ const CosmeticSubmissionCard = ({ submission, onDone }) => {
       await cosmeticsAPI.rejectSubmission(submission.id);
       toast.info('Soumission rejetée');
       onDone(submission.id);
-    } catch (e) {
+    } catch (error) {
       toast.error('Erreur lors du rejet');
-    } finally {
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <p className="text-xs text-gray-400 font-mono">
-            #{submission.id} · {submission.barcode}
-          </p>
-          {submission.submitted_at && (
-            <p className="text-xs text-gray-400">
-              {new Date(submission.submitted_at).toLocaleString('fr-FR')}
-            </p>
+    <article className="cosmetic-card">
+      <div className="report-topline">
+        <StatusBadge tone="soft">Soumission #{submission.id}</StatusBadge>
+        <span className="report-date">{submission.barcode}</span>
+        {submission.submitted_at && <span className="report-date">{new Date(submission.submitted_at).toLocaleString('fr-FR')}</span>}
+      </div>
+      <div className="cosmetic-form-grid" style={{ marginTop: 18 }}>
+        <div className="cosmetic-images">
+          {[submission.image_front_url, submission.image_back_url].filter(Boolean).map((source, index) => (
+            <img key={source} src={source} alt={index === 0 ? 'Produit vu de face' : 'Produit vu de dos'} />
+          ))}
+          {!submission.image_front_url && !submission.image_back_url && (
+            <div className="cosmetic-image-placeholder"><Image size={26} /><span>Aucune photo</span></div>
           )}
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex gap-3">
-          {submission.image_front_url && (
-            <img
-              src={submission.image_front_url}
-              alt="avant"
-              className="w-32 h-32 object-cover rounded-lg border border-gray-200"
-            />
-          )}
-          {submission.image_back_url && (
-            <img
-              src={submission.image_back_url}
-              alt="dos"
-              className="w-32 h-32 object-cover rounded-lg border border-gray-200"
-            />
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nom du produit *"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-400 outline-none"
-          />
-          <input
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            placeholder="Marque"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-400 outline-none"
-          />
-          <input
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            placeholder="Catégorie (ex: soin visage)"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-400 outline-none"
-          />
+        <div className="admin-field-stack">
+          <input className="admin-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Nom du produit *" />
+          <input className="admin-input" value={brand} onChange={(event) => setBrand(event.target.value)} placeholder="Marque" />
+          <input className="admin-input" value={category} onChange={(event) => setCategory(event.target.value)} placeholder="Catégorie" />
         </div>
       </div>
-
-      <div className="mt-3">
-        <label className="text-xs font-semibold text-gray-500">
-          Ingrédients (INCI) — lus par OCR, corrigez si besoin (le score en dépend)
-        </label>
-        <textarea
-          value={ingredients}
-          onChange={(e) => setIngredients(e.target.value)}
-          rows={4}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 focus:ring-2 focus:ring-pink-400 outline-none"
-          placeholder="Liste des ingrédients..."
-        />
+      <label className="admin-field-label" style={{ marginTop: 16 }}>Ingrédients (INCI) — corrigez le texte OCR si nécessaire</label>
+      <textarea className="admin-textarea" rows={4} value={ingredients} onChange={(event) => setIngredients(event.target.value)} placeholder="Liste des ingrédients…" />
+      <div className="admin-card-actions" style={{ marginTop: 16 }}>
+        <button type="button" className="admin-danger-outline-button" disabled={busy} onClick={reject}>Rejeter</button>
+        <button type="button" className="admin-success-button" disabled={busy} onClick={approve}>Approuver et publier</button>
       </div>
+    </article>
+  );
+};
 
-      <div className="flex gap-3 mt-4 justify-end">
-        <button
-          disabled={busy}
-          onClick={reject}
-          className="px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-sm font-medium disabled:opacity-50"
-        >
-          Rejeter
-        </button>
-        <button
-          disabled={busy}
-          onClick={approve}
-          className="px-4 py-2 rounded-lg bg-pink-600 text-white hover:bg-pink-700 text-sm font-medium disabled:opacity-50"
-        >
-          Approuver &amp; publier
-        </button>
-      </div>
+const ProductEditor = ({ product, onClose, onSaved }) => {
+  const toast = useToast();
+  const [form, setForm] = useState(product);
+  const [saving, setSaving] = useState(false);
+  const update = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
+
+  const save = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      const saved = await cosmeticsAPI.updateProduct(product.barcode, {
+        product_name: form.product_name?.trim() || null,
+        brand: form.brand?.trim() || null,
+        category: form.category?.trim() || null,
+        image_url: form.image_url?.trim() || null,
+        ingredients_text: form.ingredients_text?.trim() || null,
+      });
+      toast.success('Cosmétique mis à jour et score recalculé');
+      onSaved(saved);
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || 'Impossible de mettre à jour le cosmétique');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="admin-modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <form className="admin-modal-card" onSubmit={save}>
+        <div className="admin-modal-heading">
+          <div><div className="admin-eyebrow">Catalogue</div><h2>Modifier le cosmétique</h2></div>
+          <button type="button" className="admin-outline-button" onClick={onClose}>Fermer</button>
+        </div>
+        <div className="admin-field-stack">
+          <label><span className="admin-field-label">Nom</span><input className="admin-input" value={form.product_name || ''} onChange={update('product_name')} /></label>
+          <label><span className="admin-field-label">Marque</span><input className="admin-input" value={form.brand || ''} onChange={update('brand')} /></label>
+          <label><span className="admin-field-label">Catégorie</span><input className="admin-input" value={form.category || ''} onChange={update('category')} /></label>
+          <label><span className="admin-field-label">URL de l’image</span><input className="admin-input" value={form.image_url || ''} onChange={update('image_url')} /></label>
+          <label><span className="admin-field-label">Ingrédients (INCI)</span><textarea className="admin-textarea" rows={6} value={form.ingredients_text || ''} onChange={update('ingredients_text')} /></label>
+        </div>
+        <div className="admin-card-actions" style={{ marginTop: 18 }}>
+          <button type="button" className="admin-outline-button" onClick={onClose}>Annuler</button>
+          <button type="submit" className="admin-primary-button" disabled={saving}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
+        </div>
+      </form>
     </div>
   );
 };
 
 const CosmeticSubmissions = () => {
+  const toast = useToast();
+  const [view, setView] = useState('catalog');
+  const [products, setProducts] = useState([]);
   const [submissions, setSubmissions] = useState([]);
+  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [editorLoading, setEditorLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await cosmeticsAPI.getSubmissions('pending');
-      setSubmissions(data.submissions || []);
-    } catch (e) {
-      setError('Impossible de charger les soumissions cosmétiques.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      const [catalog, pending] = await Promise.all([
+        cosmeticsAPI.getProducts(query), cosmeticsAPI.getSubmissions('pending'),
+      ]);
+      setProducts(catalog || []);
+      setSubmissions(pending.submissions || []);
+    } catch (requestError) {
+      setError('Impossible de charger les données cosmétiques.');
+    } finally { setLoading(false); }
+  }, [query]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { const timer = setTimeout(load, 250); return () => clearTimeout(timer); }, [load]);
 
-  const handleDone = (id) => setSubmissions((prev) => prev.filter((s) => s.id !== id));
+  const editProduct = async (product) => {
+    setEditorLoading(true);
+    try { setEditing(await cosmeticsAPI.getProduct(product.barcode)); }
+    catch (error) { toast.error('Impossible de charger la fiche cosmétique'); }
+    finally { setEditorLoading(false); }
+  };
 
-  if (loading) return <div className="p-4">Chargement...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
+  const onSaved = (saved) => {
+    setProducts((current) => current.map((item) => item.barcode === saved.barcode ? { ...item, ...saved } : item));
+    setEditing(null);
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Soumissions cosmétiques</h1>
-        <span className="bg-pink-100 text-pink-800 text-xs font-medium px-2.5 py-0.5 rounded">
-          {submissions.length} en attente
-        </span>
-      </div>
+    <div className="admin-page">
+      <PageHeader
+        eyebrow="Base de données"
+        title="Produits"
+        accent="cosmétiques"
+        aside={(
+          <>
+            <div className="admin-segmented" role="group" aria-label="Vue cosmétiques">
+              <button className={view === 'catalog' ? 'active' : ''} onClick={() => setView('catalog')}>Catalogue</button>
+              <button className={view === 'pending' ? 'active' : ''} onClick={() => setView('pending')}>Soumissions</button>
+            </div>
+            <StatusBadge tone={view === 'pending' ? 'yellow' : 'burgundy'}>{view === 'pending' ? `${submissions.length} en attente` : `${products.length} produits`}</StatusBadge>
+          </>
+        )}
+      />
 
-      {submissions.length === 0 ? (
-        <div className="bg-white rounded-xl p-8 text-center text-gray-500">
-          Aucune soumission cosmétique en attente 🎉
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {submissions.map((s) => (
-            <CosmeticSubmissionCard key={s.id} submission={s} onDone={handleDone} />
-          ))}
+      {view === 'catalog' && (
+        <label className="admin-search-field">
+          <Search size={18} aria-hidden="true" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher par nom, marque ou code-barres…" />
+        </label>
+      )}
+
+      {loading ? <StatePanel loading>Chargement des cosmétiques…</StatePanel> : error ? (
+        <div className="admin-error-panel">{error}</div>
+      ) : view === 'pending' ? (
+        submissions.length === 0 ? <StatePanel>Aucune soumission cosmétique en attente.</StatePanel> : (
+          <div className="submission-list">{submissions.map((submission) => (
+            <CosmeticSubmissionCard key={submission.id} submission={submission} onDone={(id) => setSubmissions((current) => current.filter((item) => item.id !== id))} />
+          ))}</div>
+        )
+      ) : products.length === 0 ? <StatePanel>Aucun cosmétique trouvé.</StatePanel> : (
+        <div className="admin-table-shell">
+          <table className="admin-table cosmetic-table">
+            <thead><tr><th>Produit</th><th>Marque</th><th>Catégorie</th><th>Score</th><th><span className="sr-only">Action</span></th></tr></thead>
+            <tbody>{products.map((product) => (
+              <tr key={product.barcode}>
+                <td><div className="cosmetic-product-cell">
+                  {product.image_url ? <img src={product.image_url} alt="" /> : <span className="cosmetic-table-placeholder"><Sparkles size={18} /></span>}
+                  <div><strong>{product.product_name || 'Sans nom'}</strong><small>{product.barcode}</small></div>
+                </div></td>
+                <td>{product.brand || '—'}</td><td>{product.category || '—'}</td>
+                <td><StatusBadge tone={product.cosmetic_score >= 50 ? 'soft' : 'red'}>{product.cosmetic_score ?? '—'}/100</StatusBadge></td>
+                <td style={{ textAlign: 'right' }}><button className="admin-table-action" disabled={editorLoading} onClick={() => editProduct(product)}><Edit3 size={15} /> Modifier</button></td>
+              </tr>
+            ))}</tbody>
+          </table>
         </div>
       )}
+      {editing && <ProductEditor product={editing} onClose={() => setEditing(null)} onSaved={onSaved} />}
     </div>
   );
 };

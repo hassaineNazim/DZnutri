@@ -1,16 +1,18 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AlertTriangle, ArrowLeft, Heart, MoreHorizontal } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, StatusBar, TouchableOpacity, View } from 'react-native';
 import AlternativesList from '../components/AlternativesList';
 import ProductRatings from '../components/ProductRatings';
 import ReportModal from '../components/ReportModal';
+import CollapsibleHeader, { useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import RouteParamError from '../components/ui/RouteParamError';
 import ScoreRing from '../components/ui/ScoreRing';
 import Txt from '../components/ui/Txt';
 import { useAllergenCheck } from '../hooks/useAllergenCheck';
 import { useProductFavorite } from '../hooks/useProductFavorite';
 import { useTranslation } from '../i18n';
+import { api } from '../services/axios';
 import { colors, gradeColors, radius, scoreBand, scoreGrade } from '../theme/tokens';
 import { parseObjectRouteParam } from '../utils/routeParams';
 
@@ -141,21 +143,38 @@ export default function ProductDetail() {
   const product = parseObjectRouteParam<Product>(productJson);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [fullProduct, setFullProduct] = useState<Product | null>(product);
+  const { scrollY, onScroll } = useCollapsibleHeader();
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  const barcodeToUse = product?.barcode || product?.id;
-  const { isFavorite, toggleFavorite } = useProductFavorite(barcodeToUse || '', product);
+  const barcodeToUse = fullProduct?.barcode || fullProduct?.id || product?.barcode || product?.id;
+  const { isFavorite, toggleFavorite } = useProductFavorite(barcodeToUse || '', fullProduct || product);
+
+  const handleSelectAlternative = (altProduct: Product) => {
+    setFullProduct(altProduct);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  };
 
   useEffect(() => {
-    if (!fullProduct?.ingredients_text && fullProduct?.barcode) {
+    const nextProduct = parseObjectRouteParam<Product>(productJson);
+    if (nextProduct) {
+      setFullProduct(nextProduct);
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }
+  }, [productJson]);
+
+  useEffect(() => {
+    const targetBarcode = fullProduct?.barcode || fullProduct?.id;
+    if (targetBarcode && (!fullProduct?.ingredients_text || !fullProduct?.nutriments)) {
       (async () => {
         try {
-          const { api } = require('../services/axios');
-          const res = await api.get(`/api/product/${fullProduct.barcode}`);
+          const res = await api.get(`/api/product/${targetBarcode}`);
           if (res.data?.product) setFullProduct(res.data.product);
-        } catch {}
+        } catch (e) {
+          if (__DEV__) console.log('[productDetail] Error fetching full product', e);
+        }
       })();
     }
-  }, [fullProduct?.barcode, fullProduct?.ingredients_text]);
+  }, [fullProduct?.barcode, fullProduct?.id, fullProduct?.ingredients_text]);
 
   if (!product || !fullProduct) return <RouteParamError onBack={() => router.back()} />;
 
@@ -179,6 +198,21 @@ export default function ProductDetail() {
       <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
 
       {/* Entête bordeaux */}
+      <CollapsibleHeader
+        title={fullProduct.product_name || t('product_details')}
+        scrollY={scrollY}
+        expandedHeight={224}
+        compactLeft={
+          <RoundBtn onPress={() => router.back()} label={t('back')} compact>
+            <ArrowLeft size={18} color={colors.bordeaux} />
+          </RoundBtn>
+        }
+        compactRight={
+          <RoundBtn onPress={() => setReportModalVisible(true)} label={t('report_error_title')} compact>
+            <MoreHorizontal size={18} color={colors.bordeaux} />
+          </RoundBtn>
+        }
+      >
       <View style={{ paddingHorizontal: 22, paddingTop: 14 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <RoundBtn onPress={() => router.back()} label={t('back')}>
@@ -222,10 +256,17 @@ export default function ProductDetail() {
           </View>
         </View>
       </View>
+      </CollapsibleHeader>
 
       {/* Feuille crème */}
-      <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, marginTop: 16, overflow: 'hidden' }}>
-        <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 120 }}>
+      <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={{ padding: 22, paddingTop: 246, paddingBottom: 120 }}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Barre de note A→E */}
           <NoteBar score={fullProduct.custom_score} />
 
@@ -294,9 +335,14 @@ export default function ProductDetail() {
 
           {/* Notes utilisateurs */}
           <ProductRatings barcode={fullProduct.barcode || fullProduct.id} />
-        </ScrollView>
 
-        <AlternativesList barcode={fullProduct.barcode || fullProduct.id} currentScore={fullProduct.custom_score} />
+          {/* Dans le flux, sous la notation : cette section ne recouvre plus la fiche. */}
+          <AlternativesList
+            barcode={fullProduct.barcode || fullProduct.id}
+            currentScore={fullProduct.custom_score}
+            onSelectProduct={handleSelectAlternative}
+          />
+        </ScrollView>
       </View>
 
       <ReportModal visible={reportModalVisible} onClose={() => setReportModalVisible(false)} barcode={fullProduct.barcode || fullProduct.id} />
@@ -304,7 +350,7 @@ export default function ProductDetail() {
   );
 }
 
-function RoundBtn({ children, onPress, label, selected }: { children: React.ReactNode; onPress: () => void; label: string; selected?: boolean }) {
+function RoundBtn({ children, onPress, label, selected, compact = false }: { children: React.ReactNode; onPress: () => void; label: string; selected?: boolean; compact?: boolean }) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -312,7 +358,7 @@ function RoundBtn({ children, onPress, label, selected }: { children: React.Reac
       accessibilityLabel={label}
       accessibilityState={selected === undefined ? undefined : { selected }}
       activeOpacity={0.75}
-      style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }}
+      style={{ width: compact ? 38 : 46, height: compact ? 38 : 46, borderRadius: 23, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' }}
     >
       {children}
     </TouchableOpacity>

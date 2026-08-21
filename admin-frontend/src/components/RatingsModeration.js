@@ -1,15 +1,13 @@
 import { Star, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import api from '../api/auth';
+import { initialsFor, PageHeader, StatePanel, StatusBadge } from './AdminUI';
 import { useToast } from './Toast';
 
 const Stars = ({ value }) => (
-  <span className="inline-flex">
-    {[1, 2, 3, 4, 5].map((s) => (
-      <Star
-        key={s}
-        className={`h-4 w-4 ${s <= value ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
-      />
+  <span className="rating-stars" aria-label={`${value} étoiles sur 5`}>
+    {[1, 2, 3, 4, 5].map((star) => (
+      <Star key={star} size={17} fill={star <= value ? '#f2c22e' : 'transparent'} color={star <= value ? '#f2c22e' : '#d7c8af'} />
     ))}
   </span>
 );
@@ -25,79 +23,67 @@ const RatingsModeration = () => {
     setLoading(true);
     setError(null);
     try {
-      const resp = await api.get(`/api/admin/ratings?with_comments_only=${commentsOnly}`);
-      setRatings(resp.data.ratings || []);
-    } catch (e) {
+      const response = await api.get(`/api/admin/ratings?with_comments_only=${commentsOnly}`);
+      setRatings(response.data.ratings || []);
+    } catch (requestError) {
       setError('Impossible de charger les avis.');
     } finally {
       setLoading(false);
     }
   }, [commentsOnly]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const remove = async (id) => {
     if (!window.confirm('Supprimer définitivement cet avis ?')) return;
     try {
       await api.delete(`/api/admin/ratings/${id}`);
-      setRatings((prev) => prev.filter((r) => r.id !== id));
+      setRatings((previous) => previous.filter((rating) => rating.id !== id));
       toast.success('Avis supprimé');
-    } catch (e) {
+    } catch (requestError) {
       toast.error('Erreur lors de la suppression');
     }
   };
 
-  if (loading) return <div className="p-4">Chargement...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
-
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center flex-wrap gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">Avis des utilisateurs</h1>
-        <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={commentsOnly}
-            onChange={(e) => setCommentsOnly(e.target.checked)}
-            className="rounded border-gray-300"
-          />
-          Avec commentaire uniquement
-        </label>
-      </div>
+    <div className="admin-page">
+      <PageHeader
+        eyebrow="Retours de la communauté"
+        title="Avis"
+        accent="utilisateurs"
+        aside={(
+          <>
+            <label className="admin-checkbox">
+              <input type="checkbox" checked={commentsOnly} onChange={(event) => setCommentsOnly(event.target.checked)} />
+              Avec commentaire uniquement
+            </label>
+            <StatusBadge>{ratings.length} avis</StatusBadge>
+          </>
+        )}
+      />
 
-      {ratings.length === 0 ? (
-        <div className="bg-white rounded-xl p-8 text-center text-gray-500">
-          Aucun avis à modérer 🎉
-        </div>
+      {loading ? <StatePanel loading>Chargement des avis…</StatePanel> : error ? (
+        <div className="admin-error-panel">{error}</div>
+      ) : ratings.length === 0 ? (
+        <StatePanel>Aucun avis à modérer.</StatePanel>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-100">
-          {ratings.map((r) => (
-            <div key={r.id} className="p-4 flex items-start gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="font-semibold text-gray-900">{r.username}</span>
-                  <Stars value={r.rating} />
-                  <span className="text-xs text-gray-400 font-mono">{r.barcode}</span>
-                  {r.created_at && (
-                    <span className="text-xs text-gray-400">
-                      {new Date(r.created_at).toLocaleString('fr-FR')}
-                    </span>
-                  )}
+        <div className="rating-list">
+          {ratings.map((rating) => (
+            <article key={rating.id} className="rating-card">
+              <div className="rating-avatar">{initialsFor(rating.username || 'Utilisateur')}</div>
+              <div className="rating-content">
+                <div className="rating-topline">
+                  <span className="rating-user">{rating.username || 'Utilisateur'}</span>
+                  <Stars value={rating.rating} />
+                  <span className="report-date">{rating.barcode}</span>
+                  {rating.created_at && <span className="report-date">{new Date(rating.created_at).toLocaleString('fr-FR')}</span>}
                 </div>
-                {r.comment && (
-                  <p className="text-sm text-gray-600 mt-1 break-words">{r.comment}</p>
-                )}
+                {rating.comment && <p className="rating-comment">{rating.comment}</p>}
               </div>
-              <button
-                onClick={() => remove(r.id)}
-                className="p-2 rounded-lg text-red-500 hover:bg-red-50 flex-shrink-0"
-                title="Supprimer cet avis"
-              >
-                <Trash2 className="h-5 w-5" />
+              <button type="button" onClick={() => remove(rating.id)} className="rating-delete" title="Supprimer cet avis">
+                <Trash2 size={19} aria-hidden="true" />
               </button>
-            </div>
+            </article>
           ))}
         </div>
       )}

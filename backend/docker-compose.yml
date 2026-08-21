@@ -76,6 +76,8 @@ services:
     build:
       context: ../admin-frontend
     restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:8000
     ports:
       # Même logique que le backend : localhost par défaut, Caddy en frontal.
       - "${ADMIN_HOST_BIND:-127.0.0.1}:3000:80"

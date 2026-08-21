@@ -1,4 +1,5 @@
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from "@react-native-google-signin/google-signin";
+import * as AppleAuthentication from 'expo-apple-authentication';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -47,6 +48,7 @@ export default function Login() {
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
 
   useEffect(() => {
     const extra = Constants.expoConfig?.extra;
@@ -60,7 +62,45 @@ export default function Login() {
     // withExcludeFacebookIOS ; Android peut toujours initialiser le SDK sans
     // déclencher de demande de suivi publicitaire.
     if (Platform.OS !== 'ios') Settings.initializeSDK();
+    if (Platform.OS === 'ios') {
+      AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
+    }
   }, []);
+
+  const handleAppleSignIn = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) throw new Error("Apple n'a pas transmis de jeton d'identité.");
+      const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+        .filter(Boolean)
+        .join(' ') || null;
+      const backendResponse = await fetch(`${API_URL}/auth/apple`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity_token: credential.identityToken, full_name: fullName }),
+      });
+      const data = await backendResponse.json();
+      if (!backendResponse.ok || !data?.access_token) {
+        throw new Error(data?.detail || 'Authentification Apple échouée');
+      }
+      await startSession(data);
+      await registerForPushAndSendToServer();
+      router.replace('/(tabs)/historique');
+    } catch (error: any) {
+      if (error?.code !== 'ERR_REQUEST_CANCELED') {
+        setError(error?.message || 'Erreur lors de la connexion Apple');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     try {
@@ -225,6 +265,18 @@ export default function Login() {
 
         {/* Boutons */}
         <Animated.View entering={FadeInDown.delay(200).duration(800).springify()} style={{ gap: 12 }}>
+          {appleAvailable ? (
+            <View pointerEvents={loading ? 'none' : 'auto'} style={{ opacity: loading ? 0.65 : 1 }}>
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                cornerRadius={radius.cta}
+                style={{ width: '100%', height: 56 }}
+                onPress={handleAppleSignIn}
+              />
+            </View>
+          ) : null}
+
           <TouchableOpacity
             disabled={loading}
             onPress={handleGoogleSignIn}
@@ -244,24 +296,26 @@ export default function Login() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            disabled={loading}
-            onPress={loginWithFacebook}
-            accessibilityRole="button"
-            accessibilityLabel={t('continue_facebook')}
-            accessibilityState={{ disabled: loading, busy: loading }}
-            activeOpacity={0.85}
-            style={[styles.btn, { backgroundColor: colors.cream }]}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.bordeaux} />
-            ) : (
-              <>
-                <FacebookIcon />
-                <Txt variant="bold" size={16} color={colors.bordeaux}>{t('continue_facebook')}</Txt>
-              </>
-            )}
-          </TouchableOpacity>
+          {Platform.OS !== 'ios' ? (
+            <TouchableOpacity
+              disabled={loading}
+              onPress={loginWithFacebook}
+              accessibilityRole="button"
+              accessibilityLabel={t('continue_facebook')}
+              accessibilityState={{ disabled: loading, busy: loading }}
+              activeOpacity={0.85}
+              style={[styles.btn, { backgroundColor: colors.cream }]}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.bordeaux} />
+              ) : (
+                <>
+                  <FacebookIcon />
+                  <Txt variant="bold" size={16} color={colors.bordeaux}>{t('continue_facebook')}</Txt>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             disabled={loading}

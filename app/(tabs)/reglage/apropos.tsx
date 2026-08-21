@@ -1,7 +1,8 @@
-import { ShieldCheck, Sprout } from 'lucide-react-native';
+import { GraduationCap, ShieldCheck, Sprout } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { ScrollView, StatusBar, View } from 'react-native';
 import { BackButton } from '../../components/ui/FormKit';
+import CollapsibleHeader, { useCollapsibleHeader } from '../../components/ui/CollapsibleHeader';
 import Txt from '../../components/ui/Txt';
 import { useTranslation } from '../../i18n';
 import { colors, radius, shadows } from '../../theme/tokens';
@@ -9,23 +10,36 @@ import { colors, radius, shadows } from '../../theme/tokens';
 export default function AproposPage() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { scrollY, onScroll } = useCollapsibleHeader();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
+      <CollapsibleHeader
+        title={t('who_are_we')}
+        scrollY={scrollY}
+        expandedHeight={180}
+        compactLeft={<BackButton onPress={() => router.back()} />}
+      >
       <View style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
         <BackButton onPress={() => router.back()} />
         <Txt variant="display" size={38} color={colors.creamTitle} style={{ marginTop: 20 }}>
           {t('who_are_we')}
         </Txt>
       </View>
+      </CollapsibleHeader>
 
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: 48 }}>
+        <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 202, paddingBottom: 48 }} onScroll={onScroll} scrollEventThrottle={16} showsVerticalScrollIndicator={false}>
           <AboutCard
             icon={<Sprout size={23} color={colors.green} />}
             title={t('about_mission_title')}
             body={t('about_mission_body')}
+          />
+          <AboutCard
+            icon={<GraduationCap size={23} color={colors.orange} />}
+            title={t('about_story_title')}
+            body={t('about_story_body')}
           />
           <AboutCard
             icon={<ShieldCheck size={23} color={colors.accent} />}
@@ -33,7 +47,7 @@ export default function AproposPage() {
             body={t('about_independence_body')}
           />
           <Txt variant="body" size={12.5} color={colors.inkSoft} style={{ textAlign: 'center', marginTop: 8 }}>
-            DZnutri · v1.0.0
+            Remo Scan · v2.0
           </Txt>
         </ScrollView>
       </View>

@@ -6,6 +6,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import LanguageSelector from '../../components/LanguageSelector';
 import { useTheme } from '../../theme/ThemeContext';
 import AppModal from '../../components/ui/AppModal';
+import CollapsibleHeader, { useCollapsibleHeader } from '../../components/ui/CollapsibleHeader';
 import Txt from '../../components/ui/Txt';
 import { API_URL } from '../../config/api';
 import { SupportedLang, useTranslation } from '../../i18n';
@@ -166,6 +167,7 @@ export default function SettingsPage() {
 
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
+  const { scrollY, onScroll } = useCollapsibleHeader();
 
   const currentLangLabel = useMemo(() => {
     if (follow) return languageData.find((l) => l.value === 'fs')?.label ?? 'Système';
@@ -198,6 +200,13 @@ export default function SettingsPage() {
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
       {/* ---- Entête bordeaux ---- */}
+      <CollapsibleHeader
+        title={t('settings_title') || 'Réglages'}
+        scrollY={scrollY}
+        expandedHeight={240}
+        compactLeft={<RoundBtn label={t('back')} onPress={() => router.back()}><IconArrowLeft /></RoundBtn>}
+        compactRight={<RoundBtn label={t('account')} onPress={() => router.push('/reglage/compte')}><IconProfile /></RoundBtn>}
+      >
       <View style={{ paddingHorizontal: 26, paddingTop: 18, paddingBottom: 26 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <RoundBtn label={t('back')} onPress={() => router.back()}>
@@ -226,10 +235,11 @@ export default function SettingsPage() {
           />
         </View>
       </View>
+      </CollapsibleHeader>
 
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 24, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 264, paddingBottom: 120 }} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
           {/* PRÉFÉRENCES */}
           <Animated.View entering={FadeInDown.duration(400)}>
             <Txt variant="bold" size={11.5} color={colors.inkSoft} style={{ letterSpacing: 1.5, marginBottom: 12 }}>

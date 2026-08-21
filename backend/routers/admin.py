@@ -443,7 +443,7 @@ async def approve_product_submission(
                 if submitting_user and getattr(submitting_user, 'userPushToken', None):
                     token = submitting_user.userPushToken
                     title = "✅ Produit Validé !"
-                    body = f"Merci ! Votre produit '{approved_product.product_name}' a été ajouté à DZnutri."
+                    body = f"Merci ! Votre produit '{approved_product.product_name}' a été ajouté à Remo Scan."
                     
                     # Appel de votre fonction de push en tâche de fond
                     background_tasks.add_task(send_expo_push, submitting_user_id, token, title, body)
@@ -673,7 +673,7 @@ async def approve_cosmetic_submission_admin(
                         submitting_user_id,
                         user.userPushToken,
                         "✅ Cosmétique validé !",
-                        f"Merci ! '{product.product_name}' a été ajouté à DZnutri.",
+                        f"Merci ! '{product.product_name}' a été ajouté à Remo Scan.",
                     )
             except Exception as e:  # noqa: BLE001
                 logger.warning("Notification push cosmétique : %s", e)

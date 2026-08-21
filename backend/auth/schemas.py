@@ -16,6 +16,11 @@ class GoogleToken(BaseModel):
 class FacebookToken(BaseModel):
     access_token: str = Field(min_length=10, max_length=4096)
 
+class AppleToken(BaseModel):
+    identity_token: str = Field(min_length=10, max_length=8192)
+    # Apple ne transmet le nom qu'à la toute première autorisation.
+    full_name: str | None = Field(default=None, max_length=100)
+
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     email: EmailStr

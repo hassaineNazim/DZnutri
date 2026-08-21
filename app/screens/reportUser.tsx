@@ -15,8 +15,9 @@ export default function ReportUserPage() {
         router.push('/screens/autreProbleme');
     };
 
-    const openFAQ = (question: string) => {
-        console.log(`Ouverture FAQ : ${question}`);
+    const openFAQ = (topic: string) => {
+        // Le fichier est nouveau ; le type généré d'expo-router sera rafraîchi au prochain démarrage.
+        router.push({ pathname: '/screens/faqDetail' as any, params: { topic } });
     };
 
     return (
@@ -50,7 +51,7 @@ export default function ReportUserPage() {
                         <Row label="Comment est financée l'application ?" onPress={() => openFAQ('finance')} />
                         <Row label="Comment sont notés les produits ?" onPress={() => openFAQ('scoring')} />
                         <Row label="Qui est derrière Remo Scan ?" onPress={() => openFAQ('team')} />
-                        <Row label="Autres questions" onPress={() => openFAQ('other_faq')} last />
+                        <Row label="Autres questions" disabled last />
                     </Card>
                 </ScrollView>
             </View>
@@ -72,10 +73,11 @@ function Card({ children }: { children: React.ReactNode }) {
         </View>
     );
 }
-function Row({ icon, tint, label, onPress, last = false }: { icon?: React.ReactNode; tint?: string; label: string; onPress: () => void; last?: boolean }) {
+function Row({ icon, tint, label, onPress, disabled = false, last = false }: { icon?: React.ReactNode; tint?: string; label: string; onPress?: () => void; disabled?: boolean; last?: boolean }) {
     return (
         <TouchableOpacity
             onPress={onPress}
+            disabled={disabled || !onPress}
             accessibilityRole="button"
             accessibilityLabel={label}
             activeOpacity={0.65}
@@ -84,8 +86,8 @@ function Row({ icon, tint, label, onPress, last = false }: { icon?: React.ReactN
             {icon ? (
                 <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: tint, alignItems: 'center', justifyContent: 'center' }}>{icon}</View>
             ) : null}
-            <Txt variant="semibold" size={15} color={colors.ink} style={{ flex: 1 }}>{label}</Txt>
-            <ChevronRight size={20} color={colors.chevron} />
+            <Txt variant="semibold" size={15} color={disabled ? colors.inkMeta : colors.ink} style={{ flex: 1 }}>{label}</Txt>
+            {!disabled && <ChevronRight size={20} color={colors.chevron} />}
         </TouchableOpacity>
     );
 }

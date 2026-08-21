@@ -32,3 +32,24 @@ async def test_register_and_login(client: AsyncClient):
     data = login_response.json()
     assert "access_token" in data
     assert data["token_type"] == "bearer"
+
+
+@pytest.mark.asyncio
+async def test_user_can_delete_own_account(client: AsyncClient):
+    email = "delete-me@example.com"
+    register_response = await client.post(
+        "/auth/register",
+        json={"email": email, "username": "delete_me", "password": "testpassword123"},
+    )
+    assert register_response.status_code == 200
+    token = register_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    delete_response = await client.delete("/auth/account", headers=headers)
+    assert delete_response.status_code == 200
+
+    login_response = await client.post(
+        "/auth/login",
+        json={"email": email, "password": "testpassword123"},
+    )
+    assert login_response.status_code == 401

@@ -12,13 +12,19 @@ export async function registerForPushAndSendToServer() {
       return;
     }
 
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+    const existingPermission = await Notifications.getPermissionsAsync() as unknown as {
+      granted?: boolean;
+      status?: string;
+    };
+    let permissionGranted = existingPermission.granted ?? existingPermission.status === 'granted';
+    if (!permissionGranted) {
+      const requestedPermission = await Notifications.requestPermissionsAsync() as unknown as {
+        granted?: boolean;
+        status?: string;
+      };
+      permissionGranted = requestedPermission.granted ?? requestedPermission.status === 'granted';
     }
-    if (finalStatus !== 'granted') {
+    if (!permissionGranted) {
       console.log('Push permission not granted.');
       return;
     }

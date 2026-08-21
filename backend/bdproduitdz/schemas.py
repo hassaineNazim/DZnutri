@@ -123,6 +123,7 @@ class ReportResponse(BaseModel):
     status: str
     created_at: Optional[datetime] = None
     user_id: Optional[int] = None
+    username: Optional[str] = None
     image_url: Optional[str] = None # Important pour l'affichage front
     
     model_config = ConfigDict(from_attributes=True)

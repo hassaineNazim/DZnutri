@@ -1,5 +1,4 @@
 import {
-  Activity,
   AlertTriangle,
   BarChart3,
   CheckCircle,
@@ -18,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { monitoringAPI } from '../api/monitoring';
+import { PageHeader, StatePanel } from './AdminUI';
 import { useToast } from './Toast';
 
 const REFRESH_MS = 10000;
@@ -34,30 +34,12 @@ const formatUptime = (seconds = 0) => {
 
 const pct = (rate) => (rate == null ? '—' : `${(rate * 100).toFixed(1)}%`);
 
-// Classes Tailwind statiques : indispensable car le JIT purge les noms de
-// classes construits dynamiquement (`bg-${accent}-100` ne serait pas généré).
-const ACCENTS = {
-  blue: 'bg-blue-100 text-blue-500',
-  green: 'bg-green-100 text-green-500',
-  indigo: 'bg-indigo-100 text-indigo-500',
-  gray: 'bg-gray-100 text-gray-500',
-  emerald: 'bg-emerald-100 text-emerald-600',
-};
-
 const StatCard = ({ icon: Icon, label, value, accent = 'blue', sub }) => {
-  const [bg, text] = (ACCENTS[accent] || ACCENTS.blue).split(' ');
   return (
-    <div className="bg-white rounded-lg shadow p-5">
-      <div className="flex items-center">
-        <div className={`flex-shrink-0 ${bg} rounded-md p-3`}>
-          <Icon className={`h-6 w-6 ${text}`} />
-        </div>
-        <div className="ml-4 w-0 flex-1">
-          <dt className="text-sm font-medium text-gray-500 truncate">{label}</dt>
-          <dd className="text-2xl font-bold text-gray-900">{value}</dd>
-          {sub != null && <dd className="text-xs text-gray-400 mt-0.5">{sub}</dd>}
-        </div>
-      </div>
+    <div className={`monitoring-kpi${accent === 'gray' ? ' highlight' : ''}`}>
+      <div className="monitoring-kpi-label"><Icon size={16} aria-hidden="true" /> {label}</div>
+      <div className="monitoring-kpi-value">{value}</div>
+      {sub != null && <div className="monitoring-kpi-sub">{sub}</div>}
     </div>
   );
 };
@@ -69,21 +51,20 @@ const alertStyles = {
 };
 
 // --- Mini graphique en barres (série journalière), sans dépendance externe ---
-const DailyBarChart = ({ series = [], color = 'bg-emerald-500' }) => {
-  const max = Math.max(1, ...series.map((d) => d.count));
+const DailyBarChart = ({ series = [], color = '#59121f' }) => {
+  const max = Math.max(1, ...series.map((day) => day.count));
   return (
-    <div className="flex items-end gap-1 h-28">
-      {series.map((d) => (
-        <div key={d.date} className="flex-1 flex flex-col items-center group relative">
-          <div className="absolute -top-7 hidden group-hover:block bg-gray-900 text-white text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap z-10">
-            {d.date.slice(5)} · {d.count}
-          </div>
+    <div className="admin-daily-chart">
+      {series.map((day) => (
+        <div key={day.date} className="admin-chart-column">
+          <div className="admin-chart-tooltip">{day.date.slice(5)} · {day.count}</div>
           <div
-            className={`w-full rounded-t ${d.count > 0 ? color : 'bg-gray-100'}`}
-            style={{ height: `${Math.max(4, (d.count / max) * 100)}%` }}
+            className="admin-chart-bar"
+            style={{ height: `${Math.max(4, (day.count / max) * 100)}%`, background: day.count > 0 ? color : '#eee3ca' }}
           />
         </div>
       ))}
+      {series.length === 0 && <div className="monitoring-empty-chart">Pas encore de données.</div>}
     </div>
   );
 };
@@ -187,8 +168,9 @@ const RescorePanel = ({ toast }) => {
   const progress = status?.total ? Math.round((status.done / status.total) * 100) : 0;
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="admin-rescore-panel rounded-lg p-6">
+      <div className="admin-rescore-content">
+        <img className="admin-rescore-mascot" src="/assets/mascotte-mecano.png" alt="Mascotte Remo Scan mécanicienne" />
         <div>
           <h2 className="text-lg font-medium text-gray-900 flex items-center">
             <Wand2 className="h-5 w-5 text-emerald-600 mr-2" />
@@ -202,7 +184,7 @@ const RescorePanel = ({ toast }) => {
         <button
           onClick={() => setConfirming(true)}
           disabled={running || starting}
-          className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+          className="admin-primary-button flex-shrink-0"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${running ? 'animate-spin' : ''}`} />
           {running ? 'Rescoring en cours…' : 'Rescorer tous les produits'}
@@ -297,10 +279,7 @@ const Monitoring = () => {
 
   if (loading && !data) {
     return (
-      <div className="text-center py-20">
-        <RefreshCw className="h-8 w-8 text-gray-400 animate-spin mx-auto mb-4" />
-        <p className="text-gray-500">Chargement des métriques…</p>
-      </div>
+      <StatePanel loading>Chargement des métriques…</StatePanel>
     );
   }
 
@@ -337,28 +316,23 @@ const Monitoring = () => {
   }));
 
   return (
-    <div className="space-y-8">
+    <div className="admin-page monitoring-page">
       {/* En-tête */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Activity className="h-7 w-7 text-emerald-600 mr-2" />
-            Statistiques &amp; Monitoring
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Actualisation automatique toutes les {REFRESH_MS / 1000}s
-            {lastUpdated && ` · dernière mise à jour ${lastUpdated.toLocaleTimeString()}`}
-          </p>
-        </div>
-        <button
-          onClick={() => fetchData()}
-          disabled={loading}
-          className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          <span>Rafraîchir</span>
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Vue d’ensemble"
+        title="Monitoring"
+        accent="plateforme"
+        aside={(
+          <>
+            <span className="monitoring-updated">
+              Actualisation {REFRESH_MS / 1000}s{lastUpdated && ` · ${lastUpdated.toLocaleTimeString()}`}
+            </span>
+            <button onClick={() => fetchData()} disabled={loading} className="admin-outline-button">
+              <RefreshCw className={loading ? 'admin-spin' : ''} size={17} /> Rafraîchir
+            </button>
+          </>
+        )}
+      />
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4 text-sm text-red-700">
@@ -389,7 +363,7 @@ const Monitoring = () => {
       </div>
 
       {/* Cartes de stats temps réel */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="monitoring-kpis">
         <StatCard
           icon={Users}
           label="Utilisateurs actifs (5 min)"
@@ -427,28 +401,28 @@ const Monitoring = () => {
             <ScanLine className="h-5 w-5 text-blue-500 mr-2" />
             Scans par jour (14 j)
           </h2>
-          <DailyBarChart series={scansPerDay} color="bg-blue-500" />
+          <DailyBarChart series={scansPerDay} color="#59121f" />
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-medium text-gray-900 flex items-center mb-4">
             <UserPlus className="h-5 w-5 text-emerald-600 mr-2" />
             Inscriptions par jour (14 j)
           </h2>
-          <DailyBarChart series={usersAnalytics.signups_per_day || []} color="bg-emerald-500" />
+          <DailyBarChart series={usersAnalytics.signups_per_day || []} color="#f2c22e" />
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-medium text-gray-900 flex items-center mb-4">
             <Package className="h-5 w-5 text-lime-600 mr-2" />
             Produits alimentaires ajoutés / jour (14 j)
           </h2>
-          <DailyBarChart series={productsAnalytics.added_per_day || []} color="bg-lime-500" />
+          <DailyBarChart series={productsAnalytics.added_per_day || []} color="#4f9e5a" />
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-medium text-gray-900 flex items-center mb-4">
             <Sparkles className="h-5 w-5 text-pink-500 mr-2" />
             Cosmétiques ajoutés / jour (14 j)
           </h2>
-          <DailyBarChart series={cosmeticsAnalytics.added_per_day || []} color="bg-pink-500" />
+          <DailyBarChart series={cosmeticsAnalytics.added_per_day || []} color="#8a2233" />
         </div>
       </div>
 

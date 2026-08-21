@@ -1,7 +1,7 @@
 /**
- * Design tokens du redesign DZnutri (« scan par scan »).
+ * Design tokens de Remo Scan (« scan par scan »).
  * Source de vérité unique : couleurs, polices, rayons, ombres, helpers de score.
- * Recréé fidèlement depuis le handoff design (design_handoff_dznutri).
+ * Recréé fidèlement depuis le handoff du design.
  */
 
 // --- Couleurs ---------------------------------------------------------------

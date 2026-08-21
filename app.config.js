@@ -22,7 +22,7 @@ const googleIosUrlScheme = `com.googleusercontent.apps.${googleIosClientId.repla
 
 module.exports = {
   expo: {
-    name: "DZnutri",
+    name: "Remo Scan",
     slug: "DZnutri",
     host: "lan",
     version: "1.0.0",
@@ -39,8 +39,15 @@ module.exports = {
       translucent: false,
     },
     ios: {
-      supportsTablet: true,
+      // L'interface est actuellement conçue et testée pour téléphone. Ne pas
+      // déclarer l'iPad évite une fiche App Store trompeuse et des captures
+      // iPad obligatoires tant qu'un vrai layout tablette n'est pas prêt.
+      supportsTablet: false,
       bundleIdentifier: "com.nazim.dznutri",
+      usesAppleSignIn: true,
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     android: {
       adaptiveIcon: {
@@ -49,7 +56,7 @@ module.exports = {
       },
       package: "com.Nazim.dznutri",
       permissions: ["android.permission.CAMERA"],
-      // Le SDK Facebook ajoute AD_ID transitivement. DZnutri n'utilise ni
+      // Le SDK Facebook ajoute AD_ID transitivement. Remo Scan n'utilise ni
       // publicité ciblée ni mesure publicitaire : on retire donc explicitement
       // cette permission du manifeste final.
       blockedPermissions: ["com.google.android.gms.permission.AD_ID"],
@@ -66,6 +73,24 @@ module.exports = {
     plugins: [
       "expo-router",
       "expo-localization",
+      "expo-apple-authentication",
+      [
+        "expo-camera",
+        {
+          cameraPermission: "Autoriser Remo Scan à utiliser l’appareil photo pour scanner les codes-barres des produits.",
+          microphonePermission: false,
+          recordAudioAndroid: false,
+          barcodeScannerEnabled: true,
+        },
+      ],
+      [
+        "expo-image-picker",
+        {
+          photosPermission: "Autoriser Remo Scan à accéder à vos photos pour envoyer les images d’un produit.",
+          cameraPermission: "Autoriser Remo Scan à prendre des photos des produits que vous souhaitez ajouter.",
+          microphonePermission: false,
+        },
+      ],
       [
         "expo-splash-screen",
         {

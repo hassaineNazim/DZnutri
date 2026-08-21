@@ -1,4 +1,4 @@
-import { AlertCircle, Eye, EyeOff, LogIn } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Leaf } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/auth';
@@ -11,124 +11,45 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError('');
-    
-
     try {
       await authAPI.login(username, password);
-
-      // authAPI.login() a déjà récupéré et mis en cache le profil (is_admin).
       const user = authAPI.getUser();
-      if (!user || !user.is_admin) {
-        authAPI.logout(); // Clear the token
-        setError('Access denied. Admin privileges required.');
+      if (!user?.is_admin) {
+        authAPI.logout();
+        setError('Accès refusé : un compte administrateur est requis.');
         return;
       }
-
-      navigate('/dashboard');
-    } catch (err) {
-      if (err.response?.status === 401) {
-        setError('Invalid username or password.');
-      } else if (err.response?.status === 403) {
-        setError('Access denied. Admin privileges required.');
-      } else {
-        setError(err.response?.data?.detail || 'Login failed. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
+      navigate('/');
+    } catch (requestError) {
+      if (requestError.response?.status === 401) setError('Identifiant ou mot de passe incorrect.');
+      else if (requestError.response?.status === 403) setError('Accès refusé : un compte administrateur est requis.');
+      else setError(requestError.response?.data?.detail || 'Connexion impossible. Réessayez dans un instant.');
+    } finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
-            <LogIn className="h-6 w-6 text-blue-600" />
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Admin Dashboard
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to manage product submissions
-          </p>
+    <main className="admin-login">
+      <section className="admin-login-card">
+        <div className="admin-login-brand">
+          <span className="admin-brand-mark"><Leaf size={26} /></span>
+          <span><span className="admin-brand-name">Remo Scan</span><span className="admin-brand-subtitle" style={{ display: 'block' }}>ADMIN</span></span>
         </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="username" className="sr-only">
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
-            <div className="relative">
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5 text-gray-400" />
-                ) : (
-                  <Eye className="h-5 w-5 text-gray-400" />
-                )}
-              </button>
-            </div>
-          </div>
+        <h1 className="admin-login-title">Espace administrateur</h1>
+        <p className="admin-login-subtitle">Connectez-vous pour modérer les produits et suivre la plateforme.</p>
 
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-red-400" />
-                </div>
-                <div className="ml-3">
-                  <div className="text-sm text-red-700">{error}</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </div>
+        <form className="admin-login-form" onSubmit={handleSubmit}>
+          <label><span className="admin-field-label">Identifiant</span><input className="admin-input" required autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Votre identifiant" /></label>
+          <label><span className="admin-field-label">Mot de passe</span><span className="admin-login-password"><input className="admin-input" required autoComplete="current-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Votre mot de passe" /><button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>{showPassword ? <EyeOff size={19} /> : <Eye size={19} />}</button></span></label>
+          {error && <div className="admin-error-panel admin-login-error"><AlertCircle size={19} /> <span>{error}</span></div>}
+          <button className="admin-primary-button admin-login-submit" type="submit" disabled={loading}>{loading ? 'Connexion…' : 'Se connecter'}</button>
         </form>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 
-export default Login; 
+export default Login;

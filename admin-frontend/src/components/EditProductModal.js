@@ -70,20 +70,20 @@ const EditProductModal = ({ product, onClose, onSave, loading }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div className="admin-form-modal-backdrop fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4 overflow-y-auto">
+            <div className="admin-form-modal-card bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                <div className="admin-form-modal-header flex justify-between items-center p-6 border-b border-gray-200">
                     <h2 className="text-xl font-bold text-gray-900">
                         Modifier le produit : {product?.barcode}
                     </h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+                    <button onClick={onClose} className="admin-modal-close" aria-label="Fermer">
                         <X className="h-6 w-6" />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="p-6 overflow-y-auto flex-1">
+                <div className="admin-form-modal-body p-6 overflow-y-auto flex-1">
                     <form id="edit-product-form" onSubmit={handleSubmit} className="space-y-6">
 
                         {/* Basic Info */}
@@ -236,10 +236,10 @@ const EditProductModal = ({ product, onClose, onSave, loading }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="flex justify-end items-center p-6 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                <div className="admin-form-modal-footer flex justify-end items-center p-6 border-t border-gray-200 bg-gray-50 rounded-b-lg">
                     <button
                         onClick={onClose}
-                        className="mr-3 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="admin-outline-button"
                     >
                         Annuler
                     </button>
@@ -247,7 +247,7 @@ const EditProductModal = ({ product, onClose, onSave, loading }) => {
                         type="submit"
                         form="edit-product-form"
                         disabled={loading}
-                        className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                        className="admin-primary-button"
                     >
                         {loading ? 'Validation...' : (
                             <>

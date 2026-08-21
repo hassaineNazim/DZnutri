@@ -573,13 +573,30 @@ async def create_report(db: AsyncSession, report: schemas.ReportCreate, user_id:
     return db_report
 
 async def get_pending_reports(db: AsyncSession):
-    """Récupère les signalements en attente pour l'admin."""
+    """Récupère les signalements en attente avec le nom de leur auteur."""
     result = await db.execute(
-        select(models.Report)
+        select(models.Report, auth_models.UserTable.username)
+        .outerjoin(
+            auth_models.UserTable,
+            auth_models.UserTable.id == models.Report.user_id,
+        )
         .where(models.Report.status == "pending")
         .order_by(models.Report.created_at.desc())
     )
-    return result.scalars().all()
+    return [
+        {
+            "id": report.id,
+            "barcode": report.barcode,
+            "type": report.type,
+            "description": report.description,
+            "status": report.status,
+            "created_at": report.created_at,
+            "user_id": report.user_id,
+            "username": username,
+            "image_url": report.image_url,
+        }
+        for report, username in result.all()
+    ]
 
 
     

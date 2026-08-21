@@ -1,12 +1,15 @@
 import logging
+import os
 import secrets
 
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from google.oauth2 import id_token 
 from google.auth.transport import requests
 import httpx
+from jose import JWTError, jwt
 from pydantic import BaseModel
 
 from database import get_db
@@ -23,6 +26,8 @@ from rate_limit import limiter
 from datetime import datetime, timedelta
 
 from bdproduitdz import crud as bd_crud
+from bdproduitdz import models as bd_models
+from auth.profile_models import UserProfile
 
 logger = logging.getLogger("dznutri.auth")
 
@@ -57,6 +62,31 @@ GOOGLE_CLIENT_IDS = {
     # android
     "899058288095-f6dhdtvfo45vqg2ffveqk584li5ilq2e.apps.googleusercontent.com",
 }
+APPLE_CLIENT_ID = os.getenv("APPLE_CLIENT_ID", "com.nazim.dznutri")
+
+async def _verify_apple_identity_token(identity_token: str) -> dict:
+    """Vérifie signature, émetteur et audience du JWT remis par Apple."""
+    try:
+        header = jwt.get_unverified_header(identity_token)
+        kid = header.get("kid")
+        if not kid or header.get("alg") != "RS256":
+            raise JWTError("En-tête Apple invalide")
+        async with httpx.AsyncClient() as client:
+            response = await client.get("https://appleid.apple.com/auth/keys", timeout=10)
+            response.raise_for_status()
+        apple_key = next((key for key in response.json().get("keys", []) if key.get("kid") == kid), None)
+        if not apple_key:
+            raise JWTError("Clé Apple inconnue")
+        return jwt.decode(
+            identity_token,
+            apple_key,
+            algorithms=["RS256"],
+            audience=APPLE_CLIENT_ID,
+            issuer="https://appleid.apple.com",
+        )
+    except (JWTError, httpx.HTTPError, StopIteration, ValueError) as exc:
+        logger.warning("Jeton Sign in with Apple rejeté: %s", exc)
+        raise HTTPException(status_code=401, detail="Jeton Apple invalide") from exc
 
 class PushToken(BaseModel):
     expo_push_token: str
@@ -90,6 +120,38 @@ async def auth_google(request: Request, token: auth_schemas.GoogleToken, db: Asy
     except ValueError:
         raise HTTPException(status_code=401, detail="Token Google invalide")
 
+@router.post("/auth/apple")
+@limiter.limit("20/minute")
+async def auth_apple(request: Request, token: auth_schemas.AppleToken, db: AsyncSession = Depends(get_db)):
+    claims = await _verify_apple_identity_token(token.identity_token)
+    apple_id = claims.get("sub")
+    email = claims.get("email")
+    if not apple_id:
+        raise HTTPException(status_code=401, detail="Identifiant Apple absent")
+
+    user = await auth_crud.get_user_by_apple_id(db, apple_id)
+    if not user and email:
+        # Un compte e-mail/Google existant est relié au même utilisateur au
+        # lieu de créer un doublon.
+        user = await auth_crud.get_user_by_email(db, email)
+        if user:
+            user.apple_id = apple_id
+            await db.commit()
+            await db.refresh(user)
+    if not user:
+        if not email:
+            raise HTTPException(
+                status_code=400,
+                detail="Apple n'a pas transmis d'adresse e-mail. Révoquez l'accès à Remo Scan dans vos réglages Apple puis réessayez.",
+            )
+        user = await auth_crud.create_user_from_apple(
+            db,
+            apple_id=apple_id,
+            email=email,
+            full_name=token.full_name,
+        )
+    return await _issue_tokens(db, user)
+
 @router.post("/auth/facebook")
 @limiter.limit("20/minute")
 async def auth_facebook(request: Request, token: auth_schemas.FacebookToken, db: AsyncSession = Depends(get_db)):
@@ -120,6 +182,37 @@ async def auth_facebook(request: Request, token: auth_schemas.FacebookToken, db:
 async def get_me(current_user: auth_schemas.User = Depends(auth_security.get_current_user)):
     """Return the current authenticated user; used by clients to validate tokens."""
     return current_user
+
+@router.delete("/auth/account")
+@limiter.limit("3/hour")
+async def delete_own_account(
+    request: Request,
+    current_user: auth_schemas.User = Depends(auth_security.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Supprime les données privées et anonymise les contributions partagées."""
+    user_id = current_user.id
+
+    # Contributions utiles à la base commune : conservation sans auteur.
+    await db.execute(update(bd_models.Product).where(bd_models.Product.user_id == user_id).values(user_id=None))
+    await db.execute(update(bd_models.Submission).where(bd_models.Submission.submitted_by_user_id == user_id).values(submitted_by_user_id=None))
+    await db.execute(update(bd_models.CosmeticProduct).where(bd_models.CosmeticProduct.user_id == user_id).values(user_id=None))
+    await db.execute(update(bd_models.CosmeticSubmission).where(bd_models.CosmeticSubmission.submitted_by_user_id == user_id).values(submitted_by_user_id=None))
+    await db.execute(update(bd_models.Report).where(bd_models.Report.user_id == user_id).values(user_id=None))
+
+    # Données strictement personnelles : suppression définitive.
+    for model in (
+        bd_models.ProductRating,
+        bd_models.Favorite,
+        bd_models.ScanHistory,
+        bd_models.Notification,
+        UserProfile,
+        auth_models.RefreshToken,
+    ):
+        await db.execute(delete(model).where(model.user_id == user_id))
+    await db.execute(delete(auth_models.UserTable).where(auth_models.UserTable.id == user_id))
+    await db.commit()
+    return {"message": "Compte supprimé définitivement"}
 
 @router.post("/auth/login-admin")
 @limiter.limit("10/minute")
