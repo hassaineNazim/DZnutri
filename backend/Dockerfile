@@ -32,8 +32,11 @@ EXPOSE 8000
 
 # Vérifie que l'API répond ; Docker/Compose marque le conteneur "healthy".
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-    CMD curl -fsS http://localhost:8000/health || exit 1
+    CMD curl -fsS http://localhost:${PORT:-8000}/health || exit 1
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
 # 2 workers Uvicorn par défaut (ajuster selon les CPU). Le cache partagé est Redis.
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Forme shell (et non exec) pour que $PORT soit résolu AU DÉMARRAGE : les
+# plateformes managées (Railway, Render...) imposent le port d'écoute par
+# cette variable. 8000 par défaut => Docker Compose et le local inchangés.
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WEB_CONCURRENCY:-2}"]

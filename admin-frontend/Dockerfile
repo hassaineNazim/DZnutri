@@ -20,7 +20,7 @@ FROM nginx:alpine
 # URL complète du backend pour le reverse-proxy. Le domaine public Railway est
 # utilisé par défaut : le réseau privé résout le service mais n'ouvre pas son
 # port de façon fiable (502/504 observés en production).
-ENV BACKEND_URL=https://dznutri-backend-production.up.railway.app
+ENV BACKEND_URL=https://dznutri-backend-production-a89b.up.railway.app
 # Fichier *.template dans /etc/nginx/templates/ : l'image nginx officielle le
 # passe par envsubst vers /etc/nginx/conf.d/ au démarrage du conteneur.
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
