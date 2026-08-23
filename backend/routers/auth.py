@@ -19,6 +19,7 @@ from auth import security as auth_security
 from auth import crud as auth_crud
 from auth import jwt as auth_jwt
 from auth import refresh as auth_refresh
+from auth import apple as apple_auth
 from auth.email import send_password_reset_email
 from auth import hashing as auth_hashing
 from utils import generate_reset_code
@@ -129,6 +130,18 @@ async def auth_apple(request: Request, token: auth_schemas.AppleToken, db: Async
     if not apple_id:
         raise HTTPException(status_code=401, detail="Identifiant Apple absent")
 
+    # Le refresh token permet de respecter la révocation exigée par Apple lors
+    # de la suppression du compte. Il est chiffré avant toute écriture en base.
+    try:
+        apple_token_set = await apple_auth.exchange_authorization_code(token.authorization_code)
+        exchanged_claims = await _verify_apple_identity_token(apple_token_set.identity_token)
+        if exchanged_claims.get("sub") != apple_id:
+            raise apple_auth.AppleAuthError("Le code Apple ne correspond pas au jeton d'identité")
+        encrypted_apple_token = apple_auth.encrypt_refresh_token(apple_token_set.refresh_token)
+    except apple_auth.AppleAuthError as exc:
+        logger.warning("Connexion Apple interrompue: %s", exc)
+        raise HTTPException(status_code=503, detail="Connexion Apple temporairement indisponible") from exc
+
     user = await auth_crud.get_user_by_apple_id(db, apple_id)
     if not user and email:
         # Un compte e-mail/Google existant est relié au même utilisateur au
@@ -150,6 +163,10 @@ async def auth_apple(request: Request, token: auth_schemas.AppleToken, db: Async
             email=email,
             full_name=token.full_name,
         )
+    user.apple_refresh_token_encrypted = encrypted_apple_token
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
     return await _issue_tokens(db, user)
 
 @router.post("/auth/facebook")
@@ -187,11 +204,24 @@ async def get_me(current_user: auth_schemas.User = Depends(auth_security.get_cur
 @limiter.limit("3/hour")
 async def delete_own_account(
     request: Request,
-    current_user: auth_schemas.User = Depends(auth_security.get_current_user),
+    current_user: auth_models.UserTable = Depends(auth_security.get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Supprime les données privées et anonymise les contributions partagées."""
     user_id = current_user.id
+
+    # La révocation distante doit réussir avant d'effacer les données locales.
+    # Les anciens comptes Apple créés avant ce mécanisme n'ont aucun refresh
+    # token serveur à révoquer et peuvent toujours être supprimés.
+    if current_user.apple_refresh_token_encrypted:
+        try:
+            await apple_auth.revoke_stored_refresh_token(current_user.apple_refresh_token_encrypted)
+        except apple_auth.AppleAuthError as exc:
+            logger.warning("Suppression différée: révocation Apple impossible pour user %s: %s", user_id, exc)
+            raise HTTPException(
+                status_code=503,
+                detail="Impossible de révoquer la connexion Apple pour le moment. Réessayez plus tard.",
+            ) from exc
 
     # Contributions utiles à la base commune : conservation sans auteur.
     await db.execute(update(bd_models.Product).where(bd_models.Product.user_id == user_id).values(user_id=None))

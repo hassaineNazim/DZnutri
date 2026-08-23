@@ -3,14 +3,16 @@
 Ces pages décrivent les traitements réellement utilisés par l'application et
 sont accessibles sans compte pour les fiches App Store / Google Play.
 """
+import os
+
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 
 router = APIRouter(tags=["Legal"])
 
-CONTACT_EMAIL = "Dznutriment@gmail.com"
+CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "contact@remoscan.app")
 APP_NAME = "Remo Scan"
-LAST_UPDATED = "17 août 2026"
+LAST_UPDATED = "21 août 2026"
 
 _STYLE = """
 <style>
@@ -56,7 +58,7 @@ finalités et les moyens d'exercer vos droits.</p>
 <h2>2. Données traitées et finalités</h2>
 <table>
 <tr><th>Catégorie</th><th>Données</th><th>Finalité</th></tr>
-<tr><td>Compte</td><td>Nom d'utilisateur, adresse email, mot de passe haché, ou identifiant transmis par Google/Facebook lorsque cette option est choisie</td><td>Créer, authentifier et sécuriser le compte</td></tr>
+<tr><td>Compte</td><td>Nom d'utilisateur, adresse email, mot de passe haché, identifiant et jeton technique transmis par Google, Apple ou Facebook lorsque cette option est choisie. Le jeton Apple conservé pour la révocation est chiffré.</td><td>Créer, authentifier, sécuriser et permettre la suppression complète du compte</td></tr>
 <tr><td>Profil santé facultatif</td><td>Taille, poids, date de naissance, genre, activité, allergies, conditions médicales, régime alimentaire et ingrédients évités</td><td>Personnaliser les alertes et informations nutritionnelles</td></tr>
 <tr><td>Utilisation</td><td>Historique des scans, favoris, notes et commentaires sur les produits</td><td>Fournir les fonctions demandées et le bilan personnel</td></tr>
 <tr><td>Contributions</td><td>Photos de produits, informations saisies et descriptions ou photos jointes à un signalement</td><td>Identifier les produits, effectuer l'OCR, enrichir la base et traiter les signalements</td></tr>
@@ -103,8 +105,8 @@ compte. Vous pouvez également introduire une réclamation auprès
 de l'ANPDP.</p>
 
 <h2>7. Sécurité et incidents</h2>
-<p>Les mots de passe sont hachés avec bcrypt et les communications de production utilisent
-HTTPS. L'accès aux données est limité aux besoins du service. En cas de violation susceptible
+<p>Les mots de passe sont hachés avec bcrypt, les jetons Apple conservés pour la révocation sont
+chiffrés et les communications de production utilisent HTTPS. L'accès aux données est limité aux besoins du service. En cas de violation susceptible
 de porter atteinte à la vie privée, les notifications requises seront adressées à l'ANPDP et aux
 personnes concernées.</p>
 
@@ -215,7 +217,8 @@ async def account_deletion():
 associée au compte, avec l'objet « Suppression de mon compte Remo Scan ».</p>
 <h2>Données supprimées</h2>
 <p>Le compte, le profil santé, l'historique, les favoris, les notifications, les notes et les
-jetons de session sont supprimés définitivement. Les fiches produit, photos, contributions et
+jetons de session sont supprimés définitivement. Si vous avez utilisé Sign in with Apple,
+l'autorisation associée est révoquée avant la suppression locale. Les fiches produit, photos, contributions et
 signalements utiles à la base commune peuvent être conservés après suppression de tout lien avec
 votre identité.</p>
 <p class="notice">Cette action est irréversible.</p>

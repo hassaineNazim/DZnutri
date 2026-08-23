@@ -1,7 +1,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.sql import func
 from database import Base
 from sqlalchemy.orm import relationship
@@ -18,6 +18,9 @@ class UserTable(Base):
     email = Column(String, unique=True, index=True, nullable=True) # Ajout de l'email
     google_id = Column(String, unique=True, nullable=True) # Pour stocker l'ID unique de Google 
     apple_id = Column(String, unique=True, nullable=True)  # Identifiant stable Sign in with Apple
+    # Refresh token Apple chiffré, utilisé exclusivement pour la révocation
+    # obligatoire lors de la suppression du compte.
+    apple_refresh_token_encrypted = Column(Text, nullable=True)
 
     hashed_password = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)

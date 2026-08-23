@@ -51,7 +51,7 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/logoRemo.png",
+        foregroundImage: "./assets/images/logo-remo-adaptive-foreground.png",
         backgroundColor: "#3b0010",
       },
       package: "com.Nazim.dznutri",
@@ -116,7 +116,7 @@ module.exports = {
       [
         "expo-notifications",
         {
-          icon: "./assets/images/bet_default_logo.png",
+          icon: "./assets/images/logo-remo-notification.png",
           color: "#ffffff",
           iosDisplayInForeground: true,
         },

@@ -18,6 +18,7 @@ class FacebookToken(BaseModel):
 
 class AppleToken(BaseModel):
     identity_token: str = Field(min_length=10, max_length=8192)
+    authorization_code: str = Field(min_length=5, max_length=4096)
     # Apple ne transmet le nom qu'à la toute première autorisation.
     full_name: str | None = Field(default=None, max_length=100)
 

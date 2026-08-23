@@ -1,4 +1,5 @@
 import logging
+import os
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
@@ -35,7 +36,7 @@ def get_off_client() -> httpx.AsyncClient:
             verify=certifi.where(),
             timeout=OFF_TIMEOUT,
             # Open Food Facts demande un User-Agent identifiant pour ne pas bloquer.
-            headers={"User-Agent": "RemoScan/2.0 (dznutriment@gmail.com)"},
+            headers={"User-Agent": f"RemoScan/2.0 ({os.getenv('CONTACT_EMAIL', 'contact@remoscan.app')})"},
         )
     return _off_client
 

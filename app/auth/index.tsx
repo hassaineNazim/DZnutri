@@ -77,14 +77,20 @@ export default function Login() {
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
-      if (!credential.identityToken) throw new Error("Apple n'a pas transmis de jeton d'identité.");
+      if (!credential.identityToken || !credential.authorizationCode) {
+        throw new Error("Apple n'a pas transmis les informations d'autorisation nécessaires.");
+      }
       const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
         .filter(Boolean)
         .join(' ') || null;
       const backendResponse = await fetch(`${API_URL}/auth/apple`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity_token: credential.identityToken, full_name: fullName }),
+        body: JSON.stringify({
+          identity_token: credential.identityToken,
+          authorization_code: credential.authorizationCode,
+          full_name: fullName,
+        }),
       });
       const data = await backendResponse.json();
       if (!backendResponse.ok || !data?.access_token) {

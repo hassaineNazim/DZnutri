@@ -26,6 +26,7 @@ from bdproduitdz.cosmetic_ingredients_seed import COSMETIC_INGREDIENTS
 _COLUMN_PATCHES = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_code_attempts INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS apple_id VARCHAR UNIQUE",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS apple_refresh_token_encrypted TEXT",
     # Date d'inscription (analytics admin). Les comptes existants sont
     # backfillés avec la date d'application du patch.
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()",

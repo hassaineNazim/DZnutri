@@ -174,7 +174,7 @@ export default function ProductDetail() {
         }
       })();
     }
-  }, [fullProduct?.barcode, fullProduct?.id, fullProduct?.ingredients_text]);
+  }, [fullProduct?.barcode, fullProduct?.id, fullProduct?.ingredients_text, fullProduct?.nutriments]);
 
   if (!product || !fullProduct) return <RouteParamError onBack={() => router.back()} />;
 
