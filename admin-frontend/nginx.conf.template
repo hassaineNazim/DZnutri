@@ -1,5 +1,9 @@
 server {
-    listen 80;
+    # ${PORT} substitué au demarrage (envsubst, cf. Dockerfile) : Railway impose
+    # le port d'ecoute via cette variable. Doit toujours etre definie (voir
+    # variable PORT du service) sinon envsubst laisse le token litteral et nginx
+    # refuse de demarrer.
+    listen ${PORT};
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
