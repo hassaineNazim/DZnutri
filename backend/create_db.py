@@ -30,10 +30,25 @@ _COLUMN_PATCHES = [
     # Date d'inscription (analytics admin). Les comptes existants sont
     # backfillés avec la date d'application du patch.
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()",
+    # Origine des produits : permet de suivre les imports automatiques OFF.
+    "ALTER TABLE produits ADD COLUMN IF NOT EXISTS source VARCHAR NOT NULL DEFAULT 'legacy'",
     # Historique mixte aliments/cosmétiques : product_id devient optionnel et
     # cosmetic_id référence la table cosmetiques.
     "ALTER TABLE scan_history ADD COLUMN IF NOT EXISTS cosmetic_id INTEGER REFERENCES cosmetiques(id)",
     "ALTER TABLE scan_history ALTER COLUMN product_id DROP NOT NULL",
+]
+
+# Corrections de données rejouables sans risque. L'historique référence la
+# ligne produit, donc réparer le titre ici met aussi à jour les anciens scans.
+_DATA_PATCHES = [
+    """
+    UPDATE produits
+    SET product_name = CASE
+        WHEN brand IS NOT NULL AND btrim(brand) <> '' THEN 'Produit ' || btrim(brand)
+        ELSE 'Produit sans nom'
+    END
+    WHERE product_name ~ '^[0-9]{6,18}$'
+    """,
 ]
 
 
@@ -61,11 +76,14 @@ async def create_tables():
         await conn.run_sync(Base.metadata.create_all)
         for stmt in _COLUMN_PATCHES:
             await conn.execute(text(stmt))
+        for stmt in _DATA_PATCHES:
+            await conn.execute(text(stmt))
         seeded = await _seed_cosmetic_ingredients(conn)
     await engine.dispose()
     print(
         f"Schéma créé/vérifié : {len(Base.metadata.tables)} tables, "
-        f"{len(_COLUMN_PATCHES)} patch(es), {seeded} ingrédient(s) cosmétique(s) seedé(s)."
+        f"{len(_COLUMN_PATCHES)} patch(es) colonne, {len(_DATA_PATCHES)} patch(es) données, "
+        f"{seeded} ingrédient(s) cosmétique(s) seedé(s)."
     )
 
 

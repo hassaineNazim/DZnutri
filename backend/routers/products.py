@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
@@ -26,6 +27,76 @@ from fastapi_cache.decorator import cache
 _off_client: httpx.AsyncClient | None = None
 
 OFF_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
+
+
+def _clean_product_name(value) -> str | None:
+    if not isinstance(value, str):
+        return None
+    cleaned = " ".join(value.split()).strip()
+    return cleaned or None
+
+
+def _is_barcode_name(value: str | None, barcode: str) -> bool:
+    """Détecte les anciens noms de secours constitués d'un code-barres."""
+    cleaned = _clean_product_name(value)
+    if not cleaned:
+        return True
+    return (
+        cleaned == barcode
+        or cleaned.casefold() == "produit sans nom"
+        or bool(re.fullmatch(r"\d{6,18}", cleaned))
+    )
+
+
+def resolve_off_product_name(product_data: dict, barcode: str) -> str:
+    """Choisit le meilleur nom disponible dans la réponse multilingue OFF.
+
+    OpenFoodFacts peut laisser ``product_name`` vide tout en fournissant une
+    variante localisée. Le code-barres ne doit jamais devenir le titre visible.
+    """
+    priority_keys = (
+        "product_name_fr",
+        "product_name",
+        "product_name_ar",
+        "product_name_en",
+        "abbreviated_product_name",
+        "generic_name_fr",
+        "generic_name",
+    )
+    candidates = [product_data.get(key) for key in priority_keys]
+    candidates.extend(
+        product_data.get(key)
+        for key in sorted(product_data)
+        if key.startswith("product_name_") and key not in priority_keys
+    )
+    for candidate in candidates:
+        cleaned = _clean_product_name(candidate)
+        if cleaned and not _is_barcode_name(cleaned, barcode):
+            return cleaned
+
+    brand = _clean_product_name(product_data.get("brands"))
+    return f"Produit {brand}" if brand else "Produit sans nom"
+
+
+def resolve_off_categories(product_data: dict) -> tuple[str | None, str | None]:
+    """Normalise les catégories OFF, y compris quand les clés valent ``null``."""
+    raw_categories = _clean_product_name(product_data.get("categories")) or ""
+    category_parts = [part.strip() for part in raw_categories.split(",") if part.strip()]
+    category = _clean_product_name(product_data.get("pnns_groups_1"))
+    subcategory = _clean_product_name(product_data.get("pnns_groups_2"))
+    return (
+        category or (category_parts[0] if category_parts else None),
+        subcategory or (category_parts[1] if len(category_parts) > 1 else None),
+    )
+
+
+async def _repair_local_product_name(db: AsyncSession, product, name: str | None = None):
+    repaired_name = name or (f"Produit {product.brand}" if product.brand else "Produit sans nom")
+    product.product_name = repaired_name
+    db.add(product)
+    await db.commit()
+    await db.refresh(product)
+    return product
 
 
 def get_off_client() -> httpx.AsyncClient:
@@ -73,7 +144,7 @@ def is_product_suspicious(product_data: dict) -> bool:
 
 # --- VOTRE ENDPOINT MIS À JOUR ---
 @router.get("/api/product/{barcode}")
-@cache(expire=86400) # Cache de 24 heures
+@cache(expire=86400, namespace="product-v2") # Cache de 24 heures
 async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db)):
     """
     Cherche un produit. D'abord en local, sinon sur Open Food Facts.
@@ -83,7 +154,8 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
     # 1. On cherche D'ABORD dans la base de données locale
     db_product = await bd_crud.getProduitByBarcode(db, barcode=barcode)
     
-    if db_product:
+    needs_name_repair = bool(db_product and _is_barcode_name(db_product.product_name, barcode))
+    if db_product and not needs_name_repair:
         logger.debug("Produit %s trouvé en base locale.", barcode)
         return {"source": "local_db", "product": db_product}
 
@@ -95,13 +167,25 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
     try:
         response = await client.get(off_api_url)
     except httpx.RequestError:
+        if db_product:
+            repaired = await _repair_local_product_name(db, db_product)
+            return {"source": "local_db_name_repaired", "product": repaired}
         raise HTTPException(status_code=503, detail="Erreur de communication avec Open Food Facts")
 
     data = response.json()
 
     if data.get("status") == 1:
         logger.debug("Produit %s trouvé sur Open Food Facts.", barcode)
-        off_product_data = data.get("product")
+        off_product_data = data.get("product") or {}
+        product_name = resolve_off_product_name(off_product_data, barcode)
+        category, subcategory = resolve_off_categories(off_product_data)
+
+        # Les anciennes versions enregistraient parfois le code-barres comme
+        # nom. Au prochain scan, on répare la ligne existante au lieu de créer
+        # un doublon ou de continuer à afficher ce code dans l'historique.
+        if db_product:
+            repaired = await _repair_local_product_name(db, db_product, product_name)
+            return {"source": "local_db_name_repaired", "product": repaired}
 
         # 3. On calcule le score
         scoringGlobal = await bd_scoring.calculate_score(db, off_product_data)
@@ -138,7 +222,7 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
             barcode=off_product_data.get('code', barcode),
             # `or` (et non get(default)) : OFF renvoie parfois la clé avec une
             # valeur vide/None -> sans repli, la validation Pydantic échouait (500).
-            product_name=off_product_data.get('product_name_fr') or off_product_data.get('product_name') or barcode,
+            product_name=product_name,
             brand=off_product_data.get('brands'),
             nutriments=off_product_data.get('nutriments'),
             image_url=off_product_data.get('image_url'),
@@ -153,14 +237,19 @@ async def get_product_by_barcode(barcode: str, db: AsyncSession = Depends(get_db
             
             custom_score=custom_score,
             detail_custom_score=detail_custom_score,
-            category=off_product_data.get('pnns_groups_1', off_product_data.get('categories', '').split(',')[0]),
-            subcategory=off_product_data.get('pnns_groups_2', off_product_data.get('categories', '').split(',')[1] if len(off_product_data.get('categories', '').split(',')) > 1 else None)
+            category=category,
+            subcategory=subcategory,
+            source="openfoodfacts",
         )
         
         # 6. On appelle le CRUD pour créer le produit dans notre base de données
         created_product = await bd_crud.create_product(db, product=product_to_create)
         
         return {"source": "openfoodfacts_saved", "product": created_product}
+
+    if db_product:
+        repaired = await _repair_local_product_name(db, db_product)
+        return {"source": "local_db_name_repaired", "product": repaired}
 
     # 7. Si le produit n'est trouvé nulle part
     raise HTTPException(status_code=404, detail="Produit non trouvé")

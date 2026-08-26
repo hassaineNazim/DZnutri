@@ -1,5 +1,5 @@
-import React, { useCallback, useRef } from 'react';
-import { Animated, NativeScrollEvent, NativeSyntheticEvent, View } from 'react-native';
+import React, { useMemo, useRef } from 'react';
+import { Animated, View } from 'react-native';
 import Txt from './Txt';
 import { colors } from '../../theme/tokens';
 
@@ -17,10 +17,14 @@ const COMPACT_HEIGHT = 62;
 
 export function useCollapsibleHeader() {
   const scrollY = useRef(new Animated.Value(0)).current;
-  const onScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      scrollY.setValue(Math.max(0, event.nativeEvent.contentOffset.y));
-    },
+  // Le scroll est relié directement au pilote natif. La mise à jour manuelle
+  // via setValue côté JS perdait des événements sur Android pendant les listes
+  // chargées, ce qui laissait parfois le grand bandeau complètement figé.
+  const onScroll = useMemo(
+    () => Animated.event(
+      [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+      { useNativeDriver: true },
+    ),
     [scrollY],
   );
 

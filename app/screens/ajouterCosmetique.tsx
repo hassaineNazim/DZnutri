@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft, Camera, Check } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StatusBar, TextInput, TouchableOpacity, View } from 'react-native';
+import CosmeticCategoryPicker from '../components/CosmeticCategoryPicker';
 import Txt from '../components/ui/Txt';
 import { useToast } from '../context/ToastContext';
 import { useTranslation } from '../i18n';
@@ -140,7 +141,7 @@ export default function AjouterCosmetique() {
         <View style={{ marginTop: 20, gap: 12 }}>
           <TextInput accessibilityLabel={t('product_name_optional')} style={inputStyle} placeholder={t('product_name_optional')} placeholderTextColor={colors.inkMeta} value={productName} onChangeText={setProductName} />
           <TextInput accessibilityLabel={t('brand_optional')} style={inputStyle} placeholder={t('brand_optional')} placeholderTextColor={colors.inkMeta} value={brand} onChangeText={setBrand} />
-          <TextInput accessibilityLabel={t('category_optional')} style={inputStyle} placeholder={t('category_optional')} placeholderTextColor={colors.inkMeta} value={category} onChangeText={setCategory} />
+          <CosmeticCategoryPicker value={category} onChange={setCategory} />
         </View>
 
         <TouchableOpacity disabled={loading} onPress={submit} accessibilityRole="button" accessibilityLabel={t('send_for_validation')} accessibilityState={{ disabled: loading, busy: loading }} activeOpacity={0.85} style={{ backgroundColor: PINK, paddingVertical: 16, borderRadius: radius.cta, alignItems: 'center', marginTop: 22 }}>

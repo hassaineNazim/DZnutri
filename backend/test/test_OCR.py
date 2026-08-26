@@ -1,6 +1,8 @@
 import asyncio
 import os
-from bdproduitdz.ocr import detect_text_from_image # Importe votre fonction OCR
+
+# Script manuel historique, pas un test pytest automatisé.
+__test__ = False
 
 async def main():
     """
@@ -11,14 +13,18 @@ async def main():
     key_path = "dznutri-632fbb70c039.json" 
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_path
     
-    # 2. Définissez le chemin vers votre image de test
-    image_path = "testOCR.png"
+    # Le pipeline de production travaille désormais avec une URL Cloudinary.
+    image_url = os.getenv("TEST_OCR_IMAGE_URL")
+    if not image_url:
+        raise RuntimeError("Définissez TEST_OCR_IMAGE_URL avant de lancer ce script.")
 
-    print(f"Analyse de l'image : {image_path}")
+    from bdproduitdz.ocr import detect_text_from_url
+
+    print(f"Analyse de l'image : {image_url}")
     print("------------------------------------------")
 
     # 3. Appelez votre fonction OCR
-    detected_text = detect_text_from_image(image_path)
+    detected_text = detect_text_from_url(image_url)
 
     # 4. Affichez le résultat
     if detected_text:

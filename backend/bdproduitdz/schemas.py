@@ -25,6 +25,7 @@ class ProductBase(BaseModel):
     ecoscore_grade: Optional[str] = None
     custom_score: Optional[int] = None
     detail_custom_score: Optional[Dict[str, Any]] = None
+    source: Optional[str] = None
 
 class ProductCreate(ProductBase):
     pass

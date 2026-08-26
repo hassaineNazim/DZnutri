@@ -1,19 +1,15 @@
 import asyncio
-from auth.models import UserTable
-from auth.users_db import add_user, get_user
+
+# Ancien script manuel conservé comme référence ; les tests API maintenus sont
+# dans backend/tests/api. Les imports restent locaux pour que pytest puisse
+# collecter l'ensemble du dépôt sans dépendre d'un module supprimé.
+__test__ = False
 
 async def main():
-    # Ajout d'un utilisateur
-    user = UserTable(username="testuser", hashed_password="motdepassehashé")
-    await add_user(user)
-    print("Utilisateur ajouté.")
-
-    # Lecture de l'utilisateur
-    user_from_db = await get_user("testuser")
-    if user_from_db:
-        print("Utilisateur trouvé :", user_from_db.username, user_from_db.hashed_password)
-    else:
-        print("Utilisateur non trouvé.")
+    raise RuntimeError(
+        "Ce script utilise une ancienne couche d'accès aux utilisateurs. "
+        "Lancez plutôt: pytest tests/api/test_auth.py"
+    )
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -12,10 +12,10 @@ export const ONBOARDING_KEY = 'hasSeenOnboarding';
 
 // Cartes de démonstration empilées (façon maquette).
 const DEMO = [
-  { name: 'Selecto Cola', brand: 'Hamoud Boualem', score: 32, rot: '-5deg', top: 6, left: 4 },
-  { name: 'Soummam', brand: 'Yaourt · 125 g', score: 82, rot: '4deg', top: 96, left: 40 },
-  { name: 'Tchina Orange', brand: 'Ramy', score: 48, rot: '-3deg', top: 186, left: 8 },
-  { name: 'El Mordjene', brand: 'Cebon · 700 g', score: 12, rot: '3deg', top: 276, left: 36 },
+  { name: 'Selecto Cola', brand: 'Hamoud Boualem', score: 32, rot: '-5deg', top: 6, left: 4, image: require('../assets/images/onboarding-selecto.jpg') },
+  { name: 'Soummam', brand: 'Yaourt · 125 g', score: 82, rot: '4deg', top: 96, left: 40, image: require('../assets/images/onboarding-soummam.jpg') },
+  { name: 'Tchina Orange', brand: 'Ramy', score: 48, rot: '-3deg', top: 186, left: 8, image: require('../assets/images/onboarding-tchina.jpg') },
+  { name: 'El Mordjene', brand: 'Cebon · 700 g', score: 12, rot: '3deg', top: 276, left: 36, image: require('../assets/images/onboarding-el-mordjene.jpg') },
 ];
 
 function DemoCard({ item }: { item: (typeof DEMO)[number] }) {
@@ -40,7 +40,12 @@ function DemoCard({ item }: { item: (typeof DEMO)[number] }) {
         shadows.floatCard,
       ]}
     >
-      <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: colors.thumbBg }} />
+      <Image
+        source={item.image}
+        accessible={false}
+        resizeMode="cover"
+        style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: colors.thumbBg }}
+      />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Txt variant="displayXBold" size={19} color={colors.ink} numberOfLines={1}>{item.name}</Txt>
         <Txt variant="body" size={12.5} color={colors.inkSoft} numberOfLines={1} style={{ marginTop: 3 }}>{item.brand}</Txt>
@@ -85,7 +90,7 @@ export default function Onboarding() {
 
         {/* Bloc bas */}
         <View style={{ marginTop: 'auto', paddingTop: 24 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Txt variant="display" size={40} color={colors.creamTitle} style={{ flex: 1, lineHeight: 42, letterSpacing: -0.5 }}>
               {t('onboarding_title_1') || 'Manger mieux, '}
               <Txt variant="displayItalic" size={40} color={colors.yellow}>{t('onboarding_title_2') || 'scan par scan.'}</Txt>
@@ -93,7 +98,15 @@ export default function Onboarding() {
             <Image
               source={require('../assets/images/mascotte-betterave.png')}
               accessible={false}
-              style={{ width: 110, height: 110, marginTop: -30, resizeMode: 'contain' }}
+              style={{
+                width: 138,
+                height: 138,
+                marginTop: -8,
+                marginRight: -14,
+                flexShrink: 0,
+                resizeMode: 'contain',
+                transform: [{ scaleX: -1 }, { rotate: '-8deg' }],
+              }}
             />
           </View>
 

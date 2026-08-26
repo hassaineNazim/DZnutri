@@ -85,12 +85,30 @@ async def get_monitoring_dashboard(
     # asyncpg refuse de comparer un datetime aware avec elles (DataError).
     now_db = datetime.utcnow()
     last_24h = now_db - timedelta(hours=24)
+    last_7d = now_db - timedelta(days=7)
     last_30d = now_db - timedelta(days=30)
 
     # --- Totaux de base (requêtes COUNT, pas de chargement de lignes) -------
     total_users = await db.scalar(select(func.count(auth_models.UserTable.id))) or 0
     total_products = await db.scalar(select(func.count(bd_models.Product.id))) or 0
     total_cosmetics = await db.scalar(select(func.count(bd_models.CosmeticProduct.id))) or 0
+    off_imports_total = await db.scalar(
+        select(func.count(bd_models.Product.id)).where(
+            bd_models.Product.source == "openfoodfacts"
+        )
+    ) or 0
+    off_imports_24h = await db.scalar(
+        select(func.count(bd_models.Product.id)).where(
+            bd_models.Product.source == "openfoodfacts",
+            bd_models.Product.created_at >= last_24h,
+        )
+    ) or 0
+    off_imports_7d = await db.scalar(
+        select(func.count(bd_models.Product.id)).where(
+            bd_models.Product.source == "openfoodfacts",
+            bd_models.Product.created_at >= last_7d,
+        )
+    ) or 0
     scans_24h = await db.scalar(
         select(func.count(bd_models.ScanHistory.id)).where(
             bd_models.ScanHistory.scanned_at >= last_24h
@@ -199,7 +217,6 @@ async def get_monitoring_dashboard(
     # Toutes les requêtes sont des agrégats (GROUP BY) : coût constant côté API.
     # =========================================================================
     last_14d = now_db - timedelta(days=14)
-    last_7d = now_db - timedelta(days=7)
 
     # --- Utilisateurs : inscriptions / jour (14 j) + nouveaux sur 7 j ---------
     signup_day = func.date_trunc("day", auth_models.UserTable.created_at)
@@ -381,6 +398,9 @@ async def get_monitoring_dashboard(
             "users": total_users,
             "products": total_products,
             "cosmetics": total_cosmetics,
+            "openfoodfacts_imports": off_imports_total,
+            "openfoodfacts_imports_last_24h": off_imports_24h,
+            "openfoodfacts_imports_last_7d": off_imports_7d,
             "scans_last_24h": scans_24h,
             "submissions_by_status": submissions_by_status,
             "cosmetic_submissions_by_status": cosmetic_submissions_by_status,

@@ -88,6 +88,7 @@ async def approve_submission(db: AsyncSession, submission_id: int, admin_data: s
         custom_score=score_result.get('score'),
         detail_custom_score=score_result.get('details'),
         nutri_score=score_result.get('nutri_score'),
+        source="user_submission",
 
         # On peut aussi sauvegarder le type spécifique si on veut le garder
         # (Assurez-vous que votre modèle Product a une colonne pour ça, sinon ignorez)
@@ -146,7 +147,9 @@ async def create_product(db: AsyncSession, product: schemas.ProductCreate) -> mo
     """
     Crée un nouveau produit dans la base de données à partir d'un schéma Pydantic.
     """
-    db_product = models.Product(**product.model_dump())
+    product_data = product.model_dump()
+    product_data["source"] = product_data.get("source") or "manual"
+    db_product = models.Product(**product_data)
 
     db.add(db_product)
     await db.commit()

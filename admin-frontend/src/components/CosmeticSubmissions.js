@@ -1,6 +1,7 @@
 import { Edit3, Image, Search, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { cosmeticsAPI } from '../api/cosmetics';
+import { getCosmeticCategoryLabel, optionsWithLegacyValue } from '../constants/cosmeticCategories';
 import { PageHeader, StatePanel, StatusBadge } from './AdminUI';
 import { useToast } from './Toast';
 
@@ -57,7 +58,10 @@ const CosmeticSubmissionCard = ({ submission, onDone }) => {
         <div className="admin-field-stack">
           <input className="admin-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Nom du produit *" />
           <input className="admin-input" value={brand} onChange={(event) => setBrand(event.target.value)} placeholder="Marque" />
-          <input className="admin-input" value={category} onChange={(event) => setCategory(event.target.value)} placeholder="Catégorie" />
+          <select className="admin-input" value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Catégorie">
+            <option value="">Aucune catégorie</option>
+            {optionsWithLegacyValue(category).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
         </div>
       </div>
       <label className="admin-field-label" style={{ marginTop: 16 }}>Ingrédients (INCI) — corrigez le texte OCR si nécessaire</label>
@@ -104,7 +108,10 @@ const ProductEditor = ({ product, onClose, onSaved }) => {
         <div className="admin-field-stack">
           <label><span className="admin-field-label">Nom</span><input className="admin-input" value={form.product_name || ''} onChange={update('product_name')} /></label>
           <label><span className="admin-field-label">Marque</span><input className="admin-input" value={form.brand || ''} onChange={update('brand')} /></label>
-          <label><span className="admin-field-label">Catégorie</span><input className="admin-input" value={form.category || ''} onChange={update('category')} /></label>
+          <label><span className="admin-field-label">Catégorie</span><select className="admin-input" value={form.category || ''} onChange={update('category')}>
+            <option value="">Aucune catégorie</option>
+            {optionsWithLegacyValue(form.category).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select></label>
           <label><span className="admin-field-label">URL de l’image</span><input className="admin-input" value={form.image_url || ''} onChange={update('image_url')} /></label>
           <label><span className="admin-field-label">Ingrédients (INCI)</span><textarea className="admin-textarea" rows={6} value={form.ingredients_text || ''} onChange={update('ingredients_text')} /></label>
         </div>
@@ -198,7 +205,7 @@ const CosmeticSubmissions = () => {
                   {product.image_url ? <img src={product.image_url} alt="" /> : <span className="cosmetic-table-placeholder"><Sparkles size={18} /></span>}
                   <div><strong>{product.product_name || 'Sans nom'}</strong><small>{product.barcode}</small></div>
                 </div></td>
-                <td>{product.brand || '—'}</td><td>{product.category || '—'}</td>
+                <td>{product.brand || '—'}</td><td>{getCosmeticCategoryLabel(product.category) || '—'}</td>
                 <td><StatusBadge tone={product.cosmetic_score >= 50 ? 'soft' : 'red'}>{product.cosmetic_score ?? '—'}/100</StatusBadge></td>
                 <td style={{ textAlign: 'right' }}><button className="admin-table-action" disabled={editorLoading} onClick={() => editProduct(product)}><Edit3 size={15} /> Modifier</button></td>
               </tr>

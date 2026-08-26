@@ -25,6 +25,7 @@ class Product(Base):
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
+    source = Column(String, nullable=False, default="manual", server_default="legacy")
     is_verified = Column(Boolean, default=False)
     image_url = Column(String, nullable=True)
     category = Column(String, nullable=True)

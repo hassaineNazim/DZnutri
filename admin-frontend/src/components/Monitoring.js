@@ -3,6 +3,7 @@ import {
   BarChart3,
   CheckCircle,
   Clock,
+  Database,
   Flag,
   Gauge,
   Package,
@@ -384,6 +385,13 @@ const Monitoring = () => {
           value={totals.scans_last_24h ?? 0}
           accent="blue"
           sub={`${totals.products ?? 0} aliments · ${totals.cosmetics ?? 0} cosmétiques en base`}
+        />
+        <StatCard
+          icon={Database}
+          label="Imports OpenFoodFacts (24 h)"
+          value={totals.openfoodfacts_imports_last_24h ?? 0}
+          accent="yellow"
+          sub={`${totals.openfoodfacts_imports_last_7d ?? 0} sur 7 j · ${totals.openfoodfacts_imports ?? 0} suivis au total`}
         />
         <StatCard
           icon={Clock}

@@ -229,11 +229,11 @@ export default function ProductDetail() {
         </View>
 
         {/* Bandeau produit */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 20, marginBottom: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, marginBottom: 4 }}>
           {fullProduct.image_url ? (
-            <Image source={{ uri: fullProduct.image_url }} accessible={false} style={{ width: 104, height: 104, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)' }} resizeMode="contain" />
+            <Image source={{ uri: fullProduct.image_url }} accessible={false} style={{ width: 94, height: 94, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)' }} resizeMode="contain" />
           ) : (
-            <View style={{ width: 104, height: 104, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)' }} />
+            <View style={{ width: 94, height: 94, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)' }} />
           )}
           <View style={{ flex: 1, minWidth: 0 }}>
             {!!(fullProduct.category || fullProduct.subcategory) && (
@@ -241,17 +241,19 @@ export default function ProductDetail() {
                 {fullProduct.subcategory || fullProduct.category}
               </Txt>
             )}
-            <Txt variant="display" size={26} color={colors.creamTitle} style={{ marginTop: 4, lineHeight: 30 }} numberOfLines={2}>
+            <Txt variant="display" size={24} color={colors.creamTitle} style={{ marginTop: 4, lineHeight: 27 }} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.78}>
               {fullProduct.product_name}
             </Txt>
             <Txt variant="body" size={12.5} color={colors.rose2} style={{ marginTop: 5 }} numberOfLines={1}>
               {fullProduct.brand}
             </Txt>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
-              <ScoreRing score={fullProduct.custom_score} size={38} discColor={colors.cream} discRatio={0.78} fontSize={13} trackColor="rgba(244,234,214,0.25)" />
-              <View style={{ backgroundColor: band.color + '29', borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 5 }}>
-                <Txt variant="bold" size={12} color={band.color}>{t(band.labelKey) || band.label}</Txt>
-              </View>
+          </View>
+          <View style={{ width: 60, alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <ScoreRing score={fullProduct.custom_score} size={48} discColor={colors.cream} discRatio={0.78} fontSize={15} trackColor="rgba(244,234,214,0.25)" />
+            <View style={{ maxWidth: 60, backgroundColor: band.color + '29', borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 4 }}>
+              <Txt variant="bold" size={10.5} color={band.color} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                {t(band.labelKey) || band.label}
+              </Txt>
             </View>
           </View>
         </View>

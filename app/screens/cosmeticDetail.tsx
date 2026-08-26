@@ -8,6 +8,7 @@ import ProductRatings from '../components/ProductRatings';
 import RouteParamError from '../components/ui/RouteParamError';
 import ScoreRing from '../components/ui/ScoreRing';
 import Txt from '../components/ui/Txt';
+import { getCosmeticCategoryLabel } from '../constants/cosmeticCategories';
 import { useTranslation } from '../i18n';
 import { CosmeticProduct, fetchCosmetic } from '../services/cosmetics';
 import { colors, radius, scoreBand, shadows } from '../theme/tokens';
@@ -22,7 +23,7 @@ const dangerStyle = (level: number) => {
 
 export default function CosmeticDetail() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { lang, t } = useTranslation();
   const { product: productJson } = useLocalSearchParams();
   const initial = parseObjectRouteParam<CosmeticProduct>(productJson);
   const [product, setProduct] = useState<CosmeticProduct | null>(initial);
@@ -62,33 +63,33 @@ export default function CosmeticDetail() {
         <BackButton onPress={() => router.back()} />
 
         {/* Bandeau produit */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 20, marginBottom: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, marginBottom: 4 }}>
           {product.image_url ? (
-            <Image source={{ uri: product.image_url }} style={{ width: 104, height: 104, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)' }} resizeMode="contain" />
+            <Image source={{ uri: product.image_url }} style={{ width: 94, height: 94, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)' }} resizeMode="contain" />
           ) : (
-            <View style={{ width: 104, height: 104, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: 94, height: 94, borderRadius: 20, backgroundColor: 'rgba(244,234,214,0.15)', alignItems: 'center', justifyContent: 'center' }}>
               <FlaskConical size={34} color={colors.rose3} />
             </View>
           )}
           <View style={{ flex: 1, minWidth: 0 }}>
             {!!product.category && (
               <Txt variant="bold" size={11} color={colors.rose3} style={{ letterSpacing: 1.2, textTransform: 'uppercase' }} numberOfLines={1}>
-                {product.category}
+                {getCosmeticCategoryLabel(product.category, lang)}
               </Txt>
             )}
-            <Txt variant="display" size={24} color={colors.creamTitle} style={{ marginTop: 4, lineHeight: 28 }} numberOfLines={2}>
+            <Txt variant="display" size={23} color={colors.creamTitle} style={{ marginTop: 4, lineHeight: 26 }} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.78}>
               {product.product_name || t('no_name')}
             </Txt>
             <Txt variant="body" size={12.5} color={colors.rose2} style={{ marginTop: 5 }} numberOfLines={1}>
               {product.brand || t('brand_unknown')}
             </Txt>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
-              <ScoreRing score={hasScore ? score : undefined} size={38} discColor={colors.cream} discRatio={0.78} fontSize={13} trackColor="rgba(244,234,214,0.25)" />
-              <View style={{ backgroundColor: band.color + '29', borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 5 }}>
-                <Txt variant="bold" size={12} color={band.color}>
-                  {hasScore ? t(band.labelKey) || band.label : t('analysis_unavailable') || 'Non analysé'}
-                </Txt>
-              </View>
+          </View>
+          <View style={{ width: 60, alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <ScoreRing score={hasScore ? score : undefined} size={48} discColor={colors.cream} discRatio={0.78} fontSize={15} trackColor="rgba(244,234,214,0.25)" />
+            <View style={{ maxWidth: 60, backgroundColor: band.color + '29', borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 4 }}>
+              <Txt variant="bold" size={10.5} color={band.color} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>
+                {hasScore ? t(band.labelKey) || band.label : t('analysis_unavailable') || 'Non analysé'}
+              </Txt>
             </View>
           </View>
         </View>
