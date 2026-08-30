@@ -4,7 +4,6 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Platform, StatusBar, TouchableOpacity, View } from 'react-native';
-import { AccessToken, LoginManager, Settings } from "react-native-fbsdk-next";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 import Txt from '../components/ui/Txt';
@@ -12,6 +11,11 @@ import { API_URL } from '../config/api';
 import { useTranslation } from '../i18n';
 import { registerForPushAndSendToServer } from '../services/PushNotif';
 import { startSession } from '../services/authSession';
+// Hors de `app/` volontairement : expo-router embarque via require.context TOUS
+// les fichiers du dossier des routes, y compris les variantes .android.ts, ce
+// qui annule la résolution par plateforme de Metro et fait entrer le SDK
+// Facebook dans le bundle iOS (crash au chargement, le natif étant exclu).
+import { getFacebookAccessToken, initializeFacebookSDK } from '../../services/facebookAuth';
 import { colors, radius } from '../theme/tokens';
 
 // --- Icônes monochromes (fidèles au handoff) --------------------------------
@@ -61,7 +65,7 @@ export default function Login() {
     // Le module Facebook est temporairement exclu du build iOS par
     // withExcludeFacebookIOS ; Android peut toujours initialiser le SDK sans
     // déclencher de demande de suivi publicitaire.
-    if (Platform.OS !== 'ios') Settings.initializeSDK();
+    initializeFacebookSDK();
     if (Platform.OS === 'ios') {
       AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
     }
@@ -180,19 +184,8 @@ export default function Login() {
     try {
       setLoading(true);
       setError(null);
-      const result = await LoginManager.logInWithPermissions(["public_profile", "email"]);
-      if (result.isCancelled) {
-        setError('Connexion Facebook annulée.');
-        setLoading(false);
-        return;
-      }
-      const data = await AccessToken.getCurrentAccessToken();
-      if (!data?.accessToken) {
-        setError("Facebook : jeton d'accès introuvable (vérifiez la config de l'app Facebook).");
-        setLoading(false);
-        return;
-      }
-      await handleFacebookResponse(data.accessToken);
+      const accessToken = await getFacebookAccessToken();
+      await handleFacebookResponse(accessToken);
     } catch (e) {
       console.log('==> Facebook login error:', e);
       setError('Erreur Facebook : ' + (e instanceof Error ? e.message : String(e)));
