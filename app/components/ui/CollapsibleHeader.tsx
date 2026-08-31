@@ -1,5 +1,5 @@
-import React, { useCallback, useRef } from 'react';
-import { Animated, NativeScrollEvent, NativeSyntheticEvent, View } from 'react-native';
+import React, { useMemo, useRef } from 'react';
+import { Animated, View } from 'react-native';
 import Txt from './Txt';
 import { colors } from '../../theme/tokens';
 
@@ -17,15 +17,15 @@ const COMPACT_HEIGHT = 62;
 
 export function useCollapsibleHeader() {
   const scrollY = useRef(new Animated.Value(0)).current;
-  // Ne pas passer Animated.event(useNativeDriver: true) directement à une
-  // SectionList non animée. Sous Fabric/iOS, l'enregistrement de cet événement
-  // peut lever une exception fatale au premier rendu de la liste. La mise à
-  // jour JS est suffisamment légère (un nombre, limité à >= 0) et fonctionne
-  // avec ScrollView, FlatList et SectionList sur les deux plateformes.
-  const onScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      scrollY.setValue(Math.max(0, event.nativeEvent.contentOffset.y));
-    },
+  // Animated.event conserve tous les événements du geste et rend la réduction
+  // de l'entête fluide. Le pilote reste volontairement côté JS : brancher le
+  // pilote natif sur une SectionList non animée faisait planter Fabric/iOS.
+  const onScroll = useMemo(
+    () =>
+      Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        { useNativeDriver: false },
+      ),
     [scrollY],
   );
 

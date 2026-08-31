@@ -44,6 +44,9 @@ module.exports = {
       // iPad obligatoires tant qu'un vrai layout tablette n'est pas prêt.
       supportsTablet: false,
       bundleIdentifier: "com.nazim.dznutri",
+      // Couleur de la fenêtre UIKit derrière React Native, notamment visible
+      // sous l'indicateur d'accueil sur les iPhone sans bouton principal.
+      backgroundColor: "#F4EAD6",
       usesAppleSignIn: true,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -72,6 +75,7 @@ module.exports = {
     },
     plugins: [
       "expo-router",
+      "expo-system-ui",
       "expo-localization",
       "expo-apple-authentication",
       [

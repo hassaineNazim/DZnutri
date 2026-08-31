@@ -10,6 +10,7 @@ import { PlayfairDisplay_900Black_Italic } from '@expo-google-fonts/playfair-dis
 import { useFonts } from 'expo-font';
 import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -58,6 +59,13 @@ function ThemedApp({ onLayoutRootView }: { onLayoutRootView: () => void }) {
         : isDark
           ? '#201914'
           : '#F4EAD6';
+
+  // La zone de l'indicateur d'accueil peut laisser apparaître la fenêtre
+  // UIKit derrière React Native. La synchroniser évite la dernière bande
+  // blanche que le remplissage de la safe area ne suffit pas à couvrir.
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(bottomSafeAreaBackground).catch(() => {});
+  }, [bottomSafeAreaBackground]);
 
   return (
     <View

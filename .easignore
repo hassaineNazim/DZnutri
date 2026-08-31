@@ -3,6 +3,7 @@ node_modules/
 .expo/
 dist/
 dist-sdk55/
+dist-ios-crashfix/
 web-build/
 admin-frontend/build/
 .venv/
