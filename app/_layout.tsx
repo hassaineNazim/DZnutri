@@ -8,7 +8,7 @@ import { PlayfairDisplay_800ExtraBold } from '@expo-google-fonts/playfair-displa
 import { PlayfairDisplay_900Black } from '@expo-google-fonts/playfair-display/900Black';
 import { PlayfairDisplay_900Black_Italic } from '@expo-google-fonts/playfair-display/900Black_Italic';
 import { useFonts } from 'expo-font';
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from "react-native";
@@ -29,6 +29,16 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // est repeint avec la palette mutée (les styles inline sont réévalués).
 function ThemedApp({ onLayoutRootView }: { onLayoutRootView: () => void }) {
   const { scheme, isDark } = useTheme();
+  const pathname = usePathname();
+  // Sur iOS, StatusBar.backgroundColor est ignoré : c'est le fond de la zone
+  // sûre qui apparaît derrière l'heure, le réseau et la batterie. Les écrans
+  // d'accueil/authentification sont bordeaux et utilisent des icônes blanches.
+  const hasBordeauxStatusBar = pathname === '/onboarding' || pathname.startsWith('/auth');
+  const safeAreaBackground = hasBordeauxStatusBar
+    ? '#3b0010'
+    : isDark
+      ? '#141110'
+      : 'white';
 
   return (
     <View
@@ -36,7 +46,7 @@ function ThemedApp({ onLayoutRootView }: { onLayoutRootView: () => void }) {
       className={isDark ? 'dark flex-1' : 'flex-1'}
       onLayout={onLayoutRootView}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#141110' : 'white' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: safeAreaBackground }}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
