@@ -12,7 +12,7 @@ import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import NotificationListener from './components/NotificationListener';
@@ -31,23 +31,43 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 function ThemedApp({ onLayoutRootView }: { onLayoutRootView: () => void }) {
   const { scheme, isDark } = useTheme();
   const pathname = usePathname();
-  // Sur iOS, StatusBar.backgroundColor est ignoré : c'est le fond de la zone
-  // sûre qui apparaît derrière l'heure, le réseau et la batterie. Les écrans
-  // d'accueil/authentification sont bordeaux et utilisent des icônes blanches.
-  const hasBordeauxStatusBar = pathname === '/onboarding' || pathname.startsWith('/auth');
-  const safeAreaBackground = hasBordeauxStatusBar
-    ? '#3b0010'
-    : isDark
-      ? '#141110'
-      : 'white';
+  const insets = useSafeAreaInsets();
+
+  // iOS ignore la couleur de fond passée à StatusBar : les bandes visibles
+  // derrière l'heure et l'indicateur d'accueil appartiennent à la safe area.
+  // On les peint séparément pour prolonger naturellement l'écran au lieu de
+  // laisser le blanc natif apparaître en haut et en bas.
+  const hasDarkHeader = pathname === '/scanner' || pathname === '/analyse';
+  const hasLightHeader =
+    pathname === '/screens/typeProd' ||
+    pathname === '/screens/unsupportedProduct' ||
+    pathname.startsWith('/screens/ajouterProd') ||
+    pathname === '/screens/ajouterCosmetique';
+  const topSafeAreaBackground = hasDarkHeader
+    ? '#141110'
+    : hasLightHeader
+      ? isDark
+        ? '#201914'
+        : '#F4EAD6'
+      : '#59121F';
+  const bottomSafeAreaBackground =
+    pathname === '/onboarding' || pathname.startsWith('/auth')
+      ? '#59121F'
+      : pathname === '/scanner'
+        ? '#141110'
+        : isDark
+          ? '#201914'
+          : '#F4EAD6';
 
   return (
     <View
       key={scheme}
       className={isDark ? 'dark flex-1' : 'flex-1'}
+      style={{ backgroundColor: bottomSafeAreaBackground }}
       onLayout={onLayoutRootView}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: safeAreaBackground }}>
+      <View style={{ height: insets.top, backgroundColor: topSafeAreaBackground }} />
+      <View style={{ flex: 1, paddingLeft: insets.left, paddingRight: insets.right }}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
@@ -68,7 +88,8 @@ function ThemedApp({ onLayoutRootView }: { onLayoutRootView: () => void }) {
             headerTitle: "Détail sur le produit",
           }} />
         </Stack>
-      </SafeAreaView>
+      </View>
+      <View style={{ height: insets.bottom, backgroundColor: bottomSafeAreaBackground }} />
     </View>
   );
 }
