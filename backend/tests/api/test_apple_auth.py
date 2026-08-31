@@ -20,13 +20,17 @@ async def test_apple_login_stores_revocable_token_and_deletes_account(
 ):
     monkeypatch.setenv("APPLE_TOKEN_ENCRYPTION_KEY", "test-secret-that-is-longer-than-thirty-two-characters")
 
-    async def fake_verify(_identity_token: str) -> dict:
+    verify_calls = []
+
+    async def fake_verify(_identity_token: str, *, access_token: str | None = None) -> dict:
+        verify_calls.append((_identity_token, access_token))
         return {"sub": "apple-user-123", "email": "apple-user@example.com"}
 
     async def fake_exchange(_authorization_code: str) -> apple_auth.AppleTokenSet:
         return apple_auth.AppleTokenSet(
             refresh_token="apple-refresh-token",
             identity_token="identity-token-returned-by-apple",
+            access_token="apple-access-token",
         )
 
     revoked = []
@@ -47,6 +51,10 @@ async def test_apple_login_stores_revocable_token_and_deletes_account(
         },
     )
     assert login_response.status_code == 200
+    assert verify_calls == [
+        ("identity-token-for-tests", None),
+        ("identity-token-returned-by-apple", "apple-access-token"),
+    ]
 
     access_token = login_response.json()["access_token"]
     delete_response = await client.delete(

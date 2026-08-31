@@ -65,7 +65,11 @@ GOOGLE_CLIENT_IDS = {
 }
 APPLE_CLIENT_ID = os.getenv("APPLE_CLIENT_ID", "com.nazim.dznutri")
 
-async def _verify_apple_identity_token(identity_token: str) -> dict:
+async def _verify_apple_identity_token(
+    identity_token: str,
+    *,
+    access_token: str | None = None,
+) -> dict:
     """Vérifie signature, émetteur et audience du JWT remis par Apple."""
     try:
         header = jwt.get_unverified_header(identity_token)
@@ -84,6 +88,11 @@ async def _verify_apple_identity_token(identity_token: str) -> dict:
             algorithms=["RS256"],
             audience=APPLE_CLIENT_ID,
             issuer="https://appleid.apple.com",
+            # Le jeton obtenu lors de l'échange du code contient `at_hash`.
+            # python-jose exige l'access token correspondant pour le vérifier.
+            # Le jeton natif initial n'en fournit pas encore.
+            access_token=access_token,
+            options={"verify_at_hash": access_token is not None},
         )
     except (JWTError, httpx.HTTPError, StopIteration, ValueError) as exc:
         logger.warning("Jeton Sign in with Apple rejeté: %s", exc)
@@ -134,7 +143,10 @@ async def auth_apple(request: Request, token: auth_schemas.AppleToken, db: Async
     # de la suppression du compte. Il est chiffré avant toute écriture en base.
     try:
         apple_token_set = await apple_auth.exchange_authorization_code(token.authorization_code)
-        exchanged_claims = await _verify_apple_identity_token(apple_token_set.identity_token)
+        exchanged_claims = await _verify_apple_identity_token(
+            apple_token_set.identity_token,
+            access_token=apple_token_set.access_token,
+        )
         if exchanged_claims.get("sub") != apple_id:
             raise apple_auth.AppleAuthError("Le code Apple ne correspond pas au jeton d'identité")
         encrypted_apple_token = apple_auth.encrypt_refresh_token(apple_token_set.refresh_token)

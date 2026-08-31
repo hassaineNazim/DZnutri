@@ -38,6 +38,7 @@ class AppleConfigurationError(AppleAuthError):
 class AppleTokenSet:
     refresh_token: str
     identity_token: str
+    access_token: str
 
 
 def _required_env(name: str) -> str:
@@ -121,11 +122,16 @@ async def exchange_authorization_code(authorization_code: str) -> AppleTokenSet:
 
     refresh_token = payload.get("refresh_token") if isinstance(payload, dict) else None
     identity_token = payload.get("id_token") if isinstance(payload, dict) else None
-    if response.status_code != 200 or not refresh_token or not identity_token:
+    access_token = payload.get("access_token") if isinstance(payload, dict) else None
+    if response.status_code != 200 or not refresh_token or not identity_token or not access_token:
         error = payload.get("error", "refresh_token_absent") if isinstance(payload, dict) else "réponse_invalide"
         logger.warning("Échange du code Apple refusé: %s", error)
         raise AppleAuthError("Le code d'autorisation Apple a été refusé")
-    return AppleTokenSet(refresh_token=refresh_token, identity_token=identity_token)
+    return AppleTokenSet(
+        refresh_token=refresh_token,
+        identity_token=identity_token,
+        access_token=access_token,
+    )
 
 
 async def revoke_stored_refresh_token(encrypted_token: str) -> None:
