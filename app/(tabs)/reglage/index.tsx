@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StatusBar, Switch, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, StatusBar, Switch, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 import LanguageSelector from '../../components/LanguageSelector';
 import { useTheme } from '../../theme/ThemeContext';
 import AppModal from '../../components/ui/AppModal';
-import CollapsibleHeader, { useCollapsibleHeader } from '../../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedScrollView, useCollapsibleHeader } from '../../components/ui/CollapsibleHeader';
 import Txt from '../../components/ui/Txt';
 import { API_URL } from '../../config/api';
 import { SupportedLang, useTranslation } from '../../i18n';
@@ -239,7 +239,7 @@ export default function SettingsPage() {
 
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 264, paddingBottom: 120 }} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
+        <AnimatedScrollView contentContainerStyle={{ padding: 22, paddingTop: 264, paddingBottom: 120 }} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
           {/* PRÉFÉRENCES */}
           <Animated.View entering={FadeInDown.duration(400)}>
             <Txt variant="bold" size={11.5} color={colors.inkSoft} style={{ letterSpacing: 1.5, marginBottom: 12 }}>
@@ -309,7 +309,7 @@ export default function SettingsPage() {
           <Txt variant="body" size={12} color={colors.inkMeta} style={{ textAlign: 'center', marginTop: 20 }}>
             Remo Scan · v2.0
           </Txt>
-        </ScrollView>
+        </AnimatedScrollView>
       </View>
 
       <LanguageSelector

@@ -3,10 +3,10 @@ import { useRouter } from 'expo-router';
 import { Search, SlidersHorizontal, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StatusBar, TextInput, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import FilterModal from '../components/FilterModal';
 import ProductCard from '../components/ui/ProductCard';
-import CollapsibleHeader, { useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedFlatList, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { api } from '../services/axios';
@@ -221,11 +221,10 @@ export default function Rech() {
             <ActivityIndicator size="large" color={colors.green} />
           </View>
         ) : (
-          <Animated.FlatList
+          <AnimatedFlatList
             data={results}
             keyExtractor={(item) => item.barcode || item.id}
             contentContainerStyle={{ padding: 22, paddingTop: searchHeaderHeight + 22, paddingBottom: 120 }}
-            itemLayoutAnimation={Layout.springify()}
             showsVerticalScrollIndicator={false}
             onScroll={onScroll}
             scrollEventThrottle={16}

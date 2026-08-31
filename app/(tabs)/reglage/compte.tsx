@@ -1,9 +1,9 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ChevronRight, Heart, Key, LogOut, Mail, Trash2, User as UserIcon } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StatusBar, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StatusBar, TouchableOpacity, View } from 'react-native';
 import { BackButton } from '../../components/ui/FormKit';
-import CollapsibleHeader, { useCollapsibleHeader } from '../../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedScrollView, useCollapsibleHeader } from '../../components/ui/CollapsibleHeader';
 import Txt from '../../components/ui/Txt';
 import { api } from '../../services/axios';
 import { invalidateSession } from '../../services/authSession';
@@ -206,7 +206,7 @@ export default function ComptePage() {
 
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 324, paddingBottom: 40 }} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
+        <AnimatedScrollView contentContainerStyle={{ padding: 22, paddingTop: 324, paddingBottom: 40 }} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
           <Section title="Informations personnelles">
             <Row icon={<UserIcon size={19} color={colors.accent} />} tint="rgba(89,18,31,0.1)" label="Nom d'utilisateur" value={user?.username} />
             <Row icon={<Mail size={19} color="#b98a09" />} tint="rgba(242,194,46,0.2)" label="Email" value={user?.email} last />
@@ -251,7 +251,7 @@ export default function ComptePage() {
               last
             />
           </Section>
-        </ScrollView>
+        </AnimatedScrollView>
       </View>
     </View>
   );

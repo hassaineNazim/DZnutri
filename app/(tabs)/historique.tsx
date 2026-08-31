@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  SectionList,
   StatusBar,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -15,7 +14,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
 import AppModal from '../components/ui/AppModal';
 import ProductCard, { ProductCardItem } from '../components/ui/ProductCard';
-import CollapsibleHeader, { useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedSectionList, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { colors, radius, shadows } from '../theme/tokens';
@@ -254,7 +253,7 @@ export default function HistoriquePage() {
 
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <SectionList
+        <AnimatedSectionList
           sections={sections}
           keyExtractor={itemKey}
           contentContainerStyle={{ padding: 22, paddingTop: selecting ? 116 : 332, paddingBottom: 120 }}

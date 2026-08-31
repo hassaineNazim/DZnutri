@@ -1,9 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AlertTriangle, CheckCircle2, FlaskConical } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StatusBar, View } from 'react-native';
+import { ActivityIndicator, Image, StatusBar, View } from 'react-native';
 import { BackButton } from '../components/ui/FormKit';
-import CollapsibleHeader, { useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedScrollView, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import ProductRatings from '../components/ProductRatings';
 import RouteParamError from '../components/ui/RouteParamError';
 import ScoreRing from '../components/ui/ScoreRing';
@@ -98,7 +98,7 @@ export default function CosmeticDetail() {
 
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 246, paddingBottom: 80 }} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
+        <AnimatedScrollView contentContainerStyle={{ padding: 22, paddingTop: 246, paddingBottom: 80 }} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
           {/* Ingrédients à risque */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <AlertTriangle size={18} color={colors.red} />
@@ -154,7 +154,7 @@ export default function CosmeticDetail() {
 
           {/* Notes utilisateurs */}
           <ProductRatings barcode={product.barcode} />
-        </ScrollView>
+        </AnimatedScrollView>
       </View>
     </View>
   );

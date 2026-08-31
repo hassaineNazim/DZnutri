@@ -1,9 +1,9 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Activity } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StatusBar, View } from 'react-native';
+import { ActivityIndicator, StatusBar, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import CollapsibleHeader, { useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedScrollView, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { fetchHistoryStats } from '../services/saveHistorique';
@@ -101,7 +101,7 @@ export default function AnalysePage() {
       </CollapsibleHeader>
 
       {/* Corps crème */}
-      <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 322, paddingBottom: 120 }} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
+      <AnimatedScrollView contentContainerStyle={{ padding: 22, paddingTop: 322, paddingBottom: 120 }} showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
         <Txt variant="displayXBold" size={24} color={colors.ink}>{t('distribution') || 'Répartition'}</Txt>
         <Txt variant="body" size={13} color={colors.inkSoft} style={{ marginTop: 2 }}>{t('by_quality') || 'par qualité'}</Txt>
 
@@ -134,7 +134,7 @@ export default function AnalysePage() {
             );
           })}
         </View>
-      </ScrollView>
+      </AnimatedScrollView>
     </View>
   );
 }

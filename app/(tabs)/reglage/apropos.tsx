@@ -1,8 +1,8 @@
 import { GraduationCap, ShieldCheck, Sprout } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { ScrollView, StatusBar, View } from 'react-native';
+import { StatusBar, View } from 'react-native';
 import { BackButton } from '../../components/ui/FormKit';
-import CollapsibleHeader, { useCollapsibleHeader } from '../../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedScrollView, useCollapsibleHeader } from '../../components/ui/CollapsibleHeader';
 import Txt from '../../components/ui/Txt';
 import { useTranslation } from '../../i18n';
 import { colors, radius, shadows } from '../../theme/tokens';
@@ -30,7 +30,7 @@ export default function AproposPage() {
       </CollapsibleHeader>
 
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <ScrollView contentContainerStyle={{ padding: 22, paddingTop: 202, paddingBottom: 48 }} onScroll={onScroll} scrollEventThrottle={16} showsVerticalScrollIndicator={false}>
+        <AnimatedScrollView contentContainerStyle={{ padding: 22, paddingTop: 202, paddingBottom: 48 }} onScroll={onScroll} scrollEventThrottle={16} showsVerticalScrollIndicator={false}>
           <AboutCard
             icon={<Sprout size={23} color={colors.green} />}
             title={t('about_mission_title')}
@@ -49,7 +49,7 @@ export default function AproposPage() {
           <Txt variant="body" size={12.5} color={colors.inkSoft} style={{ textAlign: 'center', marginTop: 8 }}>
             Remo Scan · v2.0
           </Txt>
-        </ScrollView>
+        </AnimatedScrollView>
       </View>
     </View>
   );

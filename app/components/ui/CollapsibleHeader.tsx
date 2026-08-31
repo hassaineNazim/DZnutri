@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from 'react';
-import { Animated, View } from 'react-native';
+import { Animated, FlatList, ScrollView, SectionList, View } from 'react-native';
 import Txt from './Txt';
 import { colors } from '../../theme/tokens';
 
@@ -15,16 +15,22 @@ type Props = {
 
 const COMPACT_HEIGHT = 62;
 
+// Les événements pilotés nativement doivent être attachés à un composant
+// Animated. Ces wrappers gardent les API et les types des listes RN tout en
+// évitant le crash Fabric provoqué par une SectionList standard.
+export const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView) as unknown as typeof ScrollView;
+export const AnimatedFlatList = Animated.createAnimatedComponent(FlatList) as unknown as typeof FlatList;
+export const AnimatedSectionList = Animated.createAnimatedComponent(SectionList) as unknown as typeof SectionList;
+
 export function useCollapsibleHeader() {
   const scrollY = useRef(new Animated.Value(0)).current;
-  // Animated.event conserve tous les événements du geste et rend la réduction
-  // de l'entête fluide. Le pilote reste volontairement côté JS : brancher le
-  // pilote natif sur une SectionList non animée faisait planter Fabric/iOS.
+  // Toutes les listes consommatrices utilisent les wrappers Animated ci-dessus,
+  // le suivi peut donc revenir sur le thread natif sans planter Fabric/iOS.
   const onScroll = useMemo(
     () =>
       Animated.event(
         [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-        { useNativeDriver: false },
+        { useNativeDriver: true },
       ),
     [scrollY],
   );

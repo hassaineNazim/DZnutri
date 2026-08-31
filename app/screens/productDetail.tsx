@@ -5,7 +5,7 @@ import { Image, ScrollView, StatusBar, TouchableOpacity, View } from 'react-nati
 import AlternativesList from '../components/AlternativesList';
 import ProductRatings from '../components/ProductRatings';
 import ReportModal from '../components/ReportModal';
-import CollapsibleHeader, { useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedScrollView, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import RouteParamError from '../components/ui/RouteParamError';
 import ScoreRing from '../components/ui/ScoreRing';
 import Txt from '../components/ui/Txt';
@@ -262,7 +262,7 @@ export default function ProductDetail() {
 
       {/* Feuille crème */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <ScrollView
+        <AnimatedScrollView
           ref={scrollViewRef}
           contentContainerStyle={{ padding: 22, paddingTop: 246, paddingBottom: 120 }}
           onScroll={onScroll}
@@ -344,7 +344,7 @@ export default function ProductDetail() {
             currentScore={fullProduct.custom_score}
             onSelectProduct={handleSelectAlternative}
           />
-        </ScrollView>
+        </AnimatedScrollView>
       </View>
 
       <ReportModal visible={reportModalVisible} onClose={() => setReportModalVisible(false)} barcode={fullProduct.barcode || fullProduct.id} />

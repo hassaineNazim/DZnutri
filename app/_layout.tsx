@@ -51,14 +51,21 @@ function ThemedApp({ onLayoutRootView }: { onLayoutRootView: () => void }) {
         ? '#201914'
         : '#F4EAD6'
       : '#59121F';
+  const isTabRoute =
+    pathname === '/historique' ||
+    pathname === '/rech' ||
+    pathname === '/analyse' ||
+    pathname.startsWith('/reglage');
   const bottomSafeAreaBackground =
     pathname === '/onboarding' || pathname.startsWith('/auth')
       ? '#59121F'
       : pathname === '/scanner'
         ? '#141110'
-        : isDark
-          ? '#201914'
-          : '#F4EAD6';
+        : isTabRoute
+          ? '#4D1521'
+          : isDark
+            ? '#201914'
+            : '#F4EAD6';
 
   // La zone de l'indicateur d'accueil peut laisser apparaître la fenêtre
   // UIKit derrière React Native. La synchroniser évite la dernière bande
