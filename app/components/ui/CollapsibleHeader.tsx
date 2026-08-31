@@ -1,5 +1,5 @@
-import React, { useMemo, useRef } from 'react';
-import { Animated, View } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { Animated, NativeScrollEvent, NativeSyntheticEvent, View } from 'react-native';
 import Txt from './Txt';
 import { colors } from '../../theme/tokens';
 
@@ -17,14 +17,15 @@ const COMPACT_HEIGHT = 62;
 
 export function useCollapsibleHeader() {
   const scrollY = useRef(new Animated.Value(0)).current;
-  // Le scroll est relié directement au pilote natif. La mise à jour manuelle
-  // via setValue côté JS perdait des événements sur Android pendant les listes
-  // chargées, ce qui laissait parfois le grand bandeau complètement figé.
-  const onScroll = useMemo(
-    () => Animated.event(
-      [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-      { useNativeDriver: true },
-    ),
+  // Ne pas passer Animated.event(useNativeDriver: true) directement à une
+  // SectionList non animée. Sous Fabric/iOS, l'enregistrement de cet événement
+  // peut lever une exception fatale au premier rendu de la liste. La mise à
+  // jour JS est suffisamment légère (un nombre, limité à >= 0) et fonctionne
+  // avec ScrollView, FlatList et SectionList sur les deux plateformes.
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollY.setValue(Math.max(0, event.nativeEvent.contentOffset.y));
+    },
     [scrollY],
   );
 
@@ -84,7 +85,10 @@ export default function CollapsibleHeader({
         pointerEvents="box-none"
         style={{
           position: 'absolute',
-          inset: 0,
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
           height: expandedHeight,
           backgroundColor,
           borderBottomLeftRadius: 26,

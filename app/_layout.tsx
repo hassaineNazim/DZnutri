@@ -20,6 +20,7 @@ import SessionExpiryListener from './components/SessionExpiryListener';
 import { ToastProvider } from './context/ToastContext';
 import { clearLegacyPrivateQueryCache, persister, queryClient } from './services/queryClient';
 import { loadStoredThemeScheme, ThemeProvider, useTheme } from './theme/ThemeContext';
+import AppErrorBoundary from '../components/AppErrorBoundary';
 
 // On garde le splash affiché tant que les polices du redesign ne sont pas prêtes,
 // pour éviter un flash de police système au démarrage.
@@ -120,13 +121,15 @@ export default function RootLayout() {
       }}
     >
       <ToastProvider>
-        <NotificationListener />
-        <SessionExpiryListener />
-        <SafeAreaProvider>
-          <ThemeProvider>
-            <ThemedApp onLayoutRootView={onLayoutRootView} />
-          </ThemeProvider>
-        </SafeAreaProvider>
+        <AppErrorBoundary>
+          <NotificationListener />
+          <SessionExpiryListener />
+          <SafeAreaProvider>
+            <ThemeProvider>
+              <ThemedApp onLayoutRootView={onLayoutRootView} />
+            </ThemeProvider>
+          </SafeAreaProvider>
+        </AppErrorBoundary>
       </ToastProvider>
     </PersistQueryClientProvider>
   );

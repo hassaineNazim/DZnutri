@@ -28,7 +28,9 @@ export const saveToHistory = async (product: Product): Promise<void> => {
 
 export const fetchHistory = async (): Promise<Product[]> => {
   const response = await api.get('/api/history');
-  return response.data;
+  // Une réponse inattendue ne doit pas faire tomber tout l'écran au moment où
+  // celui-ci appelle filter/map. Le backend renvoie normalement un tableau.
+  return Array.isArray(response.data) ? response.data : [];
 };
 
 export const deleteFromHistory = async (itemId: number) => {
