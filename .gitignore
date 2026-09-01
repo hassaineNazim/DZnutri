@@ -6,6 +6,7 @@ node_modules/
 # Expo
 .expo/
 dist/
+dist-*/
 web-build/
 expo-env.d.ts
 
@@ -48,8 +49,6 @@ logs/
 app-example
 
 #api
-
-
 backend/dz-nutri-app-0903244cb317.json
 backend/dznutri-632fbb70c039.json
 
@@ -57,10 +56,6 @@ backend/dznutri-632fbb70c039.json
 *.env
 !*.env.example
 
-
 android/local.properties
 # Dossier de référence design (prototypes HTML, non code app)
 /Redesign app scan alimentaire*/
-
-# Export local de validation Metro (régénérable)
-/dist-sdk55/

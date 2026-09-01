@@ -1,4 +1,4 @@
-import { AlertCircle, Eye, EyeOff, Leaf } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api/auth';
@@ -35,7 +35,7 @@ const Login = () => {
     <main className="admin-login">
       <section className="admin-login-card">
         <div className="admin-login-brand">
-          <span className="admin-brand-mark"><Leaf size={26} /></span>
+          <img className="admin-brand-logo" src="/assets/logo-remo.png" alt="Logo Remo Scan" style={{ width: 46, height: 46, borderRadius: 12 }} />
           <span><span className="admin-brand-name">Remo Scan</span><span className="admin-brand-subtitle" style={{ display: 'block' }}>ADMIN</span></span>
         </div>
         <h1 className="admin-login-title">Espace administrateur</h1>

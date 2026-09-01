@@ -46,7 +46,7 @@ module.exports = {
       bundleIdentifier: "com.nazim.dznutri",
       // Couleur de la fenêtre UIKit derrière React Native, notamment visible
       // sous l'indicateur d'accueil sur les iPhone sans bouton principal.
-      backgroundColor: "#4D1521",
+      backgroundColor: "#630225",
       usesAppleSignIn: true,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -55,7 +55,7 @@ module.exports = {
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/logo-remo-adaptive-foreground.png",
-        backgroundColor: "#3b0010",
+        backgroundColor: "#630225",
       },
       package: "com.Nazim.dznutri",
       permissions: ["android.permission.CAMERA"],
@@ -68,7 +68,7 @@ module.exports = {
     web: {
       bundler: "metro",
       output: "static",
-      favicon: "./assets/images/logoRemo.png",
+      favicon: "./assets/images/favicon.png",
       history: {
         origin: false,
       },
@@ -101,7 +101,7 @@ module.exports = {
           image: "./assets/images/logoRemo.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#3b0010",
+          backgroundColor: "#630225",
         },
       ],
       [
