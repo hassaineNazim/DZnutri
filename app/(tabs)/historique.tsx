@@ -4,9 +4,9 @@ import { AlertCircle, HelpCircle, RefreshCw, ScanLine, Trash2, User, X } from 'l
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StatusBar,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -17,16 +17,13 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
 import AppModal from '../components/ui/AppModal';
 import ProductCard, { ProductCardItem } from '../components/ui/ProductCard';
-import CollapsibleHeader, { AnimatedFlatList, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedScrollView, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { colors, radius, shadows } from '../theme/tokens';
 import { deleteCosmeticFromHistory, deleteFromHistory, fetchHistory } from '../services/saveHistorique';
 
 type Product = ProductCardItem & { nutrition_grades?: string };
-type HistoryRow =
-  | { kind: 'header'; key: string; sectionKey: string; title: string }
-  | { kind: 'product'; key: string; item: Product; animationIndex: number };
 
 const HISTORY_HEADER_HEIGHT = 310;
 const SELECTION_HEADER_HEIGHT = 94;
@@ -72,7 +69,7 @@ export default function HistoriquePage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { scrollY, onScroll, resetScrollY } = useCollapsibleHeader();
-  const historyListRef = useRef<FlatList<HistoryRow>>(null);
+  const historyListRef = useRef<ScrollView>(null);
   const { height: windowHeight } = useWindowDimensions();
 
   // Les écrans d'onglets restent montés sur iOS. Il faut donc remettre la liste
@@ -81,7 +78,7 @@ export default function HistoriquePage() {
   const resetHistoryPosition = useCallback((animated = false) => {
     resetScrollY();
     requestAnimationFrame(() => {
-      historyListRef.current?.scrollToOffset({ offset: 0, animated });
+      historyListRef.current?.scrollTo({ y: 0, animated });
       resetScrollY();
     });
   }, [resetScrollY]);
@@ -132,28 +129,6 @@ export default function HistoriquePage() {
   }, [history]);
 
   const sections = useMemo(() => buildSections(history, t), [history, t]);
-  const historyRows = useMemo<HistoryRow[]>(() => {
-    const rows: HistoryRow[] = [];
-    let animationIndex = 0;
-    for (const section of sections) {
-      rows.push({
-        kind: 'header',
-        key: `section-${section.key}`,
-        sectionKey: section.key,
-        title: section.title,
-      });
-      for (const item of section.data) {
-        rows.push({
-          kind: 'product',
-          key: itemKey(item),
-          item,
-          animationIndex,
-        });
-        animationIndex += 1;
-      }
-    }
-    return rows;
-  }, [sections]);
 
   const toggleSelect = (key: string) =>
     setSelectedIds((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]));
@@ -309,10 +284,8 @@ export default function HistoriquePage() {
 
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <AnimatedFlatList
+        <AnimatedScrollView
           ref={historyListRef}
-          data={historyRows}
-          keyExtractor={(row) => row.key}
           contentContainerStyle={{
             minHeight: windowHeight + (selecting ? SELECTION_HEADER_HEIGHT : HISTORY_HEADER_HEIGHT),
             padding: 22,
@@ -321,52 +294,54 @@ export default function HistoriquePage() {
           }}
           onScroll={onScroll}
           scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />
           }
-          renderItem={({ item: row }) =>
-            row.kind === 'header' ? (
-              <Txt variant="displayXBold" size={20} color={colors.ink} style={{ marginBottom: 12, marginTop: row.sectionKey === 'today' ? 0 : 10 }}>
-                {row.title}
+        >
+          {sections.length > 0 ? (
+            sections.map((section) => (
+              <View key={section.key}>
+                <Txt variant="displayXBold" size={20} color={colors.ink} style={{ marginBottom: 12, marginTop: section.key === 'today' ? 0 : 10 }}>
+                  {section.title}
+                </Txt>
+                {section.data.map((item, index) => (
+                  <Animated.View key={itemKey(item)} entering={FadeInDown.delay(Math.min(index, 8) * 45).springify()} style={{ marginBottom: 12 }}>
+                    <ProductCard
+                      item={item}
+                      selected={selectedIds.includes(itemKey(item))}
+                      onPress={() => (selecting ? toggleSelect(itemKey(item)) : handleItemPress(item))}
+                      onLongPress={() => toggleSelect(itemKey(item))}
+                    />
+                  </Animated.View>
+                ))}
+              </View>
+            ))
+          ) : loadError ? (
+            <View style={{ alignItems: 'center', marginTop: 70, paddingHorizontal: 24 }}>
+              <AlertCircle size={52} color={colors.red} />
+              <Txt variant="medium" size={16} color={colors.ink} style={{ marginTop: 16, textAlign: 'center' }}>
+                {t('history_load_error')}
               </Txt>
-            ) : (
-              <Animated.View entering={FadeInDown.delay(Math.min(row.animationIndex, 8) * 45).springify()} style={{ marginBottom: 12 }}>
-                <ProductCard
-                  item={row.item}
-                  selected={selectedIds.includes(itemKey(row.item))}
-                  onPress={() => (selecting ? toggleSelect(itemKey(row.item)) : handleItemPress(row.item))}
-                  onLongPress={() => toggleSelect(itemKey(row.item))}
-                />
-              </Animated.View>
-            )
-          }
-          ListEmptyComponent={
-            loadError ? (
-              <View style={{ alignItems: 'center', marginTop: 70, paddingHorizontal: 24 }}>
-                <AlertCircle size={52} color={colors.red} />
-                <Txt variant="medium" size={16} color={colors.ink} style={{ marginTop: 16, textAlign: 'center' }}>
-                  {t('history_load_error')}
-                </Txt>
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel={t('retry')}
-                  onPress={() => loadHistory()}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 18, backgroundColor: colors.yellow, paddingHorizontal: 18, paddingVertical: 12, borderRadius: radius.pill }}
-                >
-                  <RefreshCw size={17} color={colors.inkOnYellow} />
-                  <Txt variant="bold" size={14} color={colors.inkOnYellow}>{t('retry')}</Txt>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={{ alignItems: 'center', marginTop: 70, opacity: 0.65 }}>
-                <Trash2 size={56} color={colors.inkSoft} />
-                <Txt variant="medium" size={16} color={colors.inkSoft} style={{ marginTop: 16, textAlign: 'center' }}>
-                  {t('history_empty')}
-                </Txt>
-              </View>
-            )
-          }
-        />
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={t('retry')}
+                onPress={() => loadHistory()}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 18, backgroundColor: colors.yellow, paddingHorizontal: 18, paddingVertical: 12, borderRadius: radius.pill }}
+              >
+                <RefreshCw size={17} color={colors.inkOnYellow} />
+                <Txt variant="bold" size={14} color={colors.inkOnYellow}>{t('retry')}</Txt>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ alignItems: 'center', marginTop: 70, opacity: 0.65 }}>
+              <Trash2 size={56} color={colors.inkSoft} />
+              <Txt variant="medium" size={16} color={colors.inkSoft} style={{ marginTop: 16, textAlign: 'center' }}>
+                {t('history_empty')}
+              </Txt>
+            </View>
+          )}
+        </AnimatedScrollView>
       </View>
 
       <ConfirmModal
