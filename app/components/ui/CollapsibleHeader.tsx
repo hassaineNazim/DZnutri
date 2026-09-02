@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FlatList, ScrollView, SectionList, View } from 'react-native';
 import Reanimated, {
   Extrapolation,
@@ -37,8 +37,11 @@ export function useCollapsibleHeader() {
       scrollY.value = Math.max(0, event.contentOffset.y);
     },
   });
+  const resetScrollY = useCallback(() => {
+    scrollY.value = 0;
+  }, [scrollY]);
 
-  return { scrollY, onScroll };
+  return { scrollY, onScroll, resetScrollY };
 }
 
 /**

@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
+import { useFocusEffect, useScrollToTop } from '@react-navigation/native';
 import { AlertCircle, HelpCircle, RefreshCw, ScanLine, Trash2, User, X } from 'lucide-react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
+  SectionList,
   StatusBar,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -66,8 +68,29 @@ export default function HistoriquePage() {
   const [loadError, setLoadError] = useState(false);
   const { t } = useTranslation();
   const router = useRouter();
-  const { scrollY, onScroll } = useCollapsibleHeader();
+  const { scrollY, onScroll, resetScrollY } = useCollapsibleHeader();
+  const historyListRef = useRef<SectionList<Product>>(null);
   const { height: windowHeight } = useWindowDimensions();
+
+  // Les écrans d'onglets restent montés sur iOS. Il faut donc remettre la liste
+  // ET la valeur animée au même point à chaque retour, sinon l'une peut rester
+  // en haut tandis que l'autre croit encore être défilée.
+  const resetHistoryPosition = useCallback((animated = false) => {
+    resetScrollY();
+    requestAnimationFrame(() => {
+      historyListRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated });
+      resetScrollY();
+    });
+  }, [resetScrollY]);
+
+  useScrollToTop(historyListRef);
+
+  useFocusEffect(
+    useCallback(() => {
+      resetHistoryPosition(false);
+      return resetScrollY;
+    }, [resetHistoryPosition, resetScrollY]),
+  );
 
   const loadHistory = useCallback(async (isRefresh = false) => {
     try {
@@ -109,7 +132,10 @@ export default function HistoriquePage() {
 
   const toggleSelect = (key: string) =>
     setSelectedIds((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]));
-  const clearSelection = () => setSelectedIds([]);
+  const clearSelection = useCallback(() => {
+    setSelectedIds([]);
+    resetHistoryPosition(false);
+  }, [resetHistoryPosition]);
 
   const deleteSelected = async () => {
     try {
@@ -259,6 +285,7 @@ export default function HistoriquePage() {
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
         <AnimatedSectionList
+          ref={historyListRef}
           sections={sections}
           keyExtractor={itemKey}
           contentContainerStyle={{

@@ -2,6 +2,7 @@
 node_modules/
 .expo/
 dist/
+dist-*/
 dist-sdk55/
 dist-ios-crashfix/
 web-build/

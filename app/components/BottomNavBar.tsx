@@ -57,7 +57,15 @@ export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
           const color = isFocused ? colors.yellow : '#ecdcc4';
 
           const onPress = () => {
-            if (!isFocused) navigation.navigate(route.name);
+            // Reproduit le comportement de la barre native : l'événement est
+            // aussi émis sur l'onglet déjà actif, ce qui permet à
+            // useScrollToTop de resynchroniser la liste et son entête.
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
           };
 
           const tab = (
