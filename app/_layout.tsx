@@ -62,7 +62,9 @@ function ThemedApp({ onLayoutRootView }: { onLayoutRootView: () => void }) {
       : pathname === '/scanner'
         ? '#141110'
         : isTabRoute
-          ? '#4D1521'
+          ? isDark
+            ? '#201914'
+            : '#F4EAD6'
           : isDark
             ? '#201914'
             : '#F4EAD6';

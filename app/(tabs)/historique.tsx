@@ -8,6 +8,7 @@ import {
   StatusBar,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -21,6 +22,9 @@ import { colors, radius, shadows } from '../theme/tokens';
 import { deleteCosmeticFromHistory, deleteFromHistory, fetchHistory } from '../services/saveHistorique';
 
 type Product = ProductCardItem & { nutrition_grades?: string };
+
+const HISTORY_HEADER_HEIGHT = 310;
+const SELECTION_HEADER_HEIGHT = 94;
 
 // Clé unique par entrée : ids alimentaires et cosmétiques peuvent se chevaucher.
 const itemKey = (item: Product) => `${item.item_type || 'food'}-${item.id}`;
@@ -63,6 +67,7 @@ export default function HistoriquePage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { scrollY, onScroll } = useCollapsibleHeader();
+  const { height: windowHeight } = useWindowDimensions();
 
   const loadHistory = useCallback(async (isRefresh = false) => {
     try {
@@ -154,7 +159,7 @@ export default function HistoriquePage() {
       <CollapsibleHeader
         title={selecting ? `${selectedIds.length} ${t('selected')}` : t('historique')}
         scrollY={scrollY}
-        expandedHeight={selecting ? 94 : 310}
+        expandedHeight={selecting ? SELECTION_HEADER_HEIGHT : HISTORY_HEADER_HEIGHT}
         compactLeft={
           selecting ? (
             <Pressable onPress={clearSelection} accessibilityRole="button" accessibilityLabel={t('cancel')} style={[styles.roundBtnCream, styles.compactBtn]}>
@@ -256,7 +261,12 @@ export default function HistoriquePage() {
         <AnimatedSectionList
           sections={sections}
           keyExtractor={itemKey}
-          contentContainerStyle={{ padding: 22, paddingTop: selecting ? 116 : 332, paddingBottom: 120 }}
+          contentContainerStyle={{
+            minHeight: windowHeight + (selecting ? SELECTION_HEADER_HEIGHT : HISTORY_HEADER_HEIGHT),
+            padding: 22,
+            paddingTop: selecting ? 116 : 332,
+            paddingBottom: 120,
+          }}
           stickySectionHeadersEnabled={false}
           onScroll={onScroll}
           scrollEventThrottle={16}

@@ -2,11 +2,12 @@ import { Tabs } from "expo-router";
 import { View } from "react-native";
 import BottomNavBar from "../components/BottomNavBar";
 import { useTranslation } from "../i18n";
+import { colors } from "../theme/tokens";
 export default function TabLayout() {
     const { t } = useTranslation();
     return (
 
-        <View className="flex-1 bg-black dark:bg-[#181A20]">
+        <View style={{ flex: 1, backgroundColor: colors.sheet }}>
             <Tabs
                 tabBar={props => <BottomNavBar {...props} />}
                 screenOptions={{

@@ -1,5 +1,5 @@
-import React, { useMemo, useRef } from 'react';
-import { Animated, FlatList, ScrollView, SectionList, View } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { Animated, FlatList, NativeScrollEvent, NativeSyntheticEvent, ScrollView, SectionList, View } from 'react-native';
 import Txt from './Txt';
 import { colors } from '../../theme/tokens';
 
@@ -24,14 +24,13 @@ export const AnimatedSectionList = Animated.createAnimatedComponent(SectionList)
 
 export function useCollapsibleHeader() {
   const scrollY = useRef(new Animated.Value(0)).current;
-  // Toutes les listes consommatrices utilisent les wrappers Animated ci-dessus,
-  // le suivi peut donc revenir sur le thread natif sans planter Fabric/iOS.
-  const onScroll = useMemo(
-    () =>
-      Animated.event(
-        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-        { useNativeDriver: true },
-      ),
+  // Le callback explicite garantit que Fabric transmet bien chaque position
+  // de défilement à l'entête sur iOS. Les styles restent animés par Animated,
+  // mais l'événement n'est plus perdu dans le pont de la SectionList.
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollY.setValue(Math.max(0, event.nativeEvent.contentOffset.y));
+    },
     [scrollY],
   );
 

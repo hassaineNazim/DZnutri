@@ -21,10 +21,13 @@ export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View
+      pointerEvents="box-none"
       style={{
-        backgroundColor: colors.navBordeaux,
-        borderTopLeftRadius: radius.sheet,
-        borderTopRightRadius: radius.sheet,
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent',
         paddingHorizontal: 18,
         paddingTop: 10,
         paddingBottom: 12,
