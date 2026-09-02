@@ -101,7 +101,13 @@ export default function AjouterProduitPhotoPage() {
 
       await api.post('/api/submission', formData, { timeout: 60000 });
       showToast(t('success_message') || 'Produit soumis avec succès !', 'success');
-      setTimeout(() => router.replace('../scanner'), 1500);
+      setTimeout(() => {
+        // La soumission clôt tout le parcours (scanner → type → infos → photos).
+        // Sans dismissAll, remplacer uniquement l'écran de photos laisse les
+        // formulaires dans la pile et le bouton retour y ramène ensuite.
+        router.dismissAll();
+        router.navigate('/(tabs)/historique');
+      }, 1500);
     } catch (error: any) {
       const msg = error?.response?.data?.detail || error?.message || 'Une erreur est survenue';
       showToast(msg, 'error');
