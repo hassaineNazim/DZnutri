@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { BookMarked, Home, ScanLine, Search, User } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from '../i18n';
 import { colors, radius, shadows } from '../theme/tokens';
 import Txt from './ui/Txt';
@@ -18,6 +19,7 @@ const ROUTE_META: Record<string, { icon: any; labelKey: string; fallback: string
 export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
   const { t } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
     <View
@@ -30,7 +32,7 @@ export function BottomNavBar({ state, navigation }: BottomTabBarProps) {
         backgroundColor: 'transparent',
         paddingHorizontal: 18,
         paddingTop: 10,
-        paddingBottom: 12,
+        paddingBottom: Math.max(insets.bottom, 12),
       }}
     >
       <View

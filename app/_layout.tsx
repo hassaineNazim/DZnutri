@@ -106,7 +106,6 @@ function ThemedApp({ onLayoutRootView }: { onLayoutRootView: () => void }) {
           }} />
         </Stack>
       </View>
-      <View style={{ height: insets.bottom, backgroundColor: bottomSafeAreaBackground }} />
     </View>
   );
 }
