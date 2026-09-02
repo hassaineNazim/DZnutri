@@ -4,9 +4,9 @@ import { AlertCircle, HelpCircle, RefreshCw, ScanLine, Trash2, User, X } from 'l
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Pressable,
   RefreshControl,
-  SectionList,
   StatusBar,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -17,13 +17,16 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
 import AppModal from '../components/ui/AppModal';
 import ProductCard, { ProductCardItem } from '../components/ui/ProductCard';
-import CollapsibleHeader, { AnimatedSectionList, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedFlatList, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { colors, radius, shadows } from '../theme/tokens';
 import { deleteCosmeticFromHistory, deleteFromHistory, fetchHistory } from '../services/saveHistorique';
 
 type Product = ProductCardItem & { nutrition_grades?: string };
+type HistoryRow =
+  | { kind: 'header'; key: string; sectionKey: string; title: string }
+  | { kind: 'product'; key: string; item: Product; animationIndex: number };
 
 const HISTORY_HEADER_HEIGHT = 310;
 const SELECTION_HEADER_HEIGHT = 94;
@@ -69,7 +72,7 @@ export default function HistoriquePage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { scrollY, onScroll, resetScrollY } = useCollapsibleHeader();
-  const historyListRef = useRef<SectionList<Product>>(null);
+  const historyListRef = useRef<FlatList<HistoryRow>>(null);
   const { height: windowHeight } = useWindowDimensions();
 
   // Les écrans d'onglets restent montés sur iOS. Il faut donc remettre la liste
@@ -78,7 +81,7 @@ export default function HistoriquePage() {
   const resetHistoryPosition = useCallback((animated = false) => {
     resetScrollY();
     requestAnimationFrame(() => {
-      historyListRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated });
+      historyListRef.current?.scrollToOffset({ offset: 0, animated });
       resetScrollY();
     });
   }, [resetScrollY]);
@@ -129,6 +132,28 @@ export default function HistoriquePage() {
   }, [history]);
 
   const sections = useMemo(() => buildSections(history, t), [history, t]);
+  const historyRows = useMemo<HistoryRow[]>(() => {
+    const rows: HistoryRow[] = [];
+    let animationIndex = 0;
+    for (const section of sections) {
+      rows.push({
+        kind: 'header',
+        key: `section-${section.key}`,
+        sectionKey: section.key,
+        title: section.title,
+      });
+      for (const item of section.data) {
+        rows.push({
+          kind: 'product',
+          key: itemKey(item),
+          item,
+          animationIndex,
+        });
+        animationIndex += 1;
+      }
+    }
+    return rows;
+  }, [sections]);
 
   const toggleSelect = (key: string) =>
     setSelectedIds((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]));
@@ -284,37 +309,37 @@ export default function HistoriquePage() {
 
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <AnimatedSectionList
+        <AnimatedFlatList
           ref={historyListRef}
-          sections={sections}
-          keyExtractor={itemKey}
+          data={historyRows}
+          keyExtractor={(row) => row.key}
           contentContainerStyle={{
             minHeight: windowHeight + (selecting ? SELECTION_HEADER_HEIGHT : HISTORY_HEADER_HEIGHT),
             padding: 22,
             paddingTop: selecting ? 116 : 332,
             paddingBottom: 120,
           }}
-          stickySectionHeadersEnabled={false}
           onScroll={onScroll}
           scrollEventThrottle={16}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />
           }
-          renderSectionHeader={({ section }) => (
-            <Txt variant="displayXBold" size={20} color={colors.ink} style={{ marginBottom: 12, marginTop: section.key === 'today' ? 0 : 10 }}>
-              {section.title}
-            </Txt>
-          )}
-          renderItem={({ item, index }) => (
-            <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 45).springify()} style={{ marginBottom: 12 }}>
-              <ProductCard
-                item={item}
-                selected={selectedIds.includes(itemKey(item))}
-                onPress={() => (selecting ? toggleSelect(itemKey(item)) : handleItemPress(item))}
-                onLongPress={() => toggleSelect(itemKey(item))}
-              />
-            </Animated.View>
-          )}
+          renderItem={({ item: row }) =>
+            row.kind === 'header' ? (
+              <Txt variant="displayXBold" size={20} color={colors.ink} style={{ marginBottom: 12, marginTop: row.sectionKey === 'today' ? 0 : 10 }}>
+                {row.title}
+              </Txt>
+            ) : (
+              <Animated.View entering={FadeInDown.delay(Math.min(row.animationIndex, 8) * 45).springify()} style={{ marginBottom: 12 }}>
+                <ProductCard
+                  item={row.item}
+                  selected={selectedIds.includes(itemKey(row.item))}
+                  onPress={() => (selecting ? toggleSelect(itemKey(row.item)) : handleItemPress(row.item))}
+                  onLongPress={() => toggleSelect(itemKey(row.item))}
+                />
+              </Animated.View>
+            )
+          }
           ListEmptyComponent={
             loadError ? (
               <View style={{ alignItems: 'center', marginTop: 70, paddingHorizontal: 24 }}>
