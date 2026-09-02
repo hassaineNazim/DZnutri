@@ -179,6 +179,8 @@ export default function Scanner() {
 
       <CameraView
         style={StyleSheet.absoluteFill}
+        facing="back"
+        autofocus="off"
         enableTorch={torch}
         onBarcodeScanned={scanResult.status === 'scanning' ? handleBarCodeScanned : undefined}
         barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8'] }}

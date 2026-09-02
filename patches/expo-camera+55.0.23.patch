@@ -1,0 +1,45 @@
+diff --git a/node_modules/expo-camera/ios/Common/DeviceDiscovery.swift b/node_modules/expo-camera/ios/Common/DeviceDiscovery.swift
+index 89fdca0..98e29ba 100644
+--- a/node_modules/expo-camera/ios/Common/DeviceDiscovery.swift
++++ b/node_modules/expo-camera/ios/Common/DeviceDiscovery.swift
+@@ -107,6 +107,21 @@ class DeviceDiscovery {
+   }
+ 
+   var defaultBackCamera: AVCaptureDevice? {
++    // Prefer a virtual rear camera when it includes the ultra-wide lens. This
++    // lets iOS switch constituents when the wide lens cannot focus closely
++    // enough (the same mechanism used for automatic macro capture).
++    if let tripleBack = AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: .back) {
++      if self.backCameraLenses.contains(tripleBack) {
++        return tripleBack
++      }
++    }
++
++    if let dualWideBack = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
++      if self.backCameraLenses.contains(dualWideBack) {
++        return dualWideBack
++      }
++    }
++
+     if let standardBack = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
+       if self.backCameraLenses.contains(standardBack) {
+         return standardBack
+diff --git a/node_modules/expo-camera/ios/Current/CameraSessionManager.swift b/node_modules/expo-camera/ios/Current/CameraSessionManager.swift
+index d387c67..520ea45 100644
+--- a/node_modules/expo-camera/ios/Current/CameraSessionManager.swift
++++ b/node_modules/expo-camera/ios/Current/CameraSessionManager.swift
+@@ -214,7 +214,13 @@ class CameraSessionManager: NSObject, DeviceDiscoveryDelegate {
+     do {
+       try device.lockForConfiguration()
+       defer { device.unlockForConfiguration() }
+-      let minZoom = 1.0
++      // Virtual dual-wide/triple cameras start at the ultra-wide field of
++      // view. Start at their first switch-over factor instead (the familiar
++      // 1x framing), while still allowing AVFoundation to fall back to the
++      // ultra-wide constituent when close-focus conditions require macro.
++      let minZoom = device.isVirtualDevice
++      ? device.virtualDeviceSwitchOverVideoZoomFactors.first?.doubleValue ?? 1.0
++      : 1.0
+       device.videoZoomFactor = minZoom * pow(device.activeFormat.videoMaxZoomFactor / minZoom, delegate.zoom)
+     } catch {
+       log.info("\(#function): \(error.localizedDescription)")
