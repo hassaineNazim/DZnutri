@@ -1,21 +1,20 @@
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { AlertCircle, HelpCircle, RefreshCw, ScanLine, Trash2, User, X } from 'lucide-react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  RefreshControl,
   StatusBar,
   TouchableOpacity,
   TouchableWithoutFeedback,
   useWindowDimensions,
   View,
 } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
 import AppModal from '../components/ui/AppModal';
 import ProductCard, { ProductCardItem } from '../components/ui/ProductCard';
-import CollapsibleHeader, { AnimatedScrollView, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedScrollView, useCollapsibleScrollRef } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { colors, radius, shadows } from '../theme/tokens';
@@ -61,12 +60,11 @@ export default function HistoriquePage() {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [confirmVisible, setConfirmVisible] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const { t } = useTranslation();
   const router = useRouter();
-  const { scrollY, onScroll } = useCollapsibleHeader();
+  const { scrollRef, scrollY, resetScroll } = useCollapsibleScrollRef();
   const { height: windowHeight } = useWindowDimensions();
 
   const loadHistory = useCallback(async (isRefresh = false) => {
@@ -80,18 +78,15 @@ export default function HistoriquePage() {
       setLoadError(true);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadHistory(true);
-  }, [loadHistory]);
+  useFocusEffect(
+    useCallback(() => {
+      resetScroll();
+      void loadHistory(true);
+    }, [loadHistory, resetScroll]),
+  );
 
   // --- Statistiques du bandeau ---
   const stats = useMemo(() => {
@@ -251,18 +246,15 @@ export default function HistoriquePage() {
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
         <AnimatedScrollView
+          ref={scrollRef}
           contentContainerStyle={{
             minHeight: windowHeight + (selecting ? SELECTION_HEADER_HEIGHT : HISTORY_HEADER_HEIGHT),
             padding: 22,
             paddingTop: selecting ? 116 : 332,
             paddingBottom: 120,
           }}
-          onScroll={onScroll}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />
-          }
         >
           {loading ? (
             <View style={{ alignItems: 'center', marginTop: 70 }}>
@@ -274,15 +266,15 @@ export default function HistoriquePage() {
                 <Txt variant="displayXBold" size={20} color={colors.ink} style={{ marginBottom: 12, marginTop: section.key === 'today' ? 0 : 10 }}>
                   {section.title}
                 </Txt>
-                {section.data.map((item, index) => (
-                  <Animated.View key={itemKey(item)} entering={FadeInDown.delay(Math.min(index, 8) * 45).springify()} style={{ marginBottom: 12 }}>
+                {section.data.map((item) => (
+                  <View key={itemKey(item)} style={{ marginBottom: 12 }}>
                     <ProductCard
                       item={item}
                       selected={selectedIds.includes(itemKey(item))}
                       onPress={() => (selecting ? toggleSelect(itemKey(item)) : handleItemPress(item))}
                       onLongPress={() => toggleSelect(itemKey(item))}
                     />
-                  </Animated.View>
+                  </View>
                 ))}
               </View>
             ))

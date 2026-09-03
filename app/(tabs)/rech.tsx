@@ -1,12 +1,12 @@
 import axios from 'axios';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Search, SlidersHorizontal, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StatusBar, TextInput, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { ActivityIndicator, StatusBar, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import FilterModal from '../components/FilterModal';
 import ProductCard from '../components/ui/ProductCard';
-import CollapsibleHeader, { AnimatedFlatList, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedScrollView, useCollapsibleScrollRef } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { api } from '../services/axios';
@@ -43,7 +43,8 @@ export default function Rech() {
     verifiedOnly: false,
   });
   const [searchError, setSearchError] = useState(false);
-  const { scrollY, onScroll } = useCollapsibleHeader();
+  const { scrollRef, scrollY, resetScroll } = useCollapsibleScrollRef();
+  const { height: windowHeight } = useWindowDimensions();
 
   const inputRef = useRef<TextInput | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -51,7 +52,14 @@ export default function Rech() {
   const filtersActive = Object.keys(filters).length > 1 || filters.verifiedOnly;
   const searchHeaderHeight = filtersActive ? 310 : 250;
 
+  useFocusEffect(
+    useCallback(() => {
+      resetScroll();
+    }, [resetScroll]),
+  );
+
   const runSearch = useCallback(async (searchQuery: string, searchFilters: SearchFilters) => {
+    resetScroll();
     if (!searchQuery.trim() && Object.keys(searchFilters).length === 1 && !searchFilters.verifiedOnly) {
       abortRef.current?.abort();
       abortRef.current = null;
@@ -89,7 +97,7 @@ export default function Rech() {
     } finally {
       if (requestId === requestSequence.current) setLoading(false);
     }
-  }, []);
+  }, [resetScroll]);
 
   const searchProducts = () => runSearch(query, filters);
 
@@ -216,20 +224,26 @@ export default function Rech() {
 
       {/* ---- Feuille crème : résultats ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        {loading ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: searchHeaderHeight }}>
-            <ActivityIndicator size="large" color={colors.green} />
-          </View>
-        ) : (
-          <AnimatedFlatList
-            data={results}
-            keyExtractor={(item) => item.barcode || item.id}
-            contentContainerStyle={{ padding: 22, paddingTop: searchHeaderHeight + 22, paddingBottom: 120 }}
-            showsVerticalScrollIndicator={false}
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            renderItem={({ item, index }) => (
-              <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 45).springify()} style={{ marginBottom: 12 }}>
+        <AnimatedScrollView
+          ref={scrollRef}
+          contentContainerStyle={{
+            minHeight: windowHeight + searchHeaderHeight,
+            padding: 22,
+            paddingTop: searchHeaderHeight + 22,
+            paddingBottom: 120,
+          }}
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          {loading ? (
+            <View style={{ marginTop: 50, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={colors.green} />
+            </View>
+          ) : results.length > 0 ? (
+            results.map((item) => (
+              <View key={item.barcode || item.id} style={{ marginBottom: 12 }}>
                 <ProductCard
                   item={item as any}
                   onPress={() =>
@@ -239,40 +253,37 @@ export default function Rech() {
                     })
                   }
                 />
-              </Animated.View>
-            )}
-            ListEmptyComponent={
-              searchError ? (
-                <View style={{ marginTop: 50, alignItems: 'center', paddingHorizontal: 20 }}>
-                  <Txt variant="medium" size={15} color={colors.red} style={{ textAlign: 'center' }}>
-                    {t('search_error')}
-                  </Txt>
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityLabel={t('retry')}
-                    onPress={searchProducts}
-                    style={{ marginTop: 14, backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 18, paddingVertical: 11 }}
-                  >
-                    <Txt variant="bold" size={14} color={colors.inkOnYellow}>{t('retry')}</Txt>
-                  </TouchableOpacity>
-                </View>
-              ) : hasSearched ? (
-                <View style={{ marginTop: 50, alignItems: 'center' }}>
-                  <Txt variant="medium" size={15} color={colors.inkSoft} style={{ textAlign: 'center' }}>
-                    {t('no_products_found')}
-                  </Txt>
-                </View>
-              ) : (
-                <View style={{ marginTop: 70, alignItems: 'center', opacity: 0.5 }}>
-                  <Search size={60} color={colors.inkSoft} />
-                  <Txt variant="medium" size={15} color={colors.inkSoft} style={{ textAlign: 'center', marginTop: 16, maxWidth: 220 }}>
-                    {t('search_placeholder_text')}
-                  </Txt>
-                </View>
-              )
-            }
-          />
-        )}
+              </View>
+            ))
+          ) : searchError ? (
+            <View style={{ marginTop: 50, alignItems: 'center', paddingHorizontal: 20 }}>
+              <Txt variant="medium" size={15} color={colors.red} style={{ textAlign: 'center' }}>
+                {t('search_error')}
+              </Txt>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={t('retry')}
+                onPress={searchProducts}
+                style={{ marginTop: 14, backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 18, paddingVertical: 11 }}
+              >
+                <Txt variant="bold" size={14} color={colors.inkOnYellow}>{t('retry')}</Txt>
+              </TouchableOpacity>
+            </View>
+          ) : hasSearched ? (
+            <View style={{ marginTop: 50, alignItems: 'center' }}>
+              <Txt variant="medium" size={15} color={colors.inkSoft} style={{ textAlign: 'center' }}>
+                {t('no_products_found')}
+              </Txt>
+            </View>
+          ) : (
+            <View style={{ marginTop: 70, alignItems: 'center', opacity: 0.5 }}>
+              <Search size={60} color={colors.inkSoft} />
+              <Txt variant="medium" size={15} color={colors.inkSoft} style={{ textAlign: 'center', marginTop: 16, maxWidth: 220 }}>
+                {t('search_placeholder_text')}
+              </Txt>
+            </View>
+          )}
+        </AnimatedScrollView>
       </View>
 
       <FilterModal

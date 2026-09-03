@@ -4,8 +4,10 @@ import Reanimated, {
   Extrapolation,
   interpolate,
   type SharedValue,
+  useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useScrollOffset,
   useSharedValue,
 } from 'react-native-reanimated';
 import Txt from './Txt';
@@ -42,6 +44,21 @@ export function useCollapsibleHeader() {
   }, [scrollY]);
 
   return { scrollY, onScroll, resetScrollY };
+}
+
+// Les onglets dont le contenu change après un appel réseau utilisent la
+// référence native du ScrollView comme source de vérité. useScrollOffset se
+// rattache à la vue même lorsqu'elle est recréée et écoute aussi les fins de
+// geste/de momentum, ce qui évite de conserver un bandeau compact à offset 0.
+export function useCollapsibleScrollRef() {
+  const scrollRef = useAnimatedRef<ScrollView>();
+  const scrollY = useScrollOffset(scrollRef);
+  const resetScroll = useCallback(() => {
+    scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    scrollY.value = 0;
+  }, [scrollRef, scrollY]);
+
+  return { scrollRef, scrollY, resetScroll };
 }
 
 /**
