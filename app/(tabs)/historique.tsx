@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StatusBar,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -14,7 +15,7 @@ import {
 import ConfirmModal from '../components/ConfirmModal';
 import AppModal from '../components/ui/AppModal';
 import ProductCard, { ProductCardItem } from '../components/ui/ProductCard';
-import CollapsibleHeader, { AnimatedScrollView, useCollapsibleScrollRef } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { useCollapsibleScrollRef } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { colors, radius, shadows } from '../theme/tokens';
@@ -64,7 +65,7 @@ export default function HistoriquePage() {
   const [loadError, setLoadError] = useState(false);
   const { t } = useTranslation();
   const router = useRouter();
-  const { scrollRef, scrollY, resetScroll } = useCollapsibleScrollRef();
+  const { scrollRef, scrollY, onScroll, resetScroll } = useCollapsibleScrollRef();
   const { height: windowHeight } = useWindowDimensions();
 
   const loadHistory = useCallback(async (isRefresh = false) => {
@@ -245,7 +246,7 @@ export default function HistoriquePage() {
 
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <AnimatedScrollView
+        <ScrollView
           ref={scrollRef}
           contentContainerStyle={{
             minHeight: windowHeight + (selecting ? SELECTION_HEADER_HEIGHT : HISTORY_HEADER_HEIGHT),
@@ -253,6 +254,7 @@ export default function HistoriquePage() {
             paddingTop: selecting ? 116 : 332,
             paddingBottom: 120,
           }}
+          onScroll={onScroll}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
@@ -302,7 +304,7 @@ export default function HistoriquePage() {
               </Txt>
             </View>
           )}
-        </AnimatedScrollView>
+        </ScrollView>
       </View>
 
       <ConfirmModal

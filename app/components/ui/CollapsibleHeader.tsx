@@ -1,13 +1,18 @@
-import React, { useCallback } from 'react';
-import { FlatList, ScrollView, SectionList, View } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import {
+  FlatList,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  ScrollView,
+  SectionList,
+  View,
+} from 'react-native';
 import Reanimated, {
   Extrapolation,
   interpolate,
   type SharedValue,
-  useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  useScrollOffset,
   useSharedValue,
 } from 'react-native-reanimated';
 import Txt from './Txt';
@@ -46,19 +51,24 @@ export function useCollapsibleHeader() {
   return { scrollY, onScroll, resetScrollY };
 }
 
-// Les onglets dont le contenu change après un appel réseau utilisent la
-// référence native du ScrollView comme source de vérité. useScrollOffset se
-// rattache à la vue même lorsqu'elle est recréée et écoute aussi les fins de
-// geste/de momentum, ce qui évite de conserver un bandeau compact à offset 0.
+// Variante fiable pour les onglets racine. L'événement standard de ScrollView
+// évite de dépendre de l'enregistrement implicite d'un observateur Reanimated,
+// qui peut manquer son rattachement sur iOS quand les onglets restent montés.
 export function useCollapsibleScrollRef() {
-  const scrollRef = useAnimatedRef<ScrollView>();
-  const scrollY = useScrollOffset(scrollRef);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useSharedValue(0);
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollY.value = Math.max(0, event.nativeEvent.contentOffset.y);
+    },
+    [scrollY],
+  );
   const resetScroll = useCallback(() => {
     scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
     scrollY.value = 0;
-  }, [scrollRef, scrollY]);
+  }, [scrollY]);
 
-  return { scrollRef, scrollY, resetScroll };
+  return { scrollRef, scrollY, onScroll, resetScroll };
 }
 
 /**

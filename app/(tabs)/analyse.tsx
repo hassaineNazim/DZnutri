@@ -1,9 +1,9 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Activity } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, StatusBar, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StatusBar, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import CollapsibleHeader, { AnimatedScrollView, useCollapsibleScrollRef } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { useCollapsibleScrollRef } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { fetchHistoryStats } from '../services/saveHistorique';
@@ -32,7 +32,7 @@ export default function AnalysePage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
-  const { scrollRef, scrollY, resetScroll } = useCollapsibleScrollRef();
+  const { scrollRef, scrollY, onScroll, resetScroll } = useCollapsibleScrollRef();
   const { height: windowHeight } = useWindowDimensions();
 
   useFocusEffect(
@@ -94,9 +94,10 @@ export default function AnalysePage() {
       </CollapsibleHeader>
 
       {/* Corps crème */}
-      <AnimatedScrollView
+      <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ minHeight: windowHeight + 300, padding: 22, paddingTop: 322, paddingBottom: 120 }}
+        onScroll={onScroll}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
       >
@@ -147,7 +148,7 @@ export default function AnalysePage() {
             </View>
           </>
         )}
-      </AnimatedScrollView>
+      </ScrollView>
     </View>
   );
 }

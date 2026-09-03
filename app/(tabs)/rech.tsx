@@ -3,10 +3,10 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Search, SlidersHorizontal, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StatusBar, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StatusBar, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import FilterModal from '../components/FilterModal';
 import ProductCard from '../components/ui/ProductCard';
-import CollapsibleHeader, { AnimatedScrollView, useCollapsibleScrollRef } from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { useCollapsibleScrollRef } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { api } from '../services/axios';
@@ -43,7 +43,7 @@ export default function Rech() {
     verifiedOnly: false,
   });
   const [searchError, setSearchError] = useState(false);
-  const { scrollRef, scrollY, resetScroll } = useCollapsibleScrollRef();
+  const { scrollRef, scrollY, onScroll, resetScroll } = useCollapsibleScrollRef();
   const { height: windowHeight } = useWindowDimensions();
 
   const inputRef = useRef<TextInput | null>(null);
@@ -224,7 +224,7 @@ export default function Rech() {
 
       {/* ---- Feuille crème : résultats ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <AnimatedScrollView
+        <ScrollView
           ref={scrollRef}
           contentContainerStyle={{
             minHeight: windowHeight + searchHeaderHeight,
@@ -232,6 +232,7 @@ export default function Rech() {
             paddingTop: searchHeaderHeight + 22,
             paddingBottom: 120,
           }}
+          onScroll={onScroll}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
@@ -283,7 +284,7 @@ export default function Rech() {
               </Txt>
             </View>
           )}
-        </AnimatedScrollView>
+        </ScrollView>
       </View>
 
       <FilterModal
