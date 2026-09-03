@@ -15,11 +15,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import ConfirmModal from '../components/ConfirmModal';
 import AppModal from '../components/ui/AppModal';
 import ProductCard, { ProductCardItem } from '../components/ui/ProductCard';
-import {
-  NativeAnimatedScrollView,
-  NativeCollapsibleHeader,
-  useNativeCollapsibleHeader,
-} from '../components/ui/CollapsibleHeader';
+import CollapsibleHeader, { AnimatedScrollView, useCollapsibleHeader } from '../components/ui/CollapsibleHeader';
 import Txt from '../components/ui/Txt';
 import { useTranslation } from '../i18n';
 import { colors, radius, shadows } from '../theme/tokens';
@@ -70,7 +66,7 @@ export default function HistoriquePage() {
   const [loadError, setLoadError] = useState(false);
   const { t } = useTranslation();
   const router = useRouter();
-  const { scrollY, onScroll } = useNativeCollapsibleHeader();
+  const { scrollY, onScroll } = useCollapsibleHeader();
   const { height: windowHeight } = useWindowDimensions();
 
   const loadHistory = useCallback(async (isRefresh = false) => {
@@ -152,7 +148,7 @@ export default function HistoriquePage() {
     <View style={{ flex: 1, backgroundColor: colors.bordeaux }}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bordeaux} />
       {/* ---- Entête bordeaux ---- */}
-      <NativeCollapsibleHeader
+      <CollapsibleHeader
         title={selecting ? `${selectedIds.length} ${t('selected')}` : t('historique')}
         scrollY={scrollY}
         expandedHeight={selecting ? SELECTION_HEADER_HEIGHT : HISTORY_HEADER_HEIGHT}
@@ -250,11 +246,11 @@ export default function HistoriquePage() {
           </>
         )}
       </View>
-      </NativeCollapsibleHeader>
+      </CollapsibleHeader>
 
       {/* ---- Feuille crème ---- */}
       <View style={{ flex: 1, backgroundColor: colors.sheet, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, overflow: 'hidden' }}>
-        <NativeAnimatedScrollView
+        <AnimatedScrollView
           contentContainerStyle={{
             minHeight: windowHeight + (selecting ? SELECTION_HEADER_HEIGHT : HISTORY_HEADER_HEIGHT),
             padding: 22,
@@ -314,7 +310,7 @@ export default function HistoriquePage() {
               </Txt>
             </View>
           )}
-        </NativeAnimatedScrollView>
+        </AnimatedScrollView>
       </View>
 
       <ConfirmModal
