@@ -7,7 +7,7 @@ import { ActivityIndicator, Image, Linking, Platform, StatusBar, TouchableOpacit
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 import Txt from '../components/ui/Txt';
-import { API_URL } from '../config/api';
+import { API_URL, PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../config/api';
 import { useTranslation } from '../i18n';
 import { registerForPushAndSendToServer } from '../services/PushNotif';
 import { startSession } from '../services/authSession';
@@ -354,7 +354,7 @@ export default function Login() {
           </Txt>
           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 6 }}>
             <TouchableOpacity
-              onPress={() => Linking.openURL(`${API_URL}/legal/privacy`)}
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
               accessibilityRole="link"
               accessibilityLabel={t('privacy_policy')}
             >
@@ -362,7 +362,7 @@ export default function Login() {
             </TouchableOpacity>
             <Txt variant="body" size={11.5} color="#a37780">·</Txt>
             <TouchableOpacity
-              onPress={() => Linking.openURL(`${API_URL}/legal/terms`)}
+              onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
               accessibilityRole="link"
               accessibilityLabel={t('terms_of_service')}
             >

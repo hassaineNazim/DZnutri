@@ -50,3 +50,5 @@ const getApiUrl = () => {
 };
 
 export const API_URL = getApiUrl();
+export const PRIVACY_POLICY_URL = 'https://remoscan.vercel.app/privacy';
+export const TERMS_OF_SERVICE_URL = 'https://remoscan.vercel.app/terms';

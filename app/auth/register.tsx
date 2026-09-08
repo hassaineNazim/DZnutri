@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Linking, Platform, ScrollView, StatusBar, Touchab
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { BackButton, Field, FormError, LinkButton, PrimaryButton } from '../components/ui/FormKit';
 import Txt from '../components/ui/Txt';
-import { API_URL } from '../config/api';
+import { API_URL, PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../config/api';
 import { useTranslation } from '../i18n';
 import { registerForPushAndSendToServer } from '../services/PushNotif';
 import { startSession } from '../services/authSession';
@@ -182,11 +182,11 @@ export default function Register() {
                             {t('terms_privacy')}
                         </Txt>
                         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 6 }}>
-                            <TouchableOpacity onPress={() => Linking.openURL(`${API_URL}/legal/privacy`)} accessibilityRole="link" accessibilityLabel={t('privacy_policy')}>
+                            <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} accessibilityRole="link" accessibilityLabel={t('privacy_policy')}>
                                 <Txt variant="bold" size={11.5} color={colors.yellow}>{t('privacy_policy')}</Txt>
                             </TouchableOpacity>
                             <Txt variant="body" size={11.5} color={colors.rose2}>·</Txt>
-                            <TouchableOpacity onPress={() => Linking.openURL(`${API_URL}/legal/terms`)} accessibilityRole="link" accessibilityLabel={t('terms_of_service')}>
+                            <TouchableOpacity onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)} accessibilityRole="link" accessibilityLabel={t('terms_of_service')}>
                                 <Txt variant="bold" size={11.5} color={colors.yellow}>{t('terms_of_service')}</Txt>
                             </TouchableOpacity>
                         </View>

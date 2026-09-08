@@ -8,7 +8,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import AppModal from '../../components/ui/AppModal';
 import CollapsibleHeader, { AnimatedScrollView, useCollapsibleHeader } from '../../components/ui/CollapsibleHeader';
 import Txt from '../../components/ui/Txt';
-import { API_URL } from '../../config/api';
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../../config/api';
 import { SupportedLang, useTranslation } from '../../i18n';
 import { colors, radius, shadows } from '../../theme/tokens';
 
@@ -112,9 +112,9 @@ function RoundBtn({ children, onPress, label }: { children: React.ReactNode; onP
   );
 }
 
-function IconTile({ tint, children }: { tint: string; children: React.ReactNode }) {
+function IconTile({ children, tint }: { children: React.ReactNode; tint: string }) {
   return (
-    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: tint, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: tint, alignItems: 'center', justifyContent: 'center' }}>
       {children}
     </View>
   );
@@ -135,58 +135,67 @@ function Row({
   right?: React.ReactNode;
   last?: boolean;
 }) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={`${label}${value ? `, ${value}` : ''}`}
-      activeOpacity={onPress ? 0.65 : 1}
+  const content = (
+    <View
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
+        paddingVertical: 14,
         paddingHorizontal: 16,
-        paddingVertical: 15,
         borderBottomWidth: last ? 0 : 1,
         borderBottomColor: colors.separator,
       }}
     >
       {tile}
-      <Txt variant="semibold" size={16} color={colors.ink} style={{ flex: 1 }}>{label}</Txt>
-      {value ? <Txt variant="semibold" size={13} color={colors.inkSoft} style={{ marginRight: 2 }}>{value}</Txt> : null}
-      {right ?? <Chevron />}
-    </TouchableOpacity>
+      <Txt variant="semibold" size={15} color={colors.ink} style={{ flex: 1, marginLeft: 14 }}>
+        {label}
+      </Txt>
+      {value ? (
+        <Txt variant="body" size={13.5} color={colors.inkSoft} style={{ marginRight: right ? 8 : 6 }}>
+          {value}
+        </Txt>
+      ) : null}
+      {right !== undefined ? right : <Chevron />}
+    </View>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        activeOpacity={0.7}
+      >
+        {content}
+      </TouchableOpacity>
+    );
+  }
+  return content;
 }
 
-export default function SettingsPage() {
-  const { lang, setLanguage, t, setFollowSystem, follow } = useTranslation();
+// --- Écran principal --------------------------------------------------------
+export default function ReglageScreen() {
   const router = useRouter();
-  const { isDark: isDarkMode, setScheme } = useTheme();
-
+  const { isDark, setScheme } = useTheme();
+  const { lang, follow, setLanguage, setFollowSystem, t } = useTranslation();
   const [selectorVisible, setSelectorVisible] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
   const { scrollY, onScroll } = useCollapsibleHeader();
 
   const currentLangLabel = useMemo(() => {
-    if (follow) return languageData.find((l) => l.value === 'fs')?.label ?? 'Système';
-    return languageData.find((l) => l.value === lang)?.label ?? 'Français';
-  }, [follow, lang]);
-
-  const toggleTheme = () => setScheme(isDarkMode ? 'light' : 'dark');
+    if (follow) return 'Système';
+    const match = languageData.find((l) => l.value === lang);
+    return match ? `${match.icon} ${match.label}` : 'Français';
+  }, [lang, follow]);
 
   const handleLanguageSelect = async (value: string) => {
     setSelectorVisible(false);
-    let result;
+    setIsRestarting(true);
+    let result: { needsRestart: boolean };
     if (value === 'fs') {
-      if (follow) return;
-      setIsRestarting(true);
       result = await setFollowSystem(true);
     } else {
-      if (lang === value && !follow) return;
-      setIsRestarting(true);
-      await setFollowSystem(false);
       result = await setLanguage(value as SupportedLang);
     }
     if (result.needsRestart) {
@@ -268,11 +277,11 @@ export default function SettingsPage() {
                 last
                 right={
                   <Switch
-                    value={isDarkMode}
-                    onValueChange={toggleTheme}
+                    value={isDark}
+                    onValueChange={(val) => setScheme(val ? 'dark' : 'light')}
                     accessibilityRole="switch"
                     accessibilityLabel={t('theme_dark')}
-                    accessibilityState={{ checked: isDarkMode }}
+                    accessibilityState={{ checked: isDark }}
                     trackColor={{ false: colors.handle, true: colors.green }}
                     thumbColor={colors.white}
                   />
@@ -295,12 +304,12 @@ export default function SettingsPage() {
               <Row
                 tile={<IconTile tint="rgba(89,18,31,0.1)"><IconShield color={colors.accent} /></IconTile>}
                 label={t('privacy_policy') || 'Politique de confidentialité'}
-                onPress={() => Linking.openURL(`${API_URL}/legal/privacy`)}
+                onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
               />
               <Row
                 tile={<IconTile tint="rgba(139,128,115,0.16)"><IconDoc color={colors.inkSoft} /></IconTile>}
                 label={t('terms_of_service') || "Conditions d'utilisation"}
-                onPress={() => Linking.openURL(`${API_URL}/legal/terms`)}
+                onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
                 last
               />
             </View>
