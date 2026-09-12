@@ -6,8 +6,8 @@
 const easBuildProfile = process.env.EAS_BUILD_PROFILE || "";
 const isProductionProfile = easBuildProfile.startsWith("production");
 
-// Identifiants OAuth publics. Le même client iOS est injecté dans la
-// configuration native ET exposé au runtime afin d'éviter toute divergence
+// Identifiants OAuth publics. Les mêmes clients sont injectés dans la
+// configuration native ET exposés au runtime afin d'éviter toute divergence
 // entre le schéma URL généré par le plugin et GoogleSignin.configure().
 const googleIosClientId =
   process.env.GOOGLE_IOS_CLIENT_ID ||
@@ -15,6 +15,9 @@ const googleIosClientId =
 const googleWebClientId =
   process.env.GOOGLE_WEB_CLIENT_ID ||
   "899058288095-137a1fct9pf5hql01n3ofqaa25dirnst.apps.googleusercontent.com";
+const googleAndroidClientId =
+  process.env.GOOGLE_ANDROID_CLIENT_ID ||
+  "899058288095-f6dhdtvfo45vqg2ffveqk584li5ilq2e.apps.googleusercontent.com";
 const googleIosUrlScheme = `com.googleusercontent.apps.${googleIosClientId.replace(
   ".apps.googleusercontent.com",
   "",
@@ -128,8 +131,7 @@ module.exports = {
       [
         "@react-native-google-signin/google-signin",
         {
-          androidClientId:
-            "632935078884-ftovu7icqv86p0p3il3s3kk3332ffob2.apps.googleusercontent.com",
+          androidClientId: googleAndroidClientId,
           iosClientId: googleIosClientId,
           iosUrlScheme: googleIosUrlScheme,
         },
@@ -167,9 +169,10 @@ module.exports = {
       facebookAppId: "1118044030243255",
       googleIosClientId,
       googleWebClientId,
+      googleAndroidClientId,
       apiUrl:
         process.env.EXPO_PUBLIC_API_URL ||
-        "https://dznutri-backend-production.up.railway.app",
+        "https://dznutri-backend-production-a89b.up.railway.app",
     },
   },
 };
