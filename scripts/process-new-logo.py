@@ -89,6 +89,7 @@ def generate_assets():
         ('assets/images/logo-remo-notification.png', notif_canvas),
         ('assets/images/favicon.png', favicon_64),
         ('assets/images/logo-remo-transparent.png', transparent_logo),
+        ('assets/images/mascotte-betterave.png', scaled_logo),
         ('admin-frontend/public/assets/logo-remo.png', full_icon_1024),
         ('admin-frontend/public/favicon.ico', favicon_64),
         ('store-assets/play-icon-512.png', icon_512),

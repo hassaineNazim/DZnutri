@@ -99,13 +99,12 @@ export default function Onboarding() {
               source={require('../assets/images/mascotte-betterave.png')}
               accessible={false}
               style={{
-                width: 138,
-                height: 138,
-                marginTop: -8,
-                marginRight: -14,
+                width: 110,
+                height: 110,
+                marginTop: -4,
+                marginRight: 0,
                 flexShrink: 0,
                 resizeMode: 'contain',
-                transform: [{ scaleX: -1 }, { rotate: '-8deg' }],
               }}
             />
           </View>
