@@ -17,6 +17,7 @@ import auth.models  # noqa: F401
 import auth.profile_models  # noqa: F401
 import bdproduitdz.models  # noqa: F401
 from bdproduitdz.cosmetic_ingredients_seed import COSMETIC_INGREDIENTS
+from bdproduitdz.additifs_seed import FOOD_ADDITIVES
 
 
 # Patches de colonnes ajoutées APRÈS la création initiale des tables.
@@ -71,6 +72,47 @@ async def _seed_cosmetic_ingredients(conn) -> int:
     return len(COSMETIC_INGREDIENTS)
 
 
+async def _seed_food_additives(conn) -> int:
+    """Remplit le référentiel des additifs alimentaires s'il est vide ou incomplet.
+
+    Idempotent : insère ou met à jour les additifs basés sur le code unique e_number.
+    """
+    count = await conn.scalar(text("SELECT count(*) FROM additifs"))
+    if count and count >= len(FOOD_ADDITIVES):
+        return 0
+
+    inserted = 0
+    for item in FOOD_ADDITIVES:
+        await conn.execute(
+            text(
+                """
+                INSERT INTO additifs (e_number, sin_number, ins_number, name, danger_level, description, source, category)
+                VALUES (:e, :sin, :ins, :n, :d, :desc, :s, :cat)
+                ON CONFLICT (e_number) DO UPDATE SET
+                    sin_number = EXCLUDED.sin_number,
+                    ins_number = EXCLUDED.ins_number,
+                    name = EXCLUDED.name,
+                    danger_level = EXCLUDED.danger_level,
+                    description = EXCLUDED.description,
+                    source = EXCLUDED.source,
+                    category = EXCLUDED.category
+                """
+            ),
+            {
+                "e": item["e_number"],
+                "sin": item["sin_number"],
+                "ins": item["ins_number"],
+                "n": item["name"],
+                "d": item["danger_level"],
+                "desc": item["description"],
+                "s": item["source"],
+                "cat": item["category"],
+            },
+        )
+        inserted += 1
+    return inserted
+
+
 async def create_tables():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -78,14 +120,17 @@ async def create_tables():
             await conn.execute(text(stmt))
         for stmt in _DATA_PATCHES:
             await conn.execute(text(stmt))
-        seeded = await _seed_cosmetic_ingredients(conn)
+        seeded_cosmetics = await _seed_cosmetic_ingredients(conn)
+        seeded_additives = await _seed_food_additives(conn)
     await engine.dispose()
     print(
         f"Schéma créé/vérifié : {len(Base.metadata.tables)} tables, "
         f"{len(_COLUMN_PATCHES)} patch(es) colonne, {len(_DATA_PATCHES)} patch(es) données, "
-        f"{seeded} ingrédient(s) cosmétique(s) seedé(s)."
+        f"{seeded_cosmetics} ingrédient(s) cosmétique(s) seedé(s), "
+        f"{seeded_additives} additif(s) alimentaire(s) seedé(s)."
     )
 
 
 if __name__ == "__main__":
     asyncio.run(create_tables())
+

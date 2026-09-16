@@ -12,7 +12,7 @@
 import hashlib
 import os
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,12 +22,17 @@ from auth.models import RefreshToken
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "365"))
 
 
+def _utc_now() -> datetime:
+    """Retourne l'horodatage UTC naïf (compatible colonnes DateTime sans fuseau)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def _new_expiry() -> datetime:
-    return datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    return _utc_now() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
 
 async def _purge_expired(db: AsyncSession, user_id: int) -> None:
@@ -36,7 +41,7 @@ async def _purge_expired(db: AsyncSession, user_id: int) -> None:
         delete(RefreshToken)
         .where(
             RefreshToken.user_id == user_id,
-            RefreshToken.expires_at < datetime.utcnow(),
+            RefreshToken.expires_at < _utc_now(),
         )
         .execution_options(synchronize_session=False)
     )
@@ -62,7 +67,7 @@ async def _get_valid(db: AsyncSession, token: str) -> RefreshToken | None:
         select(RefreshToken).where(RefreshToken.token_hash == _hash_token(token))
     )
     rt = row.scalars().first()
-    if not rt or rt.expires_at < datetime.utcnow():
+    if not rt or rt.expires_at < _utc_now():
         return None
     return rt
 
@@ -82,7 +87,7 @@ async def rotate_refresh_token(db: AsyncSession, token: str) -> tuple[int, str] 
         delete(RefreshToken)
         .where(
             RefreshToken.user_id == user_id,
-            or_(RefreshToken.id == rt.id, RefreshToken.expires_at < datetime.utcnow()),
+            or_(RefreshToken.id == rt.id, RefreshToken.expires_at < _utc_now()),
         )
         .execution_options(synchronize_session=False)
     )
