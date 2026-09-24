@@ -8,7 +8,30 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+def _normalize_database_url(raw: str | None) -> str | None:
+    """Accepte la chaîne de connexion telle que la fournit Neon/Railway.
+
+    - supprime les blancs et sauts de ligne parasites (un copier-coller depuis
+      un champ qui revient à la ligne a déjà rendu l'hôte introuvable en prod) ;
+    - force le pilote async : `postgresql://` -> `postgresql+asyncpg://` ;
+    - retire `sslmode` / `channel_binding` : asyncpg les refuse en paramètres
+      d'URL, le SSL est déjà géré via `connect_args` ci-dessous.
+    """
+    if not raw:
+        return raw
+    url = "".join(raw.split())
+    for prefix in ("postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            url = "postgresql+asyncpg://" + url[len(prefix):]
+            break
+    if "?" in url:
+        base, query = url.split("?", 1)
+        kept = [p for p in query.split("&") if p and p.split("=", 1)[0] not in ("sslmode", "channel_binding")]
+        url = base + ("?" + "&".join(kept) if kept else "")
+    return url
+
+
+DATABASE_URL = _normalize_database_url(os.getenv("DATABASE_URL"))
 
 
 def _should_use_ssl(url: str) -> bool:
