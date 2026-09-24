@@ -159,6 +159,13 @@ module.exports = {
     experiments: {
       typedRoutes: true,
     },
+    // Mises à jour OTA (EAS Update) : permet de corriger le code JavaScript sur
+    // les appareils sans repasser par les stores. Une mise à jour ne s'applique
+    // qu'aux builds de même version (1.0.0) ; changer `version` exige un build.
+    runtimeVersion: { policy: "appVersion" },
+    updates: {
+      url: "https://u.expo.dev/388f92c2-6ce6-43bd-bc1d-430a055da834",
+    },
     extra: {
       router: {
         origin: false,

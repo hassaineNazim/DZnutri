@@ -18,7 +18,8 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://dznutri-production.up.railway.app"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
@@ -27,7 +28,8 @@
       },
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "channel": "production"
     },
     "production-apk": {
       "autoIncrement": true,
@@ -37,7 +39,8 @@
       "android": {
         "buildType": "apk",
         "applicationArchivePath": "android/app/build/outputs/apk/release/app-release.apk"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {

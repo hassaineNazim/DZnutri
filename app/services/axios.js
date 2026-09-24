@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_URL } from '../config/api';
+import { API_URL, onApiUrlChange } from '../config/api';
 import { invalidateSession } from './authSession';
 import { getAccessToken, getRefreshToken, saveTokens } from './tokenStore';
 
@@ -7,6 +7,12 @@ import { getAccessToken, getRefreshToken, saveTokens } from './tokenStore';
 const api = axios.create({
   baseURL: API_URL,
   timeout: 10000,
+});
+
+// axios fige sa baseURL à la création : on la suit quand la configuration
+// distante remplace l'adresse du backend.
+onApiUrlChange((url) => {
+  api.defaults.baseURL = url;
 });
 
 if (__DEV__) {

@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import "../global.css";
+import { initApiUrl } from "./config/api";
 import { ONBOARDING_KEY } from "./onboarding";
 import { api } from "./services/axios";
 import { getAccessToken } from "./services/tokenStore";
@@ -17,6 +18,9 @@ export default function Index() {
         const bootstrap = async () => {
             let loggedIn = false;
             try {
+                // L'adresse du backend doit être résolue avant /auth/me
+                // (immédiat si elle est en cache, 3 s maximum sinon).
+                await initApiUrl();
                 const [seen, token] = await Promise.all([
                     AsyncStorage.getItem(ONBOARDING_KEY).catch(() => '1'),
                     getAccessToken(),
