@@ -28,7 +28,7 @@ module.exports = {
     name: "Remo Scan",
     slug: "DZnutri",
     host: "lan",
-    version: "1.0.0",
+    version: "1.0.1",
     orientation: "portrait",
     icon: "./assets/images/logoRemo.png",
     scheme: "dznutri",
