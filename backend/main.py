@@ -1,4 +1,5 @@
 import hashlib
+import re
 import os
 import time
 import uuid
@@ -69,6 +70,8 @@ async def _init_cache():
     None si on est en mode mémoire.
     """
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    # Jamais de mot de passe dans les journaux : redis://user:secret@hote -> redis://user:***@hote
+    safe_url = re.sub(r"(://[^:/@]*:)[^@]*@", r"\1***@", redis_url)
     try:
         from fastapi_cache.backends.redis import RedisBackend
         from redis import asyncio as aioredis
@@ -83,12 +86,12 @@ async def _init_cache():
         # On vérifie que Redis répond réellement avant de l'adopter.
         await redis.ping()
         FastAPICache.init(RedisBackend(redis), prefix="dznutri-cache", key_builder=_cache_key_builder)
-        logger.info("Cache: Redis connecté (%s)", redis_url)
+        logger.info("Cache: Redis connecté (%s)", safe_url)
         return redis
     except Exception as exc:  # noqa: BLE001 - on veut un fallback sur toute erreur
         logger.warning(
             "Cache: Redis indisponible (%s) -> fallback cache mémoire. Détail: %s",
-            redis_url, exc,
+            safe_url, exc,
         )
         FastAPICache.init(InMemoryBackend(), prefix="dznutri-cache", key_builder=_cache_key_builder)
         return None
