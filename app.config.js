@@ -172,7 +172,7 @@ module.exports = {
       googleAndroidClientId,
       apiUrl:
         process.env.EXPO_PUBLIC_API_URL ||
-        "https://dznutri-backend-production-a89b.up.railway.app",
+        "https://dznutri-production.up.railway.app",
     },
   },
 };
